@@ -2,10 +2,12 @@
 支付核心逻辑 — 生成 Plus/Team 支付链接、无痕打开浏览器、检测订阅状态
 """
 
+from __future__ import annotations
+
 import logging
 import subprocess
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 from curl_cffi import requests as cffi_requests
 
@@ -92,7 +94,7 @@ def _open_url_system_browser(url: str) -> bool:
 
 
 def generate_plus_link(
-    account: Account,
+    account: Any,
     proxy: Optional[str] = None,
     country: str = "SG",
 ) -> str:
@@ -138,7 +140,7 @@ def generate_plus_link(
 
 
 def generate_team_link(
-    account: Account,
+    account: Any,
     workspace_name: str = "MyTeam",
     price_interval: str = "month",
     seat_quantity: int = 5,
@@ -219,7 +221,7 @@ def open_url_incognito(url: str, cookies_str: Optional[str] = None) -> bool:
     return True
 
 
-def check_subscription_status(account: Account, proxy: Optional[str] = None) -> str:
+def check_subscription_status(account: Any, proxy: Optional[str] = None) -> str:
     """
     检测账号当前订阅状态。
 

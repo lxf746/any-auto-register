@@ -3,19 +3,18 @@ Token 刷新模块
 支持 Session Token 和 OAuth Refresh Token 两种刷新方式
 """
 
+from __future__ import annotations
+
 import logging
 import json
 import time
-from typing import Optional, Dict, Any, Tuple
+from typing import Any, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from curl_cffi import requests as cffi_requests
 
 # from ..config.settings import get_settings  # removed: external dep
-# from ..database.session import get_db  # removed: external dep
-# from ..database import crud  # removed: external dep
-# from ..database.models import Account  # removed: external dep
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +200,7 @@ class TokenRefreshManager:
             logger.error(result.error_message)
             return result
 
-    def refresh_account(self, account: Account) -> TokenRefreshResult:
+    def refresh_account(self, account: Any) -> TokenRefreshResult:
         """
         刷新账号的 Token
 
@@ -285,30 +284,7 @@ def refresh_account_token(account_id: int, proxy_url: Optional[str] = None) -> T
     Returns:
         TokenRefreshResult: 刷新结果
     """
-    with get_db() as db:
-        account = crud.get_account_by_id(db, account_id)
-        if not account:
-            return TokenRefreshResult(success=False, error_message="账号不存在")
-
-        manager = TokenRefreshManager(proxy_url=proxy_url)
-        result = manager.refresh_account(account)
-
-        if result.success:
-            # 更新数据库
-            update_data = {
-                "access_token": result.access_token,
-                "last_refresh": datetime.utcnow()
-            }
-
-            if result.refresh_token:
-                update_data["refresh_token"] = result.refresh_token
-
-            if result.expires_at:
-                update_data["expires_at"] = result.expires_at
-
-            crud.update_account(db, account_id, **update_data)
-
-        return result
+    return TokenRefreshResult(success=False, error_message="当前项目未集成旧版数据库刷新接口")
 
 
 def validate_account_token(account_id: int, proxy_url: Optional[str] = None) -> Tuple[bool, Optional[str]]:
@@ -322,13 +298,4 @@ def validate_account_token(account_id: int, proxy_url: Optional[str] = None) -> 
     Returns:
         Tuple[bool, Optional[str]]: (是否有效, 错误信息)
     """
-    with get_db() as db:
-        account = crud.get_account_by_id(db, account_id)
-        if not account:
-            return False, "账号不存在"
-
-        if not account.access_token:
-            return False, "账号没有 access_token"
-
-        manager = TokenRefreshManager(proxy_url=proxy_url)
-        return manager.validate_token(account.access_token)
+    return False, "当前项目未集成旧版数据库校验接口"

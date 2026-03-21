@@ -1,12 +1,15 @@
 fastapi>=0.110.0
 uvicorn>=0.29.0
+quart>=0.19.0
 sqlmodel>=0.0.16
 curl_cffi>=0.6.0
 requests>=2.31.0
 playwright>=1.43.0
+patchright>=1.52.5
 pydantic>=2.0.0
 jwcrypto>=1.5.0
 cbor2>=5.4.0
 camoufox>=0.4.0
 aiofiles>=23.0.0
+rich>=13.7.0
 pyinstaller>=6.0.0

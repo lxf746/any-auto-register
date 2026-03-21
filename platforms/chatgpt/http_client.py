@@ -1,4 +1,6 @@
 """OpenAI 专用 HTTP 客户端"""
+from typing import Any, Dict, Optional, Tuple
+
 from core.http_client import HTTPClient, HTTPClientError, RequestConfig
 from .constants import ERROR_MESSAGES
 import logging

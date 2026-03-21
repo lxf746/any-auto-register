@@ -4,12 +4,18 @@ import sys
 import os
 import time
 import threading
+from typing import Optional
 import requests
 
 SOLVER_PORT = 8889
 SOLVER_URL = f"http://localhost:{SOLVER_PORT}"
-_proc: subprocess.Popen = None
+_proc: Optional[subprocess.Popen[bytes]] = None
 _lock = threading.Lock()
+
+
+def _browser_types() -> list[str]:
+    configured = os.environ.get("SOLVER_BROWSER_TYPE", "camoufox,chromium")
+    return [item.strip() for item in configured.split(",") if item.strip()]
 
 
 def is_running() -> bool:
@@ -29,19 +35,27 @@ def start():
         solver_script = os.path.join(
             os.path.dirname(__file__), "turnstile_solver", "start.py"
         )
-        _proc = subprocess.Popen(
-            [sys.executable, solver_script,
-             "--browser_type", "camoufox"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        # 等待服务就绪（最多30s）
-        for _ in range(30):
-            time.sleep(1)
-            if is_running():
-                print(f"[Solver] 已启动 PID={_proc.pid}")
-                return
-        print("[Solver] 启动超时")
+        for browser_type in _browser_types():
+            print(f"[Solver] 尝试启动 browser_type={browser_type}")
+            _proc = subprocess.Popen(
+                [sys.executable, solver_script, "--browser_type", browser_type],
+            )
+
+            for _ in range(30):
+                time.sleep(1)
+                if is_running():
+                    print(f"[Solver] 已启动 PID={_proc.pid} browser_type={browser_type}")
+                    return
+                if _proc.poll() is not None:
+                    print(f"[Solver] 启动失败 browser_type={browser_type} exit={_proc.returncode}")
+                    break
+
+            if _proc.poll() is None:
+                _proc.terminate()
+                _proc.wait(timeout=5)
+                _proc = None
+
+        print("[Solver] 所有浏览器方案均启动失败")
 
 
 def stop():
