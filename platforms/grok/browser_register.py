@@ -1,26 +1,12 @@
 """Grok (x.ai) 浏览器注册流程（Camoufox）。"""
 import time
 from typing import Callable, Optional
-from urllib.parse import urlparse
 
 from camoufox.sync_api import Camoufox
+from core.browser_utils import build_proxy_config, dump_page_debug
 
 ACCOUNTS_URL = "https://accounts.x.ai"
 GROK_APP_URL = "https://grok.com"
-
-
-def _build_proxy_config(proxy: Optional[str]) -> Optional[dict]:
-    if not proxy:
-        return None
-    parsed = urlparse(proxy)
-    if not parsed.scheme or not parsed.hostname or not parsed.port:
-        return {"server": proxy}
-    config = {"server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"}
-    if parsed.username:
-        config["username"] = parsed.username
-    if parsed.password:
-        config["password"] = parsed.password
-    return config
 
 
 def _get_cookies(page, names: list) -> dict:
@@ -123,13 +109,10 @@ class GrokBrowserRegister:
                     break
                 time.sleep(1)
             else:
-                self.log("未检测到姓名或密码输入框，保存截图到 /tmp/grok_debug.png")
-                page.screenshot(path="/tmp/grok_debug.png")
-                with open("/tmp/grok_debug.html", "w") as f:
-                    f.write(page.content())
-
-            # DEBUG SCREENSHOT
-            page.screenshot(path="/tmp/grok_name_pass.png")
+                debug_paths = dump_page_debug(page, "grok_debug")
+                self.log(
+                    f"未检测到姓名或密码输入框，已保存调试文件到 {debug_paths['screenshot']} 和 {debug_paths['html']}"
+                )
 
             if page.query_selector('input[name="given_name"], input[name="givenName"], input[placeholder*="First"]'):
                 import random, string
@@ -175,10 +158,10 @@ class GrokBrowserRegister:
             cookies = _wait_for_cookies(page, ["sso"], timeout=60)
             sso = cookies.get("sso", "")
             if not sso:
-                self.log("未获取到 sso cookie，保存截图到 /tmp/grok_fail_final.png")
-                page.screenshot(path="/tmp/grok_fail_final.png")
-                with open("/tmp/grok_fail_final.html", "w") as f:
-                    f.write(page.content())
+                debug_paths = dump_page_debug(page, "grok_fail_final")
+                self.log(
+                    f"未获取到 sso cookie，已保存调试文件到 {debug_paths['screenshot']} 和 {debug_paths['html']}"
+                )
                 raise RuntimeError("未获取到 Grok sso cookie")
             sso_rw = _get_cookies(page, ["sso-rw"]).get("sso-rw", "")
             self.log(f"注册成功: {email}")

@@ -8,7 +8,7 @@
 
 - **多平台支持**：Trae.ai、Tavily、Cursor、Kiro、ChatGPT、OpenBlockLabs，支持自定义插件扩展
 - **多邮箱服务**：MoeMail（自建）、Laoudo、DuckMail、Cloudflare Worker 自建邮箱
-- **多执行模式**：API 协议（无浏览器）、无头浏览器（待实现）、有头浏览器（待实现）（各平台按需支持）
+- **多执行模式**：API 协议（无浏览器）、无头浏览器、可视浏览器（各平台按需支持，OAuth 能力受平台和浏览器复用配置限制）
 - **验证码服务**：YesCaptcha、2Captcha、本地 Solver（Camoufox）
 - **代理池管理**：自动轮询、成功率统计、自动禁用失效代理
 - **并发注册**：可配置并发数

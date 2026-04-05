@@ -79,6 +79,14 @@ def _to_record(model: AccountModel, graph: dict | None = None) -> AccountRecord:
 
 class AccountsRepository:
     @staticmethod
+    def _get_by_platform_email(session: Session, *, platform: str, email: str) -> AccountModel | None:
+        return session.exec(
+            select(AccountModel)
+            .where(AccountModel.platform == platform)
+            .where(AccountModel.email == email)
+        ).first()
+
+    @staticmethod
     def _load_records(session: Session, models: list[AccountModel]) -> list[AccountRecord]:
         account_ids = [int(model.id or 0) for model in models if model.id]
         graphs = load_account_graphs(session, account_ids)
@@ -145,12 +153,18 @@ class AccountsRepository:
 
     def create(self, command: AccountCreateCommand) -> AccountRecord:
         with Session(engine) as session:
-            model = AccountModel(
-                platform=command.platform,
-                email=command.email,
-                password=command.password,
-                user_id=command.user_id,
-            )
+            model = self._get_by_platform_email(session, platform=command.platform, email=command.email)
+            if model:
+                model.password = command.password
+                model.user_id = command.user_id
+                model.updated_at = datetime.now(timezone.utc)
+            else:
+                model = AccountModel(
+                    platform=command.platform,
+                    email=command.email,
+                    password=command.password,
+                    user_id=command.user_id,
+                )
             session.add(model)
             session.commit()
             session.refresh(model)
@@ -227,26 +241,20 @@ class AccountsRepository:
         created = 0
         with Session(engine) as session:
             for line in lines:
-                model = AccountModel(
-                    platform=platform,
-                    email=line.email,
-                    password=line.password,
-                )
+                model = self._get_by_platform_email(session, platform=platform, email=line.email)
+                if model:
+                    model.password = line.password
+                    model.updated_at = datetime.now(timezone.utc)
+                else:
+                    model = AccountModel(
+                        platform=platform,
+                        email=line.email,
+                        password=line.password,
+                    )
+                    created += 1
                 session.add(model)
-                created += 1
-            session.commit()
-            models = session.exec(
-                select(AccountModel)
-                .where(AccountModel.platform == platform)
-                .order_by(AccountModel.id.desc())
-                .limit(created)
-            ).all()
-            by_email = {line.email: line for line in lines}
-            for model in models:
-                line = by_email.get(model.email)
-                if not line:
-                    sync_account_graph(session, model)
-                    continue
+                session.flush()
+
                 extra = dict(line.extra or {})
                 summary_updates = dict(extra.get("overview") or extra.get("summary") or {})
                 for key in ("trial_end_time", "cashier_url", "region", "remote_email", "checked_at"):
@@ -297,10 +305,12 @@ class AccountsRepository:
                 primary_token = extra.get("primary_token")
                 if primary_token in (None, ""):
                     primary_token = extra.get("token")
+                lifecycle_status_raw = str(extra.get("lifecycle_status") or extra.get("status") or "").strip()
+                lifecycle_status = lifecycle_status_raw or None
                 patch_account_graph(
                     session,
                     model,
-                    lifecycle_status=str(extra.get("lifecycle_status") or extra.get("status") or "registered"),
+                    lifecycle_status=lifecycle_status,
                     primary_token=str(primary_token or "") or None,
                     cashier_url=str(extra.get("cashier_url") or "") or None,
                     summary_updates=summary_updates or None,

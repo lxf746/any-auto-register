@@ -1,26 +1,12 @@
 """ChatGPT 浏览器注册流程（Camoufox）。"""
 import time
 from typing import Callable, Optional
-from urllib.parse import urlparse
 
 from camoufox.sync_api import Camoufox
+from core.browser_utils import build_proxy_config, dump_page_debug
 
 OPENAI_AUTH = "https://auth.openai.com"
 CHATGPT_APP = "https://chatgpt.com"
-
-
-def _build_proxy_config(proxy: Optional[str]) -> Optional[dict]:
-    if not proxy:
-        return None
-    parsed = urlparse(proxy)
-    if not parsed.scheme or not parsed.hostname or not parsed.port:
-        return {"server": proxy}
-    config = {"server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"}
-    if parsed.username:
-        config["username"] = parsed.username
-    if parsed.password:
-        config["password"] = parsed.password
-    return config
 
 
 def _wait_for_url(page, substring: str, timeout: int = 60) -> bool:
@@ -58,9 +44,7 @@ def _click_first(page, selectors: list[str], *, timeout: int = 10) -> str | None
 
 
 def _dump_debug(page, prefix: str) -> None:
-    page.screenshot(path=f"/tmp/{prefix}.png")
-    with open(f"/tmp/{prefix}.html", "w", encoding="utf-8") as f:
-        f.write(page.content())
+    return dump_page_debug(page, prefix)
 
 
 def _get_cookies(page) -> dict:
@@ -246,8 +230,10 @@ class ChatGPTBrowserRegister:
             # Fill email
             email_sel = _wait_for_any_selector(page, email_selectors, timeout=25)
             if not email_sel:
-                self.log("未找到邮箱输入框，保存调试文件到 /tmp/chatgpt_email_fail.*")
-                _dump_debug(page, "chatgpt_email_fail")
+                debug_paths = _dump_debug(page, "chatgpt_email_fail")
+                self.log(
+                    f"未找到邮箱输入框，已保存调试文件到 {debug_paths['screenshot']} 和 {debug_paths['html']}"
+                )
                 raise RuntimeError(f"未找到邮箱输入框: {page.url}")
             self.log(f"已定位邮箱输入框: {email_sel}")
             page.fill(email_sel, email)
@@ -270,8 +256,10 @@ class ChatGPTBrowserRegister:
             # OTP step
             otp_sel = _wait_for_any_selector(page, otp_selectors, timeout=25)
             if not otp_sel:
-                self.log("未进入验证码页面，保存调试文件到 /tmp/chatgpt_otp_fail.*")
-                _dump_debug(page, "chatgpt_otp_fail")
+                debug_paths = _dump_debug(page, "chatgpt_otp_fail")
+                self.log(
+                    f"未进入验证码页面，已保存调试文件到 {debug_paths['screenshot']} 和 {debug_paths['html']}"
+                )
                 raise RuntimeError(f"未进入验证码页面: {page.url}")
 
             if not self.otp_callback:
@@ -313,8 +301,10 @@ class ChatGPTBrowserRegister:
                 page.wait_for_url("**/chatgpt.com**", timeout=45000)
             except Exception:
                 if not _wait_for_url(page, "chatgpt.com", timeout=15):
-                    self.log("未跳转到应用，保存截图到 /tmp/chatgpt_fail.png")
-                    _dump_debug(page, "chatgpt_fail")
+                    debug_paths = _dump_debug(page, "chatgpt_fail")
+                    self.log(
+                        f"未跳转到应用，已保存调试文件到 {debug_paths['screenshot']} 和 {debug_paths['html']}"
+                    )
                     raise RuntimeError(f"ChatGPT 注册后未跳转到应用: {page.url}")
 
             time.sleep(3)

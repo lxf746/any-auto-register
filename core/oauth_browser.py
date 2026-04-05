@@ -1,11 +1,11 @@
 """共享的 OAuth 浏览器辅助（支持普通 Playwright / Chrome Profile / CDP）。"""
 import time
 from typing import Callable, Iterable, Optional
-from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright
 
 from .base_identity import normalize_oauth_provider
+from .browser_utils import build_proxy_config
 
 
 OAUTH_PROVIDER_LABELS = {
@@ -111,22 +111,6 @@ def _relaunch_chrome_with_debug_port(port: int = 9222) -> bool:
     except Exception:
         pass
     return False
-
-
-def _build_proxy_config(proxy: Optional[str]) -> Optional[dict]:
-    if not proxy:
-        return None
-    parsed = urlparse(proxy)
-    if not parsed.scheme or not parsed.hostname or not parsed.port:
-        return {"server": proxy}
-    config = {"server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"}
-    if parsed.username:
-        config["username"] = parsed.username
-    if parsed.password:
-        config["password"] = parsed.password
-    return config
-
-
 _GOOGLE_ACCOUNT_SELECTORS = [
     "[data-email]",
     ".JDAKTe",
@@ -161,7 +145,7 @@ class OAuthBrowser:
 
     def __enter__(self):
         self._pw = sync_playwright().start()
-        proxy_cfg = _build_proxy_config(self.proxy)
+        proxy_cfg = build_proxy_config(self.proxy)
 
         if self.chrome_cdp_url:
             # Connect to a running Chrome instance via CDP

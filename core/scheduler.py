@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 
-from .account_graph import load_account_graphs, patch_account_graph
+from .account_graph import load_account_graphs, next_lifecycle_status_after_validity_check, patch_account_graph
 from .base_platform import AccountStatus, RegisterConfig
 from .db import engine, AccountModel
 from .platform_accounts import build_platform_account
@@ -87,7 +87,10 @@ class Scheduler:
                     a = s.get(AccountModel, acc.id)
                     if a:
                         a.updated_at = datetime.now(timezone.utc)
-                        next_status = None if valid else AccountStatus.INVALID.value
+                        next_status = next_lifecycle_status_after_validity_check(
+                            getattr(getattr(account_obj, "status", None), "value", getattr(account_obj, "status", "")),
+                            valid=bool(valid),
+                        )
                         patch_account_graph(s, a, lifecycle_status=next_status)
                         s.add(a)
                         s.commit()

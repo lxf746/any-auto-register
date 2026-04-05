@@ -1,11 +1,13 @@
 """Playwright 执行器 - 支持 headless/headed 模式"""
 from ..base_executor import BaseExecutor, Response
+from ..browser_utils import build_proxy_config
 
 
 class PlaywrightExecutor(BaseExecutor):
     def __init__(self, proxy: str = None, headless: bool = True):
         super().__init__(proxy)
         self.headless = headless
+        self._pw = None
         self._browser = None
         self._context = None
         self._page = None
@@ -22,8 +24,9 @@ class PlaywrightExecutor(BaseExecutor):
                 "--no-sandbox",
             ]
         }
-        if self.proxy:
-            launch_opts["proxy"] = {"server": self.proxy}
+        proxy_cfg = build_proxy_config(self.proxy)
+        if proxy_cfg:
+            launch_opts["proxy"] = proxy_cfg
         self._browser = self._pw.chromium.launch(**launch_opts)
         
         # 设置更长的默认超时
@@ -127,7 +130,22 @@ class PlaywrightExecutor(BaseExecutor):
         return self._page.press(selector, key, **kwargs)
 
     def close(self) -> None:
-        if self._browser:
-            self._browser.close()
-        if self._pw:
-            self._pw.stop()
+        try:
+            try:
+                if self._page and not self._page.is_closed():
+                    self._page.close()
+            except Exception:
+                pass
+            if self._context:
+                self._context.close()
+        finally:
+            try:
+                if self._browser:
+                    self._browser.close()
+            finally:
+                if self._pw:
+                    self._pw.stop()
+                self._page = None
+                self._context = None
+                self._browser = None
+                self._pw = None

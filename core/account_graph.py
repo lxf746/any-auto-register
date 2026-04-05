@@ -144,6 +144,15 @@ def _derive_validity_status(lifecycle_status: str, overview: dict[str, Any]) -> 
     return "unknown"
 
 
+def next_lifecycle_status_after_validity_check(current_lifecycle_status: str, *, valid: bool) -> str | None:
+    lifecycle_status = _text(current_lifecycle_status) or "registered"
+    if not valid:
+        return "invalid"
+    if lifecycle_status == "invalid":
+        return "registered"
+    return None
+
+
 def _derive_plan_state(
     lifecycle_status: str,
     overview: dict[str, Any],

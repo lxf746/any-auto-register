@@ -10,6 +10,10 @@ from .db import PlatformCapabilityOverrideModel, engine
 _registry: Dict[str, Type[BasePlatform]] = {}
 
 
+def _is_missing_plugin_module(exc: ModuleNotFoundError, module_name: str) -> bool:
+    return str(getattr(exc, "name", "") or "") == module_name
+
+
 def register(cls: Type[BasePlatform]):
     """装饰器：注册平台插件"""
     _registry[cls.name] = cls
@@ -20,10 +24,13 @@ def load_all():
     """自动扫描并加载 platforms/ 下所有插件"""
     import platforms
     for finder, name, _ in pkgutil.iter_modules(platforms.__path__, platforms.__name__ + "."):
+        plugin_module = f"{name}.plugin"
         try:
-            importlib.import_module(f"{name}.plugin")
-        except ModuleNotFoundError:
-            pass
+            importlib.import_module(plugin_module)
+        except ModuleNotFoundError as exc:
+            if _is_missing_plugin_module(exc, plugin_module):
+                continue
+            raise
 
 
 def get(name: str) -> Type[BasePlatform]:
