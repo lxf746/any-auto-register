@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional
 
 from sqlmodel import Session, select, func
 
-from core.account_graph import patch_account_graph
+from core.account_graph import next_lifecycle_status_after_validity_check, patch_account_graph
 from core.base_platform import AccountStatus, RegisterConfig
 from core.datetime_utils import format_local_clock, serialize_datetime
 from core.db import AccountModel, TaskEventModel, TaskLog, TaskModel, engine, save_account
@@ -524,10 +524,14 @@ def _run_single_account_check(account_id: int, logger: TaskLogger | None = None)
         if model:
             model.updated_at = _utcnow()
             summary_updates = {"checked_at": _utcnow_iso(), "valid": bool(valid)}
+            next_status = next_lifecycle_status_after_validity_check(
+                getattr(getattr(account, "status", None), "value", getattr(account, "status", "")),
+                valid=bool(valid),
+            )
             patch_account_graph(
                 session,
                 model,
-                lifecycle_status=None if valid else AccountStatus.INVALID.value,
+                lifecycle_status=next_status,
                 summary_updates=summary_updates,
             )
             session.add(model)
