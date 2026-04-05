@@ -173,9 +173,8 @@ class ProviderSettingsRepository:
             existing_items = session.exec(
                 select(ProviderSettingModel).where(ProviderSettingModel.provider_type == provider_type)
             ).all()
-            if existing_items:
-                return
             existing = {item.provider_key: item for item in existing_items}
+            has_default = any(bool(item.is_default) for item in existing_items)
             changed = False
             for definition in definitions:
                 provider_key = str(definition.provider_key or "")
@@ -188,7 +187,7 @@ class ProviderSettingsRepository:
                     display_name=definition.label or provider_key,
                     auth_mode=definition.default_auth_mode or "",
                     enabled=True,
-                    is_default=(provider_key == default_key),
+                    is_default=(not has_default and provider_key == default_key),
                 )
                 item.set_config(config)
                 item.set_auth(auth)
