@@ -15,6 +15,9 @@ engine = create_engine(DATABASE_URL)
 
 class AccountModel(SQLModel, table=True):
     __tablename__ = "accounts"
+    __table_args__ = (
+        UniqueConstraint("platform", "email", name="uq_accounts_platform_email"),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     platform: str = Field(index=True)
@@ -350,6 +353,98 @@ def _accounts_columns() -> set[str]:
     return {column["name"] for column in inspector.get_columns("accounts")}
 
 
+def _accounts_has_platform_email_unique() -> bool:
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+    if "accounts" not in tables:
+        return False
+
+    expected = ["platform", "email"]
+    for item in inspector.get_unique_constraints("accounts"):
+        columns = list(item.get("column_names") or [])
+        if columns == expected:
+            return True
+    for item in inspector.get_indexes("accounts"):
+        if not item.get("unique"):
+            continue
+        columns = list(item.get("column_names") or [])
+        if columns == expected:
+            return True
+    return False
+
+
+def _dedupe_accounts_platform_email() -> None:
+    # Keep the newest id for each (platform, email) pair and merge child rows to it.
+    with Session(engine) as session:
+        accounts = session.exec(select(AccountModel).order_by(AccountModel.id.desc())).all()
+        keeper_by_key: dict[tuple[str, str], int] = {}
+        remaps: list[tuple[int, int]] = []
+        for account in accounts:
+            source_id = int(account.id or 0)
+            if source_id <= 0:
+                continue
+            key = (str(account.platform or ""), str(account.email or ""))
+            target_id = keeper_by_key.get(key, 0)
+            if target_id <= 0:
+                keeper_by_key[key] = source_id
+                continue
+            remaps.append((source_id, target_id))
+
+        if not remaps:
+            return
+
+        for source_id, target_id in remaps:
+            if source_id == target_id:
+                continue
+
+            source_overview = session.get(AccountOverviewModel, source_id)
+            target_overview = session.get(AccountOverviewModel, target_id)
+            if source_overview:
+                if target_overview:
+                    session.delete(source_overview)
+                else:
+                    source_overview.account_id = target_id
+                    session.add(source_overview)
+
+            credentials = session.exec(
+                select(AccountCredentialModel).where(AccountCredentialModel.account_id == source_id)
+            ).all()
+            for row in credentials:
+                row.account_id = target_id
+                session.add(row)
+
+            provider_accounts = session.exec(
+                select(ProviderAccountModel).where(ProviderAccountModel.account_id == source_id)
+            ).all()
+            for row in provider_accounts:
+                row.account_id = target_id
+                session.add(row)
+
+            provider_resources = session.exec(
+                select(ProviderResourceModel).where(ProviderResourceModel.account_id == source_id)
+            ).all()
+            for row in provider_resources:
+                row.account_id = target_id
+                session.add(row)
+
+            duplicate = session.get(AccountModel, source_id)
+            if duplicate:
+                session.delete(duplicate)
+
+        session.commit()
+
+
+def _ensure_accounts_platform_email_unique() -> None:
+    _dedupe_accounts_platform_email()
+    if _accounts_has_platform_email_unique():
+        return
+
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_platform_email ON accounts (platform, email)"
+        )
+
+
 def _migrate_legacy_accounts_schema() -> None:
     columns = _accounts_columns()
     if not columns or not any(column in columns for column in LEGACY_ACCOUNT_COLUMNS):
@@ -399,7 +494,8 @@ def _migrate_legacy_accounts_schema() -> None:
                 password VARCHAR NOT NULL,
                 user_id VARCHAR NOT NULL,
                 created_at DATETIME NOT NULL,
-                updated_at DATETIME NOT NULL
+                updated_at DATETIME NOT NULL,
+                CONSTRAINT uq_accounts_platform_email UNIQUE (platform, email)
             )
             """
         )
@@ -423,6 +519,7 @@ def init_db():
     from infrastructure.provider_definitions_repository import ProviderDefinitionsRepository
 
     _migrate_legacy_accounts_schema()
+    _ensure_accounts_platform_email_unique()
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:
