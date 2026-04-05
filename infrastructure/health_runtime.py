@@ -27,7 +27,9 @@ class HealthRuntime:
         try:
             platforms = list_platforms()
             platform_count = len(platforms)
-            registry_ok = True
+            registry_ok = platform_count > 0
+            if not registry_ok:
+                registry_error = "no platform plugins loaded"
         except Exception as exc:
             platforms = []
             platform_count = 0
