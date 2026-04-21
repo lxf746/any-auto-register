@@ -22,6 +22,10 @@
 - **Any2API 联动**：注册完成后自动推送账号到 Any2API 网关，注册即可用
 - **平台扩展操作**：各平台可自定义操作（如 Kiro 账号切换、Trae Pro 升级链接生成）
 
+<a href="https://legionproxy.io/?utm_source=github&utm_campaign=any-auto-register" target="_blank"><img src="assets/legionproxy.png" alt="LegionProxy—住宅代理专为账号注册与自动化打造，74M+ 真实住宅IP，195+ 国家，HTTP/3 高速连接，$0.60/GB 起" width="100%"></a>
+
+[LegionProxy—住宅代理专为账号注册与自动化打造 74M+ 真实住宅IP · 195+ 国家 · HTTP/3 高速连接 · $0.60/GB 起](https://legionproxy.io/?utm_source=github&utm_campaign=any-auto-register)
+
 ## 技术栈
 
 | 层级 | 技术 |
