@@ -246,6 +246,36 @@ _BUILTIN_DEFINITIONS: list[dict] = [
             {"key": "sms_activate_default_country", "label": "默认国家代码", "placeholder": "ru"},
         ],
     },
+    # ── proxy ────────────────────────────────────────────────────────
+    {
+        "provider_type": "proxy",
+        "provider_key": "api_extract",
+        "label": "API 提取代理",
+        "description": "通过 HTTP API 动态提取代理 IP 列表，适用于大多数代理商的 API 提取接口",
+        "driver_type": "api_extract",
+        "default_auth_mode": "",
+        "enabled": False,
+        "auth_modes": [],
+        "fields": [
+            {"key": "proxy_api_url", "label": "API 地址", "placeholder": "https://provider.com/api/get_proxy?key=xxx"},
+            {"key": "proxy_protocol", "label": "协议", "placeholder": "http / socks5"},
+            {"key": "proxy_username", "label": "用户名 (可选)"},
+            {"key": "proxy_password", "label": "密码 (可选)", "secret": True},
+        ],
+    },
+    {
+        "provider_type": "proxy",
+        "provider_key": "rotating_gateway",
+        "label": "旋转网关代理",
+        "description": "固定入口地址，每次请求自动分配不同出口 IP，适用于 BrightData / Oxylabs / IPRoyal 等",
+        "driver_type": "rotating_gateway",
+        "default_auth_mode": "",
+        "enabled": False,
+        "auth_modes": [],
+        "fields": [
+            {"key": "proxy_gateway_url", "label": "网关地址", "placeholder": "http://user:pass@gate.example.com:7777"},
+        ],
+    },
 ]
 
 
