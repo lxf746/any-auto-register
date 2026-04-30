@@ -320,11 +320,13 @@ Cảm ơn các nhà tài trợ sau đã hỗ trợ lâu dài cho any-auto-regist
 
 Tham gia nhóm người dùng để cập nhật thông tin, kinh nghiệm cấu hình và mẹo đăng ký:
 
-<!-- TODO: bổ sung link nhóm thật / mã QR -->
+### Nhóm QQ (khuyến nghị)
 
-- **Telegram**: *Sắp có*
-- **QQ Group**: *Sắp có*
-- **WeChat Group**: *Sắp có (mã QR)*
+**Mã nhóm: `1081650009`**
+
+<a href="assets/qq-group.png" target="_blank"><img src="assets/qq-group.png" alt="Mã QR nhóm QQ" width="220" /></a>
+
+Quét mã QR phía trên hoặc tìm theo mã nhóm để tham gia.
 
 Để báo bug và yêu cầu tính năng, vui lòng dùng [Issues](https://github.com/lxf746/any-auto-register/issues).
 

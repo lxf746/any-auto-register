@@ -320,11 +320,13 @@ Thanks to the following sponsors for their long-term support of any-auto-registe
 
 Join the user group for updates, configuration tips, and registration know-how:
 
-<!-- TODO: fill in real group links / QR code -->
+### QQ Group (recommended)
 
-- **Telegram**: *TBD*
-- **QQ Group**: *TBD*
-- **WeChat Group**: *TBD (QR code)*
+**Group ID: `1081650009`**
+
+<a href="assets/qq-group.png" target="_blank"><img src="assets/qq-group.png" alt="QQ Group QR Code" width="220" /></a>
+
+Scan the QR code above or search the group ID to join.
 
 For bugs and feature requests, please use [Issues](https://github.com/lxf746/any-auto-register/issues).
 

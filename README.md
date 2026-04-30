@@ -659,11 +659,13 @@ docker compose up -d
 
 加入用户群获取最新动态、配置经验和注册技巧：
 
-<!-- TODO: 填写实际的群链接 / 二维码图片 -->
+### QQ 群（推荐）
 
-- **Telegram 群**：*待补充*
-- **QQ 群**：*待补充*
-- **微信交流群**：*待补充（可放二维码图）*
+**群号：`1081650009`**
+
+<a href="assets/qq-group.png" target="_blank"><img src="assets/qq-group.png" alt="QQ 交流群二维码" width="220" /></a>
+
+扫描上方二维码或搜索群号加入。
 
 如需提交 Bug 或请求新功能，请前往 [Issues](https://github.com/lxf746/any-auto-register/issues)。
 
