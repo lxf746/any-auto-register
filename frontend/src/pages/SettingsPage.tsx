@@ -245,9 +245,13 @@ function AboutTab() {
     setChecking(true)
     try {
       const resp = await fetch(API + '/system/version')
-      if (resp.ok) setInfo(await resp.json())
+      if (resp.ok) {
+        setInfo(await resp.json())
+      } else {
+        setInfo({ current: '?', latest: null, has_update: false })
+      }
     } catch {
-      /* silent */
+      setInfo({ current: '?', latest: null, has_update: false })
     } finally {
       setChecking(false)
     }
@@ -265,7 +269,7 @@ function AboutTab() {
             <div>
               <div className="text-sm text-[var(--text-muted)]">当前版本</div>
               <div className="mt-0.5 text-xl font-bold tracking-tight text-[var(--text-primary)]">
-                v{info?.current || '...'}
+                {info ? `v${info.current}` : checking ? '加载中...' : '—'}
               </div>
             </div>
             <div className="flex items-center gap-2">

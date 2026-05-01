@@ -27,7 +27,7 @@ def _fetch_latest_release() -> dict | None:
         if cached and (now - cached_at) < _VERSION_CACHE_TTL:
             return cached
     try:
-        resp = requests.get(_RELEASE_API, timeout=8)
+        resp = requests.get(_RELEASE_API, timeout=15)
         if resp.status_code != 200:
             return None
         payload = resp.json() or {}
