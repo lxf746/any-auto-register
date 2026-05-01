@@ -6,6 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+# PyInstaller 静态分析钩子 — 让 modulefinder 跟踪到 Solver 子进程依赖（quart 等）
+# 不会在运行时执行，只是给 PyInstaller 看
+if False:  # pragma: no cover
+    import services.turnstile_solver.api_solver  # noqa: F401
+
 from api.account_checks import router as account_checks_router
 from api.accounts import router as accounts_router
 from api.actions import router as actions_router

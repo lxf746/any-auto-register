@@ -8,6 +8,7 @@ import Register from '@/pages/Register'
 import Proxies from '@/pages/Proxies'
 import Settings from '@/pages/Settings'
 import TaskHistory from '@/pages/TaskHistory'
+import UpdateBanner from '@/components/UpdateBanner'
 import {
   ChevronDown,
   ChevronRight,
@@ -164,6 +165,7 @@ function Shell({ theme, toggleTheme }: { theme: string; toggleTheme: () => void 
       <div className="app-window flex h-[calc(100dvh-1.5rem)] min-h-[calc(100dvh-1.5rem)] gap-3 overflow-hidden p-2.5 lg:p-3">
         <Sidebar theme={theme} toggleTheme={toggleTheme} />
         <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+          <UpdateBanner />
           <main className="min-h-0 flex-1 overflow-y-auto rounded-[22px] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012))] p-3 shadow-[var(--shadow-hard)] backdrop-blur-xl lg:p-3.5">
             <Routes>
               <Route path="/" element={<Dashboard />} />

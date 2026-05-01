@@ -30,6 +30,13 @@ jobs:
       - name: Build frontend
         run: cd frontend && npm ci --legacy-peer-deps && npm run build
 
+      - name: Inject version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "__version__ = \"$VERSION\"" > core/version.py
+          cd electron && npm version --no-git-tag-version --allow-same-version "$VERSION"
+
       - name: Build Python backend
         run: |
           pip install pyinstaller
@@ -45,6 +52,10 @@ jobs:
             --collect-all language_tags \
             --collect-all ua_parser \
             --collect-all ua_parser_builtins \
+            --collect-all quart \
+            --collect-all hypercorn \
+            --collect-all aiofiles \
+            --collect-all werkzeug \
             main.py
           mkdir -p electron/backend
           cp -r dist/backend electron/backend/
@@ -88,6 +99,15 @@ jobs:
       - name: Build frontend
         run: cd frontend && npm ci --legacy-peer-deps && npm run build
 
+      - name: Inject version
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "__version__ = `"$version`"" | Out-File -FilePath core/version.py -Encoding utf8
+          cd electron
+          npm version --no-git-tag-version --allow-same-version $version
+
       - name: Build Python backend
         run: |
           pip install pyinstaller
@@ -103,6 +123,10 @@ jobs:
             --collect-all language_tags `
             --collect-all ua_parser `
             --collect-all ua_parser_builtins `
+            --collect-all quart `
+            --collect-all hypercorn `
+            --collect-all aiofiles `
+            --collect-all werkzeug `
             main.py
           New-Item -ItemType Directory -Force -Path electron/backend
           Copy-Item -Recurse dist/backend electron/backend/
