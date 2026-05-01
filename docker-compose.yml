@@ -4,6 +4,7 @@ services:
     ports:
       - "8000:8000"   # FastAPI / Web UI
       - "6080:6080"   # noVNC (headed 浏览器预览)
+      - "8889:8889"   # Turnstile Solver
     environment:
       - DISPLAY=:99
       - ACCOUNT_MANAGER_DATABASE_URL=sqlite:////app/data/account_manager.db

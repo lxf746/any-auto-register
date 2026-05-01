@@ -31,12 +31,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Solver 额外依赖
 RUN pip install --no-cache-dir quart rich
 
-# 安装 Playwright 浏览器（供 solver 使用）
+# 安装 patchright 浏览器（Solver 使用 patchright 而非原版 playwright）
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN playwright install chromium --with-deps || true
+RUN python -m patchright install chromium --with-deps
 
-# 安装 camoufox 浏览器（供 solver 使用）
-RUN python -c "import camoufox; camoufox.install()" || true
+# 安装 camoufox 浏览器（Solver 的 camoufox 模式使用）
+RUN python -m camoufox fetch
 
 # 复制后端代码
 COPY . .
@@ -54,6 +54,6 @@ RUN chmod +x /docker-entrypoint.sh
 # 不设置则无密码保护（适用于本地使用）
 ENV APP_PASSWORD=""
 
-EXPOSE 8000 6080
+EXPOSE 8000 6080 8889
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
