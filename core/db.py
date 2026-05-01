@@ -436,6 +436,7 @@ def init_db():
 
     with Session(engine) as session:
         ProviderDefinitionsRepository().ensure_seeded()
+        _migrate_legacy_provider_keys()
         _cleanup_non_real_providers()
         _cleanup_empty_provider_settings()
         sync_all_account_graphs(session)
@@ -460,6 +461,120 @@ def _cleanup_empty_provider_settings():
                 removed += 1
         if removed:
             session.commit()
+
+
+# 旧版 provider_key → 新版 provider_key 映射
+_LEGACY_PROVIDER_KEY_MAP: dict[tuple[str, str], str] = {
+    # mailbox
+    ("mailbox", "moemail"): "moemail_api",
+    ("mailbox", "generic_http"): "generic_http_mailbox",
+    ("mailbox", "tempmail_lol"): "tempmail_lol_api",
+    ("mailbox", "tempmail_web"): "tempmail_web_api",
+    ("mailbox", "duckmail"): "duckmail_api",
+    ("mailbox", "freemail"): "freemail_api",
+    ("mailbox", "cfworker"): "cfworker_admin_api",
+    ("mailbox", "testmail"): "testmail_api",
+    ("mailbox", "laoudo"): "laoudo_api",
+}
+
+# 旧版 auth_mode 值 → 新版 auth_mode 值映射
+_LEGACY_AUTH_MODE_MAP: dict[str, str] = {
+    "endpoint_only": "password",
+    "manual_login": "password",
+    "bearer_token": "bearer",
+    "jwt_token": "token",
+    "admin_token": "token",
+    "api_key": "apikey",
+}
+
+
+def _migrate_legacy_provider_keys():
+    """将旧版 provider_key 和 auth_mode 迁移到新版命名。
+
+    同时迁移 provider_settings 和 provider_definitions 两张表。
+    如果新 key 已存在则删除旧记录（避免唯一约束冲突）。
+    迁移后还会修正 auth_mode 值，使其匹配新版 definition 的有效值。
+    """
+    with Session(engine) as session:
+        migrated = 0
+
+        # 1. 迁移 provider_key
+        for (ptype, old_key), new_key in _LEGACY_PROVIDER_KEY_MAP.items():
+            # --- provider_settings ---
+            old_setting = session.exec(
+                select(ProviderSettingModel)
+                .where(ProviderSettingModel.provider_type == ptype)
+                .where(ProviderSettingModel.provider_key == old_key)
+            ).first()
+            if old_setting:
+                new_setting = session.exec(
+                    select(ProviderSettingModel)
+                    .where(ProviderSettingModel.provider_type == ptype)
+                    .where(ProviderSettingModel.provider_key == new_key)
+                ).first()
+                if new_setting:
+                    session.delete(old_setting)
+                else:
+                    old_setting.provider_key = new_key
+                    session.add(old_setting)
+                migrated += 1
+
+            # --- provider_definitions ---
+            old_defn = session.exec(
+                select(ProviderDefinitionModel)
+                .where(ProviderDefinitionModel.provider_type == ptype)
+                .where(ProviderDefinitionModel.provider_key == old_key)
+            ).first()
+            if old_defn:
+                new_defn = session.exec(
+                    select(ProviderDefinitionModel)
+                    .where(ProviderDefinitionModel.provider_type == ptype)
+                    .where(ProviderDefinitionModel.provider_key == new_key)
+                ).first()
+                if new_defn:
+                    session.delete(old_defn)
+                else:
+                    old_defn.provider_key = new_key
+                    session.add(old_defn)
+                migrated += 1
+
+        if migrated:
+            session.commit()
+            print(f"[DB] 已迁移 {migrated} 条旧版 provider key")
+
+        # 2. 修正 auth_mode 值
+        fixed = 0
+        all_settings = session.exec(select(ProviderSettingModel)).all()
+        for item in all_settings:
+            old_mode = item.auth_mode or ""
+            if not old_mode:
+                continue
+            # 查找对应的 definition
+            defn = session.exec(
+                select(ProviderDefinitionModel)
+                .where(ProviderDefinitionModel.provider_type == item.provider_type)
+                .where(ProviderDefinitionModel.provider_key == item.provider_key)
+            ).first()
+            if not defn:
+                continue
+            valid_modes = {m.get("value") for m in defn.get_auth_modes()}
+            if not valid_modes or old_mode in valid_modes:
+                # 当前值已经有效，跳过
+                continue
+            # 尝试映射
+            new_mode = _LEGACY_AUTH_MODE_MAP.get(old_mode)
+            if new_mode and new_mode in valid_modes:
+                item.auth_mode = new_mode
+            elif defn.default_auth_mode:
+                item.auth_mode = defn.default_auth_mode
+            else:
+                continue
+            session.add(item)
+            fixed += 1
+
+        if fixed:
+            session.commit()
+            print(f"[DB] 已修正 {fixed} 条旧版 auth_mode")
 
 
 def _cleanup_non_real_providers():
