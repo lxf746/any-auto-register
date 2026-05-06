@@ -2,6 +2,8 @@ import { BrowserRouter, NavLink, Route, Routes, useLocation, useNavigate } from 
 import { useEffect, useState } from 'react'
 import { getPlatforms } from '@/lib/app-data'
 import { getAuthToken, setAuthToken, API, cn } from '@/lib/utils'
+import { I18nProvider, useI18n } from '@/lib/i18n-context'
+import type { TranslationKey } from '@/lib/i18n'
 import Dashboard from '@/pages/Dashboard'
 import Accounts from '@/pages/Accounts'
 import Register from '@/pages/Register'
@@ -17,6 +19,7 @@ import {
   Settings as SettingsIcon,
   Sun,
   Monitor,
+  Languages,
   Users,
   PanelLeftClose,
   PanelLeft,
@@ -26,11 +29,11 @@ import {
 /*  Sidebar                                                            */
 /* ------------------------------------------------------------------ */
 
-type NavItem = { path: string; label: string; icon: any; exact?: boolean }
+type NavItem = { path: string; labelKey: TranslationKey; icon: any; exact?: boolean }
 
 const NAV_ITEMS: NavItem[] = [
-  { path: '/', label: '总览', icon: LayoutDashboard, exact: true },
-  { path: '/history', label: '任务', icon: History },
+  { path: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard, exact: true },
+  { path: '/history', labelKey: 'nav.tasks', icon: History },
 ]
 
 function Sidebar({
@@ -44,6 +47,7 @@ function Sidebar({
   collapsed: boolean
   setCollapsed: (v: boolean) => void
 }) {
+  const { t, toggleLanguage } = useI18n()
   const location = useLocation()
   const navigate = useNavigate()
   const [platforms, setPlatforms] = useState<{ key: string; label: string }[]>([])
@@ -100,8 +104,9 @@ function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {NAV_ITEMS.map(({ path, label, icon: Icon, exact }) => {
+        {NAV_ITEMS.map(({ path, labelKey, icon: Icon, exact }) => {
           const active = exact ? location.pathname === path : location.pathname.startsWith(path)
+          const label = t(labelKey)
           return (
             <NavLink key={path} to={path} end={exact} className={navLinkClass(active)} title={collapsed ? label : undefined}>
               <Icon className={iconClass(active)} />
@@ -121,12 +126,12 @@ function Sidebar({
               }
             }}
             className={cn(navLinkClass(isAccounts), 'w-full')}
-            title={collapsed ? '账号' : undefined}
+            title={collapsed ? t('nav.accounts') : undefined}
           >
             <Users className={iconClass(isAccounts)} />
             {!collapsed && (
               <>
-                <span className="flex-1 text-left">账号</span>
+                <span className="flex-1 text-left">{t('nav.accounts')}</span>
                 <ChevronRight className={cn('h-3 w-3 text-[var(--text-muted)] transition-transform duration-150', accountsOpen && 'rotate-90')} />
               </>
             )}
@@ -167,23 +172,23 @@ function Sidebar({
               }
             }}
             className={cn(navLinkClass(isSettings), 'w-full')}
-            title={collapsed ? '设置' : undefined}
+            title={collapsed ? t('nav.settings') : undefined}
           >
             <SettingsIcon className={iconClass(isSettings)} />
-            {!collapsed && <span>设置</span>}
+            {!collapsed && <span>{t('nav.settings')}</span>}
           </button>
           {!collapsed && isSettings && (
             <div className="ml-[21px] mt-0.5 space-y-px border-l border-[var(--border)] pl-3">
               {[
-                { label: '通用', hash: 'general' },
-                { label: '注册策略', hash: 'register' },
-                { label: '邮箱服务', hash: 'mailbox' },
-                { label: '验证服务', hash: 'captcha' },
-                { label: '接码服务', hash: 'sms' },
-                { label: '代理资源', hash: 'proxies' },
-                { label: 'ChatGPT', hash: 'chatgpt' },
-                { label: '高级', hash: 'advanced' },
-                { label: '关于', hash: 'about' },
+                { label: t('nav.settings.general'), hash: 'general' },
+                { label: t('nav.settings.register'), hash: 'register' },
+                { label: t('nav.settings.mailbox'), hash: 'mailbox' },
+                { label: t('nav.settings.captcha'), hash: 'captcha' },
+                { label: t('nav.settings.sms'), hash: 'sms' },
+                { label: t('nav.settings.proxies'), hash: 'proxies' },
+                { label: t('nav.settings.chatgpt'), hash: 'chatgpt' },
+                { label: t('nav.settings.advanced'), hash: 'advanced' },
+                { label: t('nav.settings.about'), hash: 'about' },
               ].map((item) => {
                 const params = new URLSearchParams(location.search)
                 const currentTab = params.get('tab') || 'general'
@@ -216,19 +221,26 @@ function Sidebar({
           className={cn(
             'flex items-center justify-center rounded-md p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]',
           )}
-          title={theme === 'light' ? '切换到深色' : theme === 'dark' ? '切换到浅色' : '跟随系统'}
+          title={theme === 'light' ? t('sidebar.theme.toDark') : theme === 'dark' ? t('sidebar.theme.toLight') : t('sidebar.theme.followSystem')}
         >
           {theme === 'light' ? <Moon className="h-4 w-4" /> : theme === 'system' ? <Monitor className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         </button>
         {!collapsed && (
           <span className="flex-1 text-[12px] text-[var(--text-muted)]">
-            {theme === 'light' ? '浅色' : theme === 'dark' ? '深色' : '系统'}
+            {theme === 'light' ? t('sidebar.theme.light') : theme === 'dark' ? t('sidebar.theme.dark') : t('sidebar.theme.system')}
           </span>
         )}
         <button
+          onClick={toggleLanguage}
+          className="flex items-center justify-center rounded-md p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+          title={t('sidebar.languageToggle')}
+        >
+          <Languages className="h-4 w-4" />
+        </button>
+        <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center justify-center rounded-md p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
-          title={collapsed ? '展开侧栏' : '收起侧栏'}
+          title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
         >
           {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
@@ -282,6 +294,7 @@ function Shell({
 /* ------------------------------------------------------------------ */
 
 function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
+  const { t } = useI18n()
   const [pw, setPw] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -301,10 +314,10 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
         setAuthToken(data.token || '')
         onLogin(data.token || '')
       } else {
-        setError(data.error || '密码错误')
+        setError(data.error || t('login.passwordError'))
       }
     } catch {
-      setError('请求失败')
+      setError(t('login.requestFailed'))
     } finally {
       setLoading(false)
     }
@@ -317,12 +330,12 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)] text-sm font-bold text-white">A</div>
           <h1 className="text-base font-semibold text-[var(--text-primary)]">Any Auto Register</h1>
         </div>
-        <p className="text-sm text-[var(--text-muted)]">请输入访问密码</p>
+        <p className="text-sm text-[var(--text-muted)]">{t('login.prompt')}</p>
         <input
           type="password"
           value={pw}
           onChange={(e) => setPw(e.target.value)}
-          placeholder="密码"
+          placeholder={t('login.passwordPlaceholder')}
           autoFocus
           className="control-surface w-full"
         />
@@ -332,7 +345,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
           disabled={loading || !pw}
           className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
-          {loading ? '验证中...' : '登 录'}
+          {loading ? t('login.checking') : t('login.submit')}
         </button>
       </form>
     </div>
@@ -343,7 +356,8 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
 /*  App root                                                           */
 /* ------------------------------------------------------------------ */
 
-export default function App() {
+function AppContent() {
+  const { t } = useI18n()
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const [authState, setAuthState] = useState<'loading' | 'open' | 'locked' | 'authed'>('loading')
 
@@ -378,7 +392,7 @@ export default function App() {
     setTheme((c) => (c === 'dark' ? 'light' : c === 'light' ? 'system' : 'dark'))
 
   if (authState === 'loading') {
-    return <div className="flex h-screen items-center justify-center bg-[var(--bg-base)] text-[var(--text-muted)] text-sm">加载中...</div>
+    return <div className="flex h-screen items-center justify-center bg-[var(--bg-base)] text-[var(--text-muted)] text-sm">{t('app.loading')}</div>
   }
   if (authState === 'locked') {
     return <LoginScreen onLogin={() => setAuthState('authed')} />
@@ -388,5 +402,13 @@ export default function App() {
     <BrowserRouter>
       <Shell theme={theme} setTheme={setTheme} toggleTheme={toggleTheme} />
     </BrowserRouter>
+  )
+}
+
+export default function App() {
+  return (
+    <I18nProvider>
+      <AppContent />
+    </I18nProvider>
   )
 }

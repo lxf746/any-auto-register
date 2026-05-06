@@ -3,6 +3,7 @@ import { getConfig, getConfigOptions, getPlatforms } from '@/lib/app-data'
 import type { ConfigOptionsResponse, ProviderOption, ProviderSetting } from '@/lib/config-options'
 import { getCaptchaStrategyLabel, getProviderSelectOptions, listProviderFieldKeys } from '@/lib/config-options'
 import { apiFetch } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n-context'
 import { buildExecutorOptions, buildRegistrationOptions, hasReusableOAuthBrowser, pickOAuthExecutor } from '@/lib/registration'
 import { TaskLogPanel } from '@/components/tasks/TaskLogPanel'
 import { Button } from '@/components/ui/button'
@@ -44,6 +45,7 @@ function getDefaultProviderKey(settings: ProviderSetting[] = []) {
 }
 
 export default function Register() {
+  const { t, language } = useI18n()
   const [form, setForm] = useState<Record<string, any>>(DEFAULT_FORM)
   const [platforms, setPlatforms] = useState<any[]>([])
   const [configOptions, setConfigOptions] = useState<ConfigOptionsResponse>({
@@ -104,7 +106,7 @@ export default function Register() {
           identity_mode_options: [],
           oauth_provider_options: [],
         })
-        setOptionsError('未加载到 provider 元数据。请重启后端后刷新页面。')
+        setOptionsError(t('register.providerMetadataError'))
       }
       setForm(f => {
         const nextForm: Record<string, any> = {
@@ -135,12 +137,13 @@ export default function Register() {
   const currentPlatform = platforms.find((p: any) => p.name === form.platform) || null
   const platformOptions = platforms.map((p: any) => [p.name, p.display_name])
   const supportedExecutors = currentPlatform?.supported_executors || []
-  const registrationOptions = buildRegistrationOptions(currentPlatform)
+  const registrationOptions = buildRegistrationOptions(currentPlatform, language)
   const executorOptions = buildExecutorOptions(
     form.identity_provider,
     supportedExecutors,
     hasReusableOAuthBrowser(form),
     currentPlatform?.supported_executor_options || [],
+    language,
   )
   const mailboxProviderOptions = getProviderSelectOptions(configOptions.mailbox_providers || [])
   const currentMailboxProvider = (configOptions.mailbox_providers || []).find(provider => provider.value === form.mail_provider) || null
@@ -353,12 +356,12 @@ export default function Register() {
 
   const summaryRegistration = registrationOptions.find(option => option.identityProvider === form.identity_provider && option.oauthProvider === form.oauth_provider)?.label || '-'
   const summaryExecutor = executorOptions.find(option => option.value === form.executor_type)?.label || '-'
-  const summaryVerification = getCaptchaStrategyLabel(form.executor_type, configOptions.captcha_policy, configOptions.captcha_providers)
+  const summaryVerification = getCaptchaStrategyLabel(form.executor_type, configOptions.captcha_policy, configOptions.captcha_providers, language)
   const activeTaskStats = task ? [
-    { label: '状态', value: getTaskStatusText(task.status), icon: Orbit },
-    { label: '进度', value: task.progress || '0/0', icon: Workflow },
-    { label: '成功', value: String(task.success ?? 0), icon: CheckCircle },
-    { label: '失败', value: String(task.error_count ?? task.errors?.length ?? 0), icon: XCircle },
+    { label: t('common.status'), value: getTaskStatusText(task.status, language), icon: Orbit },
+    { label: t('common.progress'), value: task.progress || '0/0', icon: Workflow },
+    { label: t('common.success'), value: String(task.success ?? 0), icon: CheckCircle },
+    { label: t('common.failure'), value: String(task.error_count ?? task.errors?.length ?? 0), icon: XCircle },
   ] : []
 
   return (
@@ -366,18 +369,18 @@ export default function Register() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_340px]">
         <div className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>基本配置</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('register.basicConfig')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <Select label="平台" k="platform" options={platformOptions} />
+              <Select label={t('common.platform')} k="platform" options={platformOptions} />
               <div className="grid gap-4 md:grid-cols-2">
-                <Input label="批量数量" k="count" type="number" />
-                <Input label="代理 (可选)" k="proxy" placeholder="http://user:pass@host:port" />
+                <Input label={t('register.batchCount')} k="count" type="number" />
+                <Input label={t('register.proxyOptional')} k="proxy" placeholder="http://user:pass@host:port" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Step 1 · 注册身份</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('register.stepIdentity')}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid gap-3 md:grid-cols-2">
                 {registrationOptions.map((option) => {
@@ -409,7 +412,7 @@ export default function Register() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Step 2 · 执行通道</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('register.stepExecutor')}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid gap-3 md:grid-cols-3">
                 {executorOptions.map((option) => {
@@ -439,11 +442,11 @@ export default function Register() {
               </div>
               {form.identity_provider === 'oauth_browser' && (
                 <>
-                  <Input label="预期登录邮箱 (可选)" k="oauth_email_hint" placeholder="your-account@example.com" />
-                  <Input label="Chrome Profile 路径" k="chrome_user_data_dir" placeholder="~/Library/Application Support/Google/Chrome" />
-                  <Input label="Chrome CDP 地址" k="chrome_cdp_url" placeholder="http://localhost:9222" />
+                  <Input label={t('register.oauthHintOptional')} k="oauth_email_hint" placeholder="your-account@example.com" />
+                  <Input label={t('settings.chromeProfile')} k="chrome_user_data_dir" placeholder="~/Library/Application Support/Google/Chrome" />
+                  <Input label={t('settings.chromeCdp')} k="chrome_cdp_url" placeholder="http://localhost:9222" />
                   <p className="text-xs text-[var(--text-muted)]">
-                    第三方账号走后台浏览器自动时，建议先配置 Chrome Profile 或 Chrome CDP，以便复用本机已登录的浏览器会话。
+                    {t('register.browserReuseHint')}
                   </p>
                 </>
               )}
@@ -452,7 +455,7 @@ export default function Register() {
 
           {form.identity_provider === 'mailbox' && (
             <Card>
-              <CardHeader><CardTitle>系统邮箱配置</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('register.mailboxConfig')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {optionsError && (
                   <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -460,10 +463,10 @@ export default function Register() {
                   </div>
                 )}
                 {mailboxProviderOptions.length > 0 ? (
-                  <Select label="邮箱服务" k="mail_provider" options={mailboxProviderOptions} />
+                  <Select label={t('register.mailboxService')} k="mail_provider" options={mailboxProviderOptions} />
                 ) : (
                   <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                    当前没有已启用的邮箱 provider，请先到设置页新增并启用一个默认邮箱 provider。
+                    {t('register.noMailboxProvider')}
                   </div>
                 )}
                 {currentMailboxProvider?.description ? (
@@ -476,14 +479,14 @@ export default function Register() {
 
           {smsProviderOptions.length > 0 && (
             <Card>
-              <CardHeader><CardTitle>短信接码配置</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('register.smsConfig')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {optionsError && (
                   <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                     {optionsError}
                   </div>
                 )}
-                <Select label="短信服务" k="sms_provider" options={smsProviderOptions} />
+                <Select label={t('register.smsService')} k="sms_provider" options={smsProviderOptions} />
                 {currentSmsProvider?.description ? (
                   <p className="text-xs leading-5 text-[var(--text-muted)]">{currentSmsProvider.description}</p>
                 ) : null}
@@ -496,7 +499,7 @@ export default function Register() {
         <div className="space-y-5 xl:sticky xl:top-4 xl:self-start">
           <Card className="bg-[var(--bg-pane)]/62">
             <CardHeader>
-              <CardTitle>当前编排摘要</CardTitle>
+              <CardTitle>{t('register.summary')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
@@ -518,7 +521,7 @@ export default function Register() {
                 </div>
               </div>
               <Button onClick={submit} disabled={polling} className="w-full">
-                {polling ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />注册中...</> : <><Play className="mr-2 h-4 w-4" />开始注册</>}
+                {polling ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('register.running')}</> : <><Play className="mr-2 h-4 w-4" />{t('register.start')}</>}
               </Button>
             </CardContent>
           </Card>
@@ -528,9 +531,9 @@ export default function Register() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    执行状态
+                    {t('register.executionStatus')}
                     <Badge variant={TASK_STATUS_VARIANTS[task.status] || 'secondary'}>
-                      {getTaskStatusText(task.status)}
+                      {getTaskStatusText(task.status, language)}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -547,7 +550,7 @@ export default function Register() {
                     ))}
                   </div>
                   <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--chip-bg)] p-3 text-xs text-[var(--text-secondary)]">
-                    <div>任务 ID</div>
+                    <div>{t('taskHistory.taskId')}</div>
                     <div className="mt-1 break-all font-mono text-[var(--text-primary)]">{task.id}</div>
                   </div>
                   {task.errors?.length > 0 && (
@@ -569,19 +572,19 @@ export default function Register() {
                   {task.status === 'interrupted' && !task.error && (
                     <div className="flex items-center gap-2 text-amber-400">
                       <XCircle className="h-4 w-4" />
-                      <span className="text-xs">任务在服务重启后被中断</span>
+                      <span className="text-xs">{t('register.taskInterrupted')}</span>
                     </div>
                   )}
                   {task.status === 'cancelled' && !task.error && (
                     <div className="flex items-center gap-2 text-amber-400">
                       <XCircle className="h-4 w-4" />
-                      <span className="text-xs">任务已取消</span>
+                      <span className="text-xs">{t('register.taskCancelled')}</span>
                     </div>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader><CardTitle>实时日志</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t('register.liveLogs')}</CardTitle></CardHeader>
                 <CardContent>
                   <TaskLogPanel taskId={task.id} onDone={handleTaskDone} />
                 </CardContent>
@@ -589,8 +592,8 @@ export default function Register() {
             </>
           ) : (
             <Card className="bg-[var(--bg-pane)]/55">
-              <CardHeader><CardTitle>等待执行</CardTitle></CardHeader>
-              <CardContent className="text-sm text-[var(--text-secondary)]">创建后显示状态与日志。</CardContent>
+              <CardHeader><CardTitle>{t('register.waiting')}</CardTitle></CardHeader>
+              <CardContent className="text-sm text-[var(--text-secondary)]">{t('register.waitingDesc')}</CardContent>
             </Card>
           )}
         </div>

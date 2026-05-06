@@ -5,6 +5,8 @@ import { getConfig, getConfigOptions, getPlatforms } from '@/lib/app-data'
 import type { ConfigOptionsResponse } from '@/lib/config-options'
 import { getCaptchaStrategyLabel } from '@/lib/config-options'
 import { apiDownload, apiFetch, triggerBrowserDownload } from '@/lib/utils'
+import { formatDateTime, translateAccountStatus } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n-context'
 import { buildExecutorOptions, buildRegistrationOptions, hasReusableOAuthBrowser, pickOAuthExecutor } from '@/lib/registration'
 import { TaskLogPanel } from '@/components/tasks/TaskLogPanel'
 import { Badge } from '@/components/ui/badge'
@@ -183,6 +185,7 @@ function RegisterModal({
   onClose: () => void
   onDone: () => void
 }) {
+  const { t, language } = useI18n()
   const [config, setConfig] = useState<any | null>(null)
   const [configOptions, setConfigOptions] = useState<ConfigOptionsResponse>({
     mailbox_providers: [],
@@ -207,13 +210,14 @@ function RegisterModal({
   const [starting, setStarting] = useState(false)
 
   const supportedExecutors: string[] = platformMeta?.supported_executors || []
-  const registrationOptions = buildRegistrationOptions(platformMeta)
+  const registrationOptions = buildRegistrationOptions(platformMeta, language)
   const reusableBrowser = hasReusableOAuthBrowser(config || {})
   const executorOptions = buildExecutorOptions(
     selection.identityProvider,
     supportedExecutors,
     reusableBrowser,
     platformMeta?.supported_executor_options || [],
+    language,
   )
   const selectedRegistration = registrationOptions.find(option =>
     option.identityProvider === selection.identityProvider && option.oauthProvider === selection.oauthProvider,
@@ -271,6 +275,7 @@ function RegisterModal({
         supportedExecutors,
         hasReusableOAuthBrowser(cfg),
         platformMeta?.supported_executor_options || [],
+        language,
       )
         .filter(option => !option.disabled)
       const preferredExecutor = identityProvider === 'oauth_browser'
@@ -297,6 +302,7 @@ function RegisterModal({
       supportedExecutors,
       reusableBrowser,
       platformMeta?.supported_executor_options || [],
+      language,
     )
       .filter(option => !option.disabled)
     if (!validExecutorOptions.some(option => option.value === selection.executorType)) {
@@ -328,7 +334,7 @@ function RegisterModal({
       }
       if (selection.identityProvider === 'mailbox') {
         if (!defaultMailboxProvider?.provider_key) {
-          throw new Error('未配置默认邮箱 provider，请先到设置页启用一个邮箱 provider')
+          throw new Error(t('accounts.missingDefaultMailbox'))
         }
         extra.mail_provider = defaultMailboxProvider.provider_key
       }
@@ -356,19 +362,19 @@ function RegisterModal({
       <div className="dialog-panel dialog-panel-md flex flex-col"
            onClick={e => e.stopPropagation()} style={{maxHeight: '88vh'}}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">注册 {platformMeta?.display_name || platform}</h2>
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('accounts.autoRegister')} {platformMeta?.display_name || platform}</h2>
           <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X className="h-4 w-4" /></button>
         </div>
         <div className="px-6 py-4 flex-1 overflow-y-auto flex flex-col gap-5">
           {!taskId ? (
             configLoading ? (
-              <div className="text-sm text-[var(--text-muted)]">正在加载注册配置...</div>
+              <div className="text-sm text-[var(--text-muted)]">{t('accounts.loadingRegistrationConfig')}</div>
             ) : (
               <>
                 <div>
                   <div className="text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">Step 1</div>
-                  <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">选择注册身份</div>
-                  <div className="mt-1 text-xs text-[var(--text-muted)]">当前平台支持什么，这里就显示什么，不再让你先研究平台能力配置。</div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{t('accounts.selectIdentity')}</div>
+                  <div className="mt-1 text-xs text-[var(--text-muted)]">{t('accounts.selectIdentityDesc')}</div>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     {registrationOptions.map(option => {
                       const active = selection.identityProvider === option.identityProvider && selection.oauthProvider === option.oauthProvider
@@ -400,8 +406,8 @@ function RegisterModal({
 
                 <div>
                   <div className="text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">Step 2</div>
-                  <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">选择执行方式</div>
-                  <div className="mt-1 text-xs text-[var(--text-muted)]">所有方式都自动执行，只是协议或浏览器通道不同。</div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{t('accounts.selectExecutor')}</div>
+                  <div className="mt-1 text-xs text-[var(--text-muted)]">{t('accounts.selectExecutorDesc')}</div>
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
                     {executorOptions.map(option => {
                       const active = selection.executorType === option.value
@@ -432,13 +438,13 @@ function RegisterModal({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-[var(--text-muted)] block mb-1">注册数量</label>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1">{t('accounts.registrationCount')}</label>
                     <input type="number" min={1} max={99} value={regCount}
                       onChange={e => setRegCount(Number(e.target.value))}
                       className="control-surface control-surface-compact text-center" />
                   </div>
                   <div>
-                    <label className="text-xs text-[var(--text-muted)] block mb-1">并发数</label>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1">{t('accounts.concurrency')}</label>
                     <input type="number" min={1} max={5} value={concurrency}
                       onChange={e => setConcurrency(Number(e.target.value))}
                       className="control-surface control-surface-compact text-center" />
@@ -446,9 +452,9 @@ function RegisterModal({
                 </div>
 
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-hover)] px-4 py-3 text-xs text-[var(--text-secondary)]">
-                  <div>注册身份: <span className="text-[var(--text-primary)]">{selectedRegistration?.label || '-'}</span></div>
-                  <div className="mt-1">执行方式: <span className="text-[var(--text-primary)]">{selectedExecutor?.label || '-'}</span></div>
-                  <div className="mt-1">验证策略: <span className="text-[var(--text-primary)]">{getCaptchaStrategyLabel(selection.executorType)}</span></div>
+                  <div>{t('accounts.identitySummary')}: <span className="text-[var(--text-primary)]">{selectedRegistration?.label || '-'}</span></div>
+                  <div className="mt-1">{t('accounts.executorSummary')}: <span className="text-[var(--text-primary)]">{selectedExecutor?.label || '-'}</span></div>
+                  <div className="mt-1">{t('accounts.verificationSummary')}: <span className="text-[var(--text-primary)]">{getCaptchaStrategyLabel(selection.executorType, configOptions.captcha_policy, configOptions.captcha_providers, language)}</span></div>
                   {selection.identityProvider === 'oauth_browser' && !reusableBrowser && (
                     <div className="mt-2 text-amber-400">后台浏览器自动依赖 Chrome Profile 或 Chrome CDP，未配置时只允许可视浏览器自动。</div>
                   )}
@@ -459,7 +465,7 @@ function RegisterModal({
                   disabled={starting || !selection.identityProvider || !selection.executorType}
                   className="w-full"
                 >
-                  {starting ? '启动中...' : '开始自动注册'}
+                  {starting ? t('accounts.starting') : t('accounts.startAutoRegister')}
                 </Button>
               </>
             )
@@ -469,7 +475,7 @@ function RegisterModal({
         </div>
         <div className="px-6 py-3 border-t border-[var(--border)] flex justify-end">
           <Button variant="outline" size="sm" onClick={onClose}>
-            {done ? '关闭' : '取消'}
+            {done ? t('common.close') : t('common.cancel')}
           </Button>
         </div>
       </div>
@@ -799,6 +805,7 @@ function ActionTaskModal({
   onClose: () => void
   onDone: (status: string) => void
 }) {
+  const { t, language } = useI18n()
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div
@@ -819,7 +826,7 @@ function ActionTaskModal({
             <div className="flex items-center gap-2">
               {taskStatus ? (
                 <Badge variant={TASK_STATUS_VARIANTS[taskStatus] || 'secondary'}>
-                  {getTaskStatusText(taskStatus)}
+                  {getTaskStatusText(taskStatus, language)}
                 </Badge>
               ) : null}
               <button onClick={onClose} className="rounded-full border border-[var(--border)] bg-[var(--bg-hover)] p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
@@ -832,9 +839,9 @@ function ActionTaskModal({
           <TaskLogPanel taskId={taskId} onDone={onDone} />
         </div>
         <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-3 text-xs text-[var(--text-muted)]">
-          <span>任务 ID: {taskId}</span>
+          <span>{t('taskHistory.taskId')}: {taskId}</span>
           <Button variant="outline" size="sm" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </Button>
         </div>
       </div>
@@ -947,6 +954,7 @@ function ActionMenu({
   onResult: (title: string, payload: any) => void
   onChanged: () => void
 }) {
+  const { language } = useI18n()
   const [open, setOpen] = useState(false)
   const [actions, setActions] = useState<any[]>([])
   const [running, setRunning] = useState<string | null>(null)
@@ -1072,7 +1080,7 @@ function ActionMenu({
       const task = await apiFetch(`/tasks/${actionTask.taskId}`)
       const data = task?.data ?? task?.result?.data
       if (status !== 'succeeded') {
-        setToast({ type: 'error', text: task?.error || getTaskStatusText(status) })
+        setToast({ type: 'error', text: task?.error || getTaskStatusText(status, language) })
         return
       }
       onChanged()
@@ -1509,6 +1517,7 @@ function ExportMenu({
 
 // ── Main ────────────────────────────────────────────────────
 export default function Accounts() {
+  const { t, language } = useI18n()
   const { platform } = useParams<{ platform: string }>()
   const [tab, setTab] = useState(platform || '')
   useEffect(() => { if (platform) { setTab(platform) } }, [platform])
@@ -1657,23 +1666,23 @@ export default function Accounts() {
             </h1>
             <div className="h-4 w-[1px] bg-[var(--border)]"></div>
             <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-[var(--text-muted)]">共 {total} 个</span>
-              {visibleTrial > 0 && <span className="flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-500 ring-1 ring-inset ring-emerald-500/20">试用 {visibleTrial}</span>}
-              {visibleSubscribed > 0 && <span className="flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 font-medium text-blue-500 ring-1 ring-inset ring-blue-500/20">订阅 {visibleSubscribed}</span>}
-              {linkedCashier > 0 && <span className="flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">链接 {linkedCashier}</span>}
-              {visibleInvalid > 0 && <span className="flex items-center rounded-full bg-red-500/10 px-2 py-0.5 font-medium text-red-500 ring-1 ring-inset ring-red-500/20">失效 {visibleInvalid}</span>}
-              {selectedCount > 0 && <span className="flex items-center rounded-full bg-[var(--text-primary)]/10 px-2 py-0.5 font-medium text-[var(--text-primary)] ring-1 ring-inset ring-[var(--text-primary)]/20">已选 {selectedCount}</span>}
+              <span className="text-[var(--text-muted)]">{t('accounts.count', { count: total })}</span>
+              {visibleTrial > 0 && <span className="flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-500 ring-1 ring-inset ring-emerald-500/20">{t('accounts.trial', { count: visibleTrial })}</span>}
+              {visibleSubscribed > 0 && <span className="flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 font-medium text-blue-500 ring-1 ring-inset ring-blue-500/20">{t('accounts.subscribed', { count: visibleSubscribed })}</span>}
+              {linkedCashier > 0 && <span className="flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">{t('accounts.linked', { count: linkedCashier })}</span>}
+              {visibleInvalid > 0 && <span className="flex items-center rounded-full bg-red-500/10 px-2 py-0.5 font-medium text-red-500 ring-1 ring-inset ring-red-500/20">{t('accounts.invalid', { count: visibleInvalid })}</span>}
+              {selectedCount > 0 && <span className="flex items-center rounded-full bg-[var(--text-primary)]/10 px-2 py-0.5 font-medium text-[var(--text-primary)] ring-1 ring-inset ring-[var(--text-primary)]/20">{t('accounts.selected', { count: selectedCount })}</span>}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => setShowRegister(true)} className="h-8 shadow-sm">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
-              自动注册
+              {t('accounts.autoRegister')}
             </Button>
             <div className="h-4 w-[1px] bg-[var(--border)]"></div>
             <Button size="sm" variant="outline" onClick={() => setShowImport(true)} className="h-8 bg-transparent">
               <Upload className="mr-1.5 h-3.5 w-3.5" />
-              导入
+              {t('accounts.import')}
             </Button>
             {tab === 'chatgpt' ? (
               <ExportMenu
@@ -1686,12 +1695,12 @@ export default function Accounts() {
             ) : (
               <Button size="sm" variant="outline" onClick={exportCsv} disabled={accounts.length === 0} className="h-8 bg-transparent">
                 <Download className="mr-1.5 h-3.5 w-3.5" />
-                导出
+                {t('accounts.export')}
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={() => setShowAdd(true)} className="h-8 bg-transparent">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
-              手动新增
+              {t('accounts.manualAdd')}
             </Button>
           </div>
         </div>
@@ -1705,7 +1714,7 @@ export default function Accounts() {
               </div>
               <input
                 type="text"
-                placeholder="搜索账号邮箱..."
+                placeholder={t('accounts.searchPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full rounded-md border border-[var(--border)] bg-transparent py-1.5 pl-8 pr-3 text-sm text-[var(--text-primary)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)]"
@@ -1717,14 +1726,14 @@ export default function Accounts() {
               className="rounded-md border border-[var(--border)] bg-transparent py-1.5 pl-3 pr-8 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)] appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat' }}
             >
-              <option value="">全部状态</option>
-              <option value="registered">已注册</option>
-              <option value="trial">试用中</option>
-              <option value="subscribed">已订阅</option>
-              <option value="free">免费</option>
-              <option value="eligible">可试用</option>
-              <option value="expired">已过期</option>
-              <option value="invalid">已失效</option>
+              <option value="">{t('accounts.allStatuses')}</option>
+              <option value="registered">{translateAccountStatus('registered', language)}</option>
+              <option value="trial">{t('dashboard.trial')}</option>
+              <option value="subscribed">{t('dashboard.subscribed')}</option>
+              <option value="free">{t('accounts.free')}</option>
+              <option value="eligible">{t('accounts.eligible')}</option>
+              <option value="expired">{t('accounts.expired')}</option>
+              <option value="invalid">{t('dashboard.invalid')}</option>
             </select>
           </div>
           
@@ -1734,13 +1743,13 @@ export default function Accounts() {
               size="sm"
               disabled={batchRefreshing || loading}
               className="h-7 px-2.5 text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10"
-              title="一键刷新全部账号额度"
+              title={t('accounts.refreshCreditsTitle')}
               onClick={async () => {
                 setBatchRefreshing(true)
                 try {
                   const res = await apiFetch(`/accounts/check-all?platform=${tab}`, { method: 'POST' })
                   if (res?.task_id) {
-                    setBatchTask({ taskId: res.task_id, title: `刷新全部 ${platformLabel} 账号额度` })
+                    setBatchTask({ taskId: res.task_id, title: t('accounts.refreshAllCreditsTask', { platform: platformLabel }) })
                     setBatchTaskStatus(null)
                   }
                 } catch (e) {
@@ -1750,7 +1759,7 @@ export default function Accounts() {
               }}
             >
               <Zap className={`mr-1 h-3.5 w-3.5 ${batchRefreshing ? 'animate-pulse' : ''}`} />
-              {batchRefreshing ? '刷新中...' : '刷新额度'}
+              {batchRefreshing ? t('accounts.refreshingCredits') : t('accounts.refreshCredits')}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => load()} disabled={loading} className="h-7 w-7 p-0 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -1762,7 +1771,7 @@ export default function Accounts() {
                 disabled={bulkDeleting}
                 className="h-7 px-2.5 text-red-500 hover:bg-red-500/10 hover:text-red-600"
                 onClick={async () => {
-                  if (!confirm(`确认删除选中的 ${selectedCount} 个账号？此操作不可撤销。`)) return
+                  if (!confirm(t('accounts.deleteSelectedConfirm', { count: selectedCount }))) return
                   setBulkDeleting(true)
                   try {
                     await Promise.allSettled(
@@ -1776,7 +1785,7 @@ export default function Accounts() {
                 }}
               >
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                {bulkDeleting ? '删除中...' : `删除`}
+                {bulkDeleting ? t('common.deleting') : t('common.delete')}
               </Button>
             )}
           </div>
@@ -1806,12 +1815,12 @@ export default function Accounts() {
                   className="checkbox-accent rounded-[3px] border-[var(--border)] focus:ring-[var(--text-primary)] focus:ring-offset-0 bg-transparent text-[var(--text-primary)]"
                 />
               </th>
-              <th className="px-3 py-2 text-left">邮箱 (Email)</th>
-              <th className="px-3 py-2 text-left">密码 (Pwd)</th>
-              <th className="px-3 py-2 text-left">状态 (Status)</th>
-              <th className="px-3 py-2 text-left">试用链接 (Link)</th>
-              <th className="px-3 py-2 text-left">注册时间 (Date)</th>
-              <th className="px-3 py-2 text-right">操作 (Action)</th>
+              <th className="px-3 py-2 text-left">{t('common.email')}</th>
+              <th className="px-3 py-2 text-left">{t('common.password')}</th>
+              <th className="px-3 py-2 text-left">{t('common.status')}</th>
+              <th className="px-3 py-2 text-left">{t('accounts.link')}</th>
+              <th className="px-3 py-2 text-left">{t('accounts.registeredAt')}</th>
+              <th className="px-3 py-2 text-right">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -1822,8 +1831,8 @@ export default function Accounts() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-pane)] border border-[var(--border)] shadow-sm">
                       <svg className="h-6 w-6 text-[var(--text-muted)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
                     </div>
-                    <h3 className="text-sm font-medium text-[var(--text-primary)]">暂无数据</h3>
-                    <p className="text-xs text-[var(--text-muted)] max-w-sm">当前平台没有找到任何账号记录。您可以手动新增或通过导入文件批量添加账号。</p>
+                    <h3 className="text-sm font-medium text-[var(--text-primary)]">{t('accounts.emptyTitle')}</h3>
+                    <p className="text-xs text-[var(--text-muted)] max-w-sm">{t('accounts.emptyDesc')}</p>
                   </div>
                 </td>
               </tr>
@@ -1896,7 +1905,7 @@ export default function Accounts() {
                       return (
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${styles}`}>
                           <span className={`mr-1 h-1 w-1 rounded-full ${variant === 'success' ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.6)]' : variant === 'warning' ? 'bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.6)]' : variant === 'danger' ? 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.6)]' : variant === 'default' ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
-                          {status}
+                          {translateAccountStatus(status, language)}
                         </span>
                       );
                     })()}
@@ -1931,7 +1940,7 @@ export default function Accounts() {
                   ) : <span className="text-[var(--text-muted)]/50 text-xs">-</span>}
                 </td>
                 <td className="px-3 py-2.5 font-mono text-xs text-[var(--text-muted)] whitespace-nowrap align-top">
-                  {acc.created_at ? new Date(acc.created_at).toLocaleString('zh-CN', { 
+                  {acc.created_at ? formatDateTime(acc.created_at, language, { 
                     month: '2-digit', day: '2-digit',
                     hour: '2-digit', minute: '2-digit',
                     hour12: false 

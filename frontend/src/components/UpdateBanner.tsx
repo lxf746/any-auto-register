@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n-context'
 import { Sparkles, X } from 'lucide-react'
 
 const DISMISS_KEY = 'update-banner-dismissed-tag'
@@ -11,6 +12,7 @@ type VersionResp = {
 }
 
 export default function UpdateBanner() {
+  const { t } = useI18n()
   const [info, setInfo] = useState<VersionResp | null>(null)
   const [dismissed, setDismissed] = useState(false)
 
@@ -53,7 +55,7 @@ export default function UpdateBanner() {
       <div className="flex items-center gap-2 min-w-0">
         <Sparkles className="h-4 w-4 text-[var(--accent)] shrink-0" />
         <span className="text-[var(--text-primary)] truncate">
-          有新版本 <b>v{info.latest.tag}</b> 可下载（当前 v{info.current === 'dev' ? 'dev' : info.current}）
+          {t('update.banner', { latest: info.latest.tag, current: info.current === 'dev' ? 'dev' : info.current })}
         </span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -61,11 +63,11 @@ export default function UpdateBanner() {
           onClick={open}
           className="rounded-md bg-[var(--accent)] px-3 py-1 text-xs font-medium text-white hover:bg-[var(--accent-hover)]"
         >
-          前往下载
+          {t('update.download')}
         </button>
         <button
           onClick={handleDismiss}
-          aria-label="忽略"
+          aria-label={t('update.dismiss')}
           className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
         >
           <X className="h-4 w-4" />

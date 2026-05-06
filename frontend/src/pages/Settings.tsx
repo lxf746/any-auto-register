@@ -3,6 +3,8 @@ import { getConfig, getConfigOptions, getPlatforms, invalidateConfigCache, inval
 import type { ChoiceOption, ConfigOptionsResponse, ProviderDriver, ProviderField as ProviderFieldDef, ProviderOption, ProviderSetting } from '@/lib/config-options'
 import { getCaptchaStrategyLabel } from '@/lib/config-options'
 import { apiFetch } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n-context'
+import type { TranslationKey } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -13,6 +15,21 @@ import ProviderCards from '@/components/settings/ProviderCards'
 const PROVIDER_TYPES = ['mailbox', 'captcha', 'sms'] as const
 
 type ProviderType = typeof PROVIDER_TYPES[number]
+
+const TAB_LABEL_KEYS: Record<string, TranslationKey> = {
+  register: 'settings.title.register',
+  mailbox: 'settings.title.mailbox',
+  captcha: 'settings.title.captcha',
+  sms: 'settings.title.sms',
+  platform_caps: 'settings.title.advanced',
+  chatgpt: 'settings.title.chatgpt',
+}
+
+const PROVIDER_USAGE_KEYS: Record<ProviderType, TranslationKey> = {
+  mailbox: 'settings.provider.mailboxUsage',
+  captcha: 'settings.provider.captchaUsage',
+  sms: 'settings.provider.smsUsage',
+}
 
 const PROVIDER_META: Record<ProviderType, {
   tabLabel: string
@@ -792,6 +809,7 @@ function CreateProviderDefinitionModal({
 }
 
 export default function Settings({ embedded, defaultTab }: { embedded?: boolean; defaultTab?: string }) {
+  const { t, language } = useI18n()
   const [activeTab, setActiveTab] = useState(defaultTab || 'register')
   const [form, setForm] = useState<Record<string, string>>({})
   const [configOptions, setConfigOptions] = useState<ConfigOptionsResponse>({
@@ -866,7 +884,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
         oauth_provider_options: [],
       })
       setProviderSettings({ mailbox: [], captcha: [], sms: [] })
-      setOptionsError('未加载到 provider 元数据。请重启后端后刷新页面。')
+      setOptionsError(t('register.providerMetadataError'))
     }
   }
 
@@ -891,13 +909,58 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
   }
 
   const tab = TABS.find(t => t.id === activeTab) ?? TABS[0]
-  const sections = tab.sections ?? []
+  const getTabLabel = (id: string, fallback: string) => {
+    const key = TAB_LABEL_KEYS[id]
+    return key ? t(key) : fallback
+  }
+  const sections = activeTab === 'register'
+    ? [{
+        section: t('settings.defaultStrategy.title'),
+        desc: t('settings.defaultStrategy.desc'),
+        items: [
+          { key: 'default_identity_provider', label: t('settings.defaultIdentity') },
+          { key: 'default_oauth_provider', label: t('settings.defaultOauth'), placeholder: '' },
+          { key: 'default_executor', label: t('settings.defaultExecutor') },
+        ],
+      }, {
+        section: t('settings.browserReuse.title'),
+        desc: t('settings.browserReuse.desc'),
+        items: [
+          { key: 'oauth_email_hint', label: t('settings.oauthEmailHint'), placeholder: 'your-account@example.com' },
+          { key: 'chrome_user_data_dir', label: t('settings.chromeProfile'), placeholder: '~/Library/Application Support/Google/Chrome' },
+          { key: 'chrome_cdp_url', label: t('settings.chromeCdp'), placeholder: 'http://localhost:9222' },
+        ],
+      }]
+    : activeTab === 'chatgpt'
+      ? [{
+          section: 'CPA Panel',
+          desc: t('settings.chatgpt.cpaDesc'),
+          items: [
+            { key: 'cpa_api_url', label: 'API URL', placeholder: 'https://your-cpa.example.com' },
+            { key: 'cpa_api_key', label: 'API Key', secret: true },
+          ],
+        }, {
+          section: 'Team Manager',
+          desc: t('settings.chatgpt.teamManagerDesc'),
+          items: [
+            { key: 'team_manager_url', label: 'API URL', placeholder: 'https://your-tm.example.com' },
+            { key: 'team_manager_key', label: 'API Key', secret: true },
+          ],
+        }, {
+          section: 'Any2Api',
+          desc: t('settings.chatgpt.any2apiDesc'),
+          items: [
+            { key: 'any2api_url', label: 'API URL', placeholder: 'https://your-any2api.example.com' },
+            { key: 'any2api_password', label: 'Password', secret: true },
+          ],
+        }]
+      : (tab.sections ?? [])
   const getSelectOptions = (key: string) => {
     if (key === 'default_executor') return configOptions.executor_options || []
     if (key === 'default_identity_provider') return configOptions.identity_mode_options || []
     if (key === 'default_oauth_provider') {
       return [
-        { label: '不预选，由当前页面选择', value: '' },
+        { label: t('settings.oauthFallback'), value: '' },
         ...((configOptions.oauth_provider_options || []).filter(option => option.value !== '')),
       ]
     }
@@ -1152,12 +1215,11 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
   const mailboxCount = providerSettings.mailbox.length
   const captchaCount = providerSettings.captcha.length
   const smsCount = providerSettings.sms.length
-  const solverLabel = solverRunning === null ? '—' : solverRunning ? '运行中' : '未运行'
+  const solverLabel = solverRunning === null ? '—' : solverRunning ? t('advanced.solver.running') : t('advanced.solver.stopped')
   const currentTabMeta = TABS.find(item => item.id === activeTab) ?? TABS[0]
   const currentProviderTab = PROVIDER_TYPES.includes(activeTab as ProviderType) ? activeTab as ProviderType : null
 
   const renderProviderPanel = (providerType: ProviderType) => {
-    const meta = PROVIDER_META[providerType]
     const catalog = providerCatalogs[providerType] || []
     const settings = providerSettings[providerType]
 
@@ -1179,15 +1241,15 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
           </div>
         )}
         <div className="rounded-lg border border-[var(--accent-edge)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-          {meta.usageHint}
+          {t(PROVIDER_USAGE_KEYS[providerType])}
         </div>
         {providerType === 'captcha' && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
             <div className="mb-2">
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">当前策略</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.currentPolicy')}</h3>
             </div>
-            <div className="text-sm text-[var(--text-secondary)]">{getCaptchaStrategyLabel('protocol', configOptions.captcha_policy, configOptions.captcha_providers)}</div>
-            <div className="text-sm text-[var(--text-secondary)] mt-2">{getCaptchaStrategyLabel('headless', configOptions.captcha_policy, configOptions.captcha_providers)}</div>
+            <div className="text-sm text-[var(--text-secondary)]">{getCaptchaStrategyLabel('protocol', configOptions.captcha_policy, configOptions.captcha_providers, language)}</div>
+            <div className="text-sm text-[var(--text-secondary)] mt-2">{getCaptchaStrategyLabel('headless', configOptions.captcha_policy, configOptions.captcha_providers, language)}</div>
           </div>
         )}
         <ProviderCards
@@ -1229,8 +1291,8 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
         <Card className="overflow-hidden p-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-semibold text-[var(--text-primary)]">配置</div>
-              <Badge variant="default">{currentTabMeta.label}</Badge>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.configuration')}</div>
+              <Badge variant="default">{getTabLabel(currentTabMeta.id, currentTabMeta.label)}</Badge>
               <Badge variant={solverRunning ? 'success' : solverRunning === false ? 'danger' : 'secondary'}>{solverLabel}</Badge>
             </div>
           </div>
@@ -1239,11 +1301,11 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
 
       {!embedded && (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <SettingsMetric label={PROVIDER_META.mailbox.metricLabel} value={mailboxCount} icon={PROVIDER_META.mailbox.icon} />
-          <SettingsMetric label={PROVIDER_META.captcha.metricLabel} value={captchaCount} icon={PROVIDER_META.captcha.icon} />
-          <SettingsMetric label={PROVIDER_META.sms.metricLabel} value={smsCount} icon={PROVIDER_META.sms.icon} />
-          <SettingsMetric label="求解器" value={solverLabel} icon={Orbit} />
-          <SettingsMetric label="模块" value={TABS.length} icon={Package2} />
+          <SettingsMetric label={t('settings.title.mailbox')} value={mailboxCount} icon={PROVIDER_META.mailbox.icon} />
+          <SettingsMetric label={t('settings.title.captcha')} value={captchaCount} icon={PROVIDER_META.captcha.icon} />
+          <SettingsMetric label={t('settings.title.sms')} value={smsCount} icon={PROVIDER_META.sms.icon} />
+          <SettingsMetric label={t('advanced.solver.title')} value={solverLabel} icon={Orbit} />
+          <SettingsMetric label={t('settings.modules')} value={TABS.length} icon={Package2} />
         </div>
       )}
 
@@ -1262,7 +1324,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
             )}
           >
             <Icon className="h-3.5 w-3.5" />
-            {label}
+            {getTabLabel(id, label)}
           </button>
         ))}
       </div>
@@ -1275,7 +1337,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
             <>
               {activeTab === 'register' && (
                 <div className="rounded-lg border border-[var(--accent-edge)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-                  普通使用者只需要理解两件事：注册身份选“系统邮箱”还是“第三方账号”，执行方式选“协议模式 / 后台浏览器自动 / 可视浏览器自动”。这里的配置只是设置默认值。
+                  {t('settings.registerHelp')}
                 </div>
               )}
               {currentProviderTab && renderProviderPanel(currentProviderTab)}
@@ -1295,7 +1357,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
               {!currentProviderTab && (
                 <Button onClick={save} disabled={saving} className="w-full">
                   <Save className="h-4 w-4 mr-2" />
-                  {saved ? '已保存 ✓' : saving ? '保存中...' : '保存配置'}
+                  {saved ? `${t('common.saved')} ✓` : saving ? t('common.saving') : t('common.saveSettings')}
                 </Button>
               )}
             </>

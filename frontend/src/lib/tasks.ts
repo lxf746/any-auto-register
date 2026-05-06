@@ -1,3 +1,5 @@
+import { translate, type Language } from '@/lib/i18n'
+
 export const TASK_STATUS_VARIANTS: Record<string, any> = {
   pending: 'secondary',
   claimed: 'secondary',
@@ -20,24 +22,24 @@ export function isTerminalTaskStatus(status: string) {
   return TERMINAL_TASK_STATUSES.has(status)
 }
 
-export function getTaskStatusText(status: string) {
+export function getTaskStatusText(status: string, language?: Language) {
   switch (status) {
     case 'succeeded':
-      return '已完成'
+      return translate('taskStatus.succeeded', language)
     case 'failed':
-      return '失败'
+      return translate('taskStatus.failed', language)
     case 'interrupted':
-      return '已中断'
+      return translate('taskStatus.interrupted', language)
     case 'cancelled':
-      return '已取消'
+      return translate('taskStatus.cancelled', language)
     case 'cancel_requested':
-      return '取消中'
+      return translate('taskStatus.cancel_requested', language)
     case 'running':
-      return '执行中'
+      return translate('taskStatus.running', language)
     case 'claimed':
-      return '已领取'
+      return translate('taskStatus.claimed', language)
     case 'pending':
-      return '排队中'
+      return translate('taskStatus.pending', language)
     default:
       return status
   }

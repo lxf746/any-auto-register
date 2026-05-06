@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/lib/i18n-context'
 import { RefreshCw, CheckCircle, XCircle } from 'lucide-react'
 import { getPlatforms, invalidatePlatformsCache } from '@/lib/app-data'
 import type { ChoiceOption } from '@/lib/config-options'
 import { Save } from 'lucide-react'
 
 function SolverPanel() {
+  const { t } = useI18n()
   const [solverRunning, setSolverRunning] = useState<boolean | null>(null)
 
   const checkSolver = async () => {
@@ -29,12 +31,12 @@ function SolverPanel() {
     checkSolver()
   }, [])
 
-  const solverLabel = solverRunning === null ? '检测中' : solverRunning ? '运行中' : '未运行'
+  const solverLabel = solverRunning === null ? t('advanced.solver.statusChecking') : solverRunning ? t('advanced.solver.running') : t('advanced.solver.stopped')
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-[var(--text-primary)]">Turnstile 求解器</h2>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">本地 Turnstile 验证码求解服务状态。</p>
+      <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('advanced.solver.title')}</h2>
+      <p className="mt-1 text-sm text-[var(--text-muted)]">{t('advanced.solver.desc')}</p>
       <div className="mt-4 flex items-center gap-4">
         <div className="flex items-center gap-2">
           {solverRunning === null ? (
@@ -55,7 +57,7 @@ function SolverPanel() {
         </div>
         <Button variant="outline" size="sm" onClick={restartSolver}>
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-          重启 Solver
+          {t('advanced.solver.restart')}
         </Button>
       </div>
     </section>
@@ -63,6 +65,7 @@ function SolverPanel() {
 }
 
 function PlatformCapsPanel() {
+  const { t } = useI18n()
   const [platforms, setPlatforms] = useState<any[]>([])
   const [drafts, setDrafts] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
@@ -126,9 +129,9 @@ function PlatformCapsPanel() {
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-[var(--text-primary)]">平台能力</h2>
+      <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('advanced.capabilities.title')}</h2>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
-        自定义各平台支持的执行方式、注册身份和第三方入口。
+        {t('advanced.capabilities.desc')}
       </p>
       <div className="mt-4 space-y-4">
         {platforms.map((p) => {
@@ -154,12 +157,12 @@ function PlatformCapsPanel() {
                   </p>
                 </div>
                 <button onClick={() => reset(p.name)} className="table-action-btn">
-                  恢复默认
+                  {t('advanced.capabilities.reset')}
                 </button>
               </div>
               <div className="space-y-3">
                 <div>
-                  <p className="mb-2 text-xs text-[var(--text-muted)]">执行方式</p>
+                  <p className="mb-2 text-xs text-[var(--text-muted)]">{t('advanced.capabilities.executors')}</p>
                   <div className="flex flex-wrap gap-4">
                     {executorOptions.map((option) => (
                       <label
@@ -178,7 +181,7 @@ function PlatformCapsPanel() {
                   </div>
                 </div>
                 <div>
-                  <p className="mb-2 text-xs text-[var(--text-muted)]">注册身份</p>
+                  <p className="mb-2 text-xs text-[var(--text-muted)]">{t('advanced.capabilities.identities')}</p>
                   <div className="flex gap-4">
                     {identityOptions.map((option) => (
                       <label
@@ -197,7 +200,7 @@ function PlatformCapsPanel() {
                   </div>
                 </div>
                 <div>
-                  <p className="mb-2 text-xs text-[var(--text-muted)]">第三方入口</p>
+                  <p className="mb-2 text-xs text-[var(--text-muted)]">{t('advanced.capabilities.oauth')}</p>
                   <div className="flex flex-wrap gap-4">
                     {oauthOptions.map((option) => (
                       <label
@@ -221,7 +224,7 @@ function PlatformCapsPanel() {
               <div className="mt-4">
                 <Button size="sm" onClick={() => save(p.name)} disabled={saving[p.name]}>
                   <Save className="mr-1 h-3.5 w-3.5" />
-                  {saved[p.name] ? '已保存 ✓' : saving[p.name] ? '保存中...' : '保存'}
+                  {saved[p.name] ? `${t('common.saved')} ✓` : saving[p.name] ? t('common.saving') : t('common.save')}
                 </Button>
               </div>
             </div>

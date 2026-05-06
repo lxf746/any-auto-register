@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n-context'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Trash2, RefreshCw, ToggleLeft, ToggleRight, Globe2, ShieldCheck, CircleOff, Activity } from 'lucide-react'
 
 export default function Proxies() {
+  const { t } = useI18n()
   const [proxies, setProxies] = useState<any[]>([])
   const [newProxy, setNewProxy] = useState('')
   const [region, setRegion] = useState('')
@@ -53,10 +55,10 @@ export default function Proxies() {
   const totalSuccess = proxies.reduce((sum, item) => sum + Number(item.success_count || 0), 0)
   const totalFail = proxies.reduce((sum, item) => sum + Number(item.fail_count || 0), 0)
   const metricCards = [
-    { label: '代理数', value: proxies.length, icon: Globe2, tone: 'text-[var(--accent)]' },
-    { label: '启用', value: activeCount, icon: ShieldCheck, tone: 'text-emerald-400' },
-    { label: '成功次数', value: totalSuccess, icon: Activity, tone: 'text-[var(--accent)]' },
-    { label: '失败次数', value: totalFail, icon: CircleOff, tone: 'text-red-400' },
+    { label: t('proxies.metric.count'), value: proxies.length, icon: Globe2, tone: 'text-[var(--accent)]' },
+    { label: t('proxies.metric.enabled'), value: activeCount, icon: ShieldCheck, tone: 'text-emerald-400' },
+    { label: t('proxies.metric.success'), value: totalSuccess, icon: Activity, tone: 'text-[var(--accent)]' },
+    { label: t('proxies.metric.fail'), value: totalFail, icon: CircleOff, tone: 'text-red-400' },
   ]
 
   return (
@@ -64,13 +66,13 @@ export default function Proxies() {
       <Card className="overflow-hidden p-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm font-semibold text-[var(--text-primary)]">代理</div>
-            <Badge variant="default">总量 {proxies.length}</Badge>
-            <Badge variant="secondary">活跃 {activeCount}</Badge>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">{t('proxies.title')}</div>
+            <Badge variant="default">{t('common.total')} {proxies.length}</Badge>
+            <Badge variant="secondary">{t('proxies.activeBadge', { count: activeCount })}</Badge>
           </div>
           <Button variant="outline" size="sm" onClick={check} disabled={checking}>
             <RefreshCw className={`h-4 w-4 mr-1.5 ${checking ? 'animate-spin' : ''}`} />
-            检测全部
+            {t('proxies.checkAll')}
           </Button>
         </div>
       </Card>
@@ -95,8 +97,8 @@ export default function Proxies() {
         <Card className="bg-[var(--bg-pane)]/60">
           <div className="space-y-4">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">新增</div>
-              <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">添加代理或批量导入</div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('common.add')}</div>
+              <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{t('proxies.addTitle')}</div>
             </div>
             <textarea
               value={newProxy}
@@ -108,39 +110,39 @@ export default function Proxies() {
             <input
               value={region}
               onChange={e => setRegion(e.target.value)}
-              placeholder="地区标签 (如 US, SG)"
+              placeholder={t('proxies.regionPlaceholder')}
               className="control-surface"
             />
             <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--bg-pane)]/45 px-3.5 py-2.5 text-xs leading-5 text-[var(--text-secondary)]">
-              支持单条代理直接录入，也支持多行批量导入。地区标签会一起写入，用于后续筛选和出入口识别。
+              {t('proxies.hint')}
             </div>
             <Button onClick={add} className="w-full">
               <Plus className="h-4 w-4 mr-1.5" />
-              添加到代理池
+              {t('proxies.addToPool')}
             </Button>
           </div>
         </Card>
 
         <Card className="overflow-hidden p-0">
           <div className="border-b border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
-            代理列表
+            {t('proxies.list')}
           </div>
         <div className="glass-table-wrap">
         <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b border-[var(--border)] text-[var(--text-muted)]">
-              <th className="px-4 py-2.5 text-left">代理地址</th>
-              <th className="px-4 py-2.5 text-left">地区</th>
-              <th className="px-4 py-2.5 text-left">成功/失败</th>
-              <th className="px-4 py-2.5 text-left">状态</th>
-              <th className="px-4 py-2.5 text-left">操作</th>
+              <th className="px-4 py-2.5 text-left">{t('proxies.address')}</th>
+              <th className="px-4 py-2.5 text-left">{t('proxies.region')}</th>
+              <th className="px-4 py-2.5 text-left">{t('proxies.successFailure')}</th>
+              <th className="px-4 py-2.5 text-left">{t('common.status')}</th>
+              <th className="px-4 py-2.5 text-left">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {proxies.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8">
-                  <div className="empty-state-panel">当前代理池为空，可以先从左侧输入一个或批量导入。</div>
+                  <div className="empty-state-panel">{t('proxies.empty')}</div>
                 </td>
               </tr>
             )}
@@ -155,18 +157,18 @@ export default function Proxies() {
                 </td>
                 <td className="px-4 py-2.5">
                   <Badge variant={p.is_active ? 'success' : 'danger'}>
-                    {p.is_active ? '活跃' : '禁用'}
+                    {p.is_active ? t('common.active') : t('common.disabled')}
                   </Badge>
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <button onClick={() => toggle(p.id)} className="table-action-btn">
                       {p.is_active ? <ToggleRight className="mr-1.5 h-4 w-4" /> : <ToggleLeft className="mr-1.5 h-4 w-4" />}
-                      {p.is_active ? '停用' : '启用'}
+                      {p.is_active ? t('proxies.disable') : t('common.enabled')}
                     </button>
                     <button onClick={() => del(p.id)} className="table-action-btn table-action-btn-danger">
                       <Trash2 className="mr-1.5 h-4 w-4" />
-                      删除
+                      {t('common.delete')}
                     </button>
                   </div>
                 </td>
