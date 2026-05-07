@@ -18,6 +18,7 @@ class CursorProtocolMailboxWorker:
         password: str | None = None,
         otp_callback: Optional[Callable[[], str]] = None,
         captcha_solver=None,
+        phone_callback: Optional[Callable[[], str]] = None,
     ) -> dict:
         use_password = password or _rand_password()
         self.log(f"邮箱: {email}")
@@ -34,6 +35,18 @@ class CursorProtocolMailboxWorker:
         self.log(f"验证码: {otp}")
         self.log("Step4: 提交 OTP...")
         auth_code = self.client.step4_submit_otp(otp, email, state_encoded)
-        self.log("Step5: 获取 Token...")
-        token = self.client.step5_get_token(auth_code, state_encoded)
+
+        if phone_callback:
+            phone_number = str(phone_callback() or "").strip()
+            if phone_number:
+                self.log("Step5: 提交手机号挑战...")
+                self.client.step5_send_phone_challenge(phone_number, state_encoded)
+                self.log("Step6: 提交短信验证码...")
+                phone_code = str(phone_callback() or "").strip()
+                if not phone_code:
+                    raise RuntimeError("未获取到短信验证码")
+                auth_code = self.client.step6_verify_phone_challenge(phone_code, state_encoded) or auth_code
+
+        self.log("Step7: 获取 Token...")
+        token = self.client.step7_get_token(auth_code, state_encoded)
         return {"email": email, "password": use_password, "token": token}

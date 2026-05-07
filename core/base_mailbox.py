@@ -229,6 +229,18 @@ def _create_testmail(extra: dict, proxy: str | None) -> 'BaseMailbox':
     )
 
 
+def _create_luckmail(extra: dict, proxy: str | None) -> 'BaseMailbox':
+    return LuckMailMailbox(
+        api_url=extra.get("luckmail_api_url", ""),
+        api_key=extra.get("luckmail_api_key", ""),
+        project_code=extra.get("luckmail_project_code", ""),
+        email_type=extra.get("luckmail_email_type", ""),
+        domain=extra.get("luckmail_domain", ""),
+        variant_mode=extra.get("luckmail_variant_mode", ""),
+        proxy=proxy,
+    )
+
+
 def _create_local_ms_pool(extra: dict, proxy: str | None) -> 'BaseMailbox':
     from core.local_ms_mailbox import LocalMicrosoftMailboxPool
 
@@ -270,6 +282,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "moemail_api": _create_moemail,
     "cfworker_admin_api": _create_cfworker,
     "testmail_api": _create_testmail,
+    "luckmail_api": _create_luckmail,
     "local_ms_pool": _create_local_ms_pool,
     "laoudo_api": _create_laoudo,
     # backward-compat fallback
@@ -281,6 +294,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "moemail": _create_moemail,
     "cfworker": _create_cfworker,
     "testmail": _create_testmail,
+    "luckmail": _create_luckmail,
     "local_ms": _create_local_ms_pool,
     "laoudo": _create_laoudo,
 }
@@ -1805,6 +1819,277 @@ class TestmailMailbox(BaseMailbox):
                         return link
             except Exception:
                 pass
+            time.sleep(3)
+        raise TimeoutError(f"等待验证链接超时 ({timeout}s)")
+
+
+class LuckMailMailbox(BaseMailbox):
+    """LuckMail 第三方邮箱服务（通过创单拿邮箱并轮询验证码）。"""
+
+    def __init__(
+        self,
+        api_url: str = "",
+        api_key: str = "",
+        project_code: str = "",
+        email_type: str = "",
+        domain: str = "",
+        variant_mode: str = "",
+        proxy: str = None,
+    ):
+        self.api = _normalize_api_base_url(api_url, default="", label="LuckMail API URL")
+        self.api_key = str(api_key or "").strip()
+        self.project_code = str(project_code or "").strip()
+        self.email_type = str(email_type or "").strip()
+        self.domain = str(domain or "").strip()
+        self.variant_mode = str(variant_mode or "").strip()
+        self.proxy = {"http": proxy, "https": proxy} if proxy else None
+
+    def _assert_ready(self) -> None:
+        if not self.api:
+            raise RuntimeError("LuckMail 未配置 API 地址")
+        if not self.api_key:
+            raise RuntimeError("LuckMail 未配置 API Key")
+        if not self.project_code:
+            raise RuntimeError("LuckMail 未配置项目编码（project_code）")
+
+    def _headers(self) -> dict:
+        return {
+            "accept": "application/json",
+            "content-type": "application/json",
+            # 与 SDK 对齐：X-API-Key
+            "X-API-Key": self.api_key,
+        }
+
+    def _request(self, method: str, path: str, *, json_data: dict | None = None) -> dict:
+        import requests
+
+        url = f"{self.api}{path}"
+        response = requests.request(
+            method=method.upper(),
+            url=url,
+            headers=self._headers(),
+            json=json_data or {},
+            proxies=self.proxy,
+            timeout=20,
+        )
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise RuntimeError(f"LuckMail 接口返回异常: {payload!r}")
+        # 兼容多种返回格式：
+        # 1) {"code": 0, "message": "...", "data": {...}}
+        # 2) {"code": "success", "message": "success", "data": {...}}
+        # 3) {"success": true, "message": "success", "data": {...}}
+        # 4) 字段直接在顶层（无 data 包裹）
+        code = payload.get("code", None)
+        success_flag = payload.get("success", None)
+
+        # 判断调用是否成功
+        ok = True
+        if code is not None:
+            try:
+                ok = int(code) == 0
+            except (TypeError, ValueError):
+                ok = str(code).strip().lower() in {"success", "ok", "true", "1"}
+        elif success_flag is not None:
+            ok = bool(success_flag)
+
+        if not ok:
+            raise RuntimeError(str(payload.get("message") or response.text or "LuckMail 请求失败"))
+
+        # 提取实际业务数据：优先使用 data，其次使用顶层字段
+        data = payload.get("data", None)
+        if isinstance(data, dict):
+            return dict(data)
+
+        # data 可能为空或不存在：如果顶层就包含业务字段，直接返回顶层
+        business_keys = {
+            "order_no",
+            "email_address",
+            "status",
+            "verification_code",
+            "mail_from",
+            "mail_subject",
+            "mail_body_html",
+        }
+        if business_keys.intersection(set(payload.keys())):
+            return dict(payload)
+
+        # 兜底：data 为空时返回空 dict，让上层按状态继续轮询（避免直接抛异常）
+        return dict(data or {})
+
+    def _create_order(self) -> dict:
+        body = {"project_code": self.project_code}
+        if self.email_type:
+            body["email_type"] = self.email_type
+        if self.domain:
+            body["domain"] = self.domain
+        if self.variant_mode:
+            body["variant_mode"] = self.variant_mode
+        return self._request("POST", "/api/v1/openapi/order/create", json_data=body)
+
+    def _get_order_code(self, order_no: str) -> dict:
+        return self._request("GET", f"/api/v1/openapi/order/{order_no}/code")
+
+    def get_email(self) -> MailboxAccount:
+        self._assert_ready()
+        data = self._create_order()
+        order_no = str(data.get("order_no") or "").strip()
+        email = str(data.get("email_address") or "").strip()
+        if not order_no:
+            raise RuntimeError("LuckMail 创建订单失败：缺少 order_no")
+        if not email:
+            raise RuntimeError("LuckMail 创建订单失败：缺少 email_address")
+        return MailboxAccount(
+            email=email,
+            account_id=order_no,
+            extra={
+                "provider_account": {
+                    "provider_type": "mailbox",
+                    "provider_name": "luckmail",
+                    "login_identifier": self.project_code,
+                    "display_name": "LuckMail",
+                    "credentials": {
+                        "api_key": self.api_key,
+                    },
+                    "metadata": {
+                        "api_url": self.api,
+                        "project_code": self.project_code,
+                        "email_type": self.email_type,
+                        "domain": self.domain,
+                    },
+                },
+                "provider_resource": {
+                    "provider_type": "mailbox",
+                    "provider_name": "luckmail",
+                    "resource_type": "order",
+                    "resource_identifier": order_no,
+                    "handle": email,
+                    "display_name": email,
+                    "metadata": {
+                        "email": email,
+                        "order_no": order_no,
+                        "project_code": self.project_code,
+                    },
+                },
+            },
+        )
+
+    def get_current_ids(self, account: MailboxAccount) -> set:
+        order_no = str(account.account_id or "").strip()
+        return {order_no} if order_no else set()
+
+    def wait_for_code(self, account: MailboxAccount, keyword: str = "",
+                      timeout: int = 120, before_ids: set = None, code_pattern: str = None) -> str:
+        import re
+        import time
+
+        order_no = str(account.account_id or "").strip()
+        if not order_no:
+            raise RuntimeError("LuckMail 订单号为空，无法查询验证码")
+
+        pattern = re.compile(code_pattern) if code_pattern else None
+        start = time.time()
+        last_status = None
+        logged_any = False
+        while time.time() - start < timeout:
+            data = self._get_order_code(order_no)
+            status_raw = data.get("status", data.get("state", None))
+            status = str(status_raw or "").lower()
+
+            # 尝试从多个字段名里直接拿 code
+            verification_code = (
+                data.get("verification_code")
+                or data.get("verificationCode")
+                or data.get("code")
+                or data.get("mail_code")
+                or ""
+            )
+            verification_code = str(verification_code or "").strip()
+
+            # 组合可疑文本（尽量覆盖不同实现返回结构）
+            extra_text = []
+            for key in (
+                "mail_subject",
+                "mail_body_html",
+                "mail_body_text",
+                "mail_from",
+                "verification_code",
+                "verificationCode",
+                "subject",
+                "body",
+                "html",
+                "text",
+            ):
+                if data.get(key) is not None:
+                    extra_text.append(str(data.get(key) or ""))
+            # mail 结构可能嵌套在 data["mail"]
+            mail_obj = data.get("mail", None)
+            if isinstance(mail_obj, dict):
+                for key in ("subject", "body_text", "body_html", "html_body", "from", "code", "verification_code", "verificationCode"):
+                    if mail_obj.get(key) is not None:
+                        extra_text.append(str(mail_obj.get(key) or ""))
+
+            text = " ".join(extra_text)
+
+            # 调试：状态变化时记录一次
+            if status != last_status:
+                last_status = status
+                if status or not logged_any:
+                    logged_any = True
+                    print(f"[LuckMail] poll order={order_no[:10]}... status={status!r} code_present={bool(verification_code)}")
+
+            # 1) 状态成功或 code 字段直接返回
+            if status in {"success", "completed", "done", "ok"} or verification_code:
+                if verification_code:
+                    m = re.search(code_pattern or r"(?<!#)(?<!\d)(\d{6})(?!\d)", verification_code)
+                    if m:
+                        return m.group(1) if m.groups() else m.group(0)
+                    # 如果 code_pattern 为空且 verification_code 本身就是纯数字，也直接返回
+                    if re.fullmatch(r"\d{6}", verification_code):
+                        return verification_code
+
+                # 2) 从正文文本提取
+                if code_pattern:
+                    match = re.search(code_pattern, text)
+                    if match:
+                        return match.group(1) if match.groups() else match.group(0)
+                match = re.search(r"(?<!#)(?<!\d)(\d{6})(?!\d)", text)
+                if match:
+                    return match.group(1)
+
+            # 失败状态直接退出
+            if status in {"cancelled", "timeout", "canceled"}:
+                break
+
+            # 关键词过滤：仅在 keyword 存在且目前还没提取到 code 时进行
+            if keyword and keyword.lower() not in text.lower():
+                time.sleep(3)
+                continue
+
+            time.sleep(3)
+        raise TimeoutError(f"等待验证码超时 ({timeout}s)")
+
+    def wait_for_link(self, account: MailboxAccount, keyword: str = "",
+                      timeout: int = 120, before_ids: set = None) -> str:
+        import time
+
+        order_no = str(account.account_id or "").strip()
+        if not order_no:
+            raise RuntimeError("LuckMail 订单号为空，无法查询验证链接")
+
+        start = time.time()
+        while time.time() - start < timeout:
+            data = self._get_order_code(order_no)
+            status = str(data.get("status") or "").lower()
+            text = " ".join(
+                str(data.get(key) or "")
+                for key in ("mail_subject", "mail_body_html", "mail_from")
+            )
+            link = _extract_verification_link(text, keyword)
+            if link:
+                return link
+            if status in {"cancelled", "timeout"}:
+                break
             time.sleep(3)
         raise TimeoutError(f"等待验证链接超时 ({timeout}s)")
 

@@ -108,6 +108,7 @@ class CursorPlatform(BasePlatform):
                 password=ctx.password,
                 otp_callback=artifacts.otp_callback,
                 captcha_solver=artifacts.captcha_solver,
+                phone_callback=artifacts.phone_callback,
             ),
             otp_spec=OtpSpec(wait_message="等待验证码..."),
             use_captcha=True,

@@ -111,14 +111,19 @@ class ProtocolMailboxFlow:
                 success_label=self.adapter.link_spec.success_label,
                 preview_chars=self.adapter.link_spec.preview_chars,
             )
+        artifacts.phone_callback, artifacts.phone_cleanup = build_phone_callbacks(ctx, service=ctx.platform_name)
 
         executor_cm = ctx.platform._make_executor() if self.adapter.use_executor else nullcontext(None)
-        with executor_cm as executor:
-            artifacts.executor = executor
-            worker = self.adapter.worker_builder(ctx, artifacts)
-            raw = self.adapter.register_runner(worker, ctx, artifacts)
-            artifacts.raw_result = raw
-            return self.adapter.result_mapper(ctx, raw)
+        try:
+            with executor_cm as executor:
+                artifacts.executor = executor
+                worker = self.adapter.worker_builder(ctx, artifacts)
+                raw = self.adapter.register_runner(worker, ctx, artifacts)
+                artifacts.raw_result = raw
+                return self.adapter.result_mapper(ctx, raw)
+        finally:
+            if artifacts.phone_cleanup:
+                artifacts.phone_cleanup()
 
 
 class ProtocolOAuthFlow:
