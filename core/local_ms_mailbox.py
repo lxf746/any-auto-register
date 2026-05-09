@@ -344,17 +344,23 @@ class LocalMicrosoftMailboxPool(BaseMailbox):
     def _graph_access_token(self, entry: LocalMicrosoftMailboxEntry) -> str:
         if not entry.graph_ready:
             raise RuntimeError(f"微软邮箱缺少 Client Id 或刷新令牌: {entry.email}")
-        response = requests.post(
-            GRAPH_TOKEN_URL,
-            data={
-                "client_id": entry.client_id,
-                "grant_type": "refresh_token",
-                "refresh_token": entry.refresh_token,
-                "scope": self.graph_scope,
-            },
-            proxies=self.proxy,
-            timeout=25,
-        )
+        try:
+            response = requests.post(
+                GRAPH_TOKEN_URL,
+                data={
+                    "client_id": entry.client_id,
+                    "grant_type": "refresh_token",
+                    "refresh_token": entry.refresh_token,
+                    "scope": self.graph_scope,
+                },
+                proxies=self.proxy,
+                timeout=25,
+            )
+        except UnicodeError as e:
+            raise RuntimeError(
+                "Microsoft Graph 获取 token 失败（UnicodeError: idna label too long）。"
+                f" email={entry.email} proxy={'Y' if self.proxy else 'N'}"
+            ) from e
         if response.status_code != 200:
             raise RuntimeError(f"Microsoft refresh_token 换 access_token 失败: HTTP {response.status_code} {response.text[:200]}")
         token = str((response.json() or {}).get("access_token") or "").strip()
@@ -364,24 +370,48 @@ class LocalMicrosoftMailboxPool(BaseMailbox):
 
     def _graph_messages(self, entry: LocalMicrosoftMailboxEntry) -> list[dict]:
         token = self._graph_access_token(entry)
-        response = requests.get(
-            GRAPH_MESSAGES_URL,
-            headers={"authorization": f"Bearer {token}", "accept": "application/json"},
-            params={
-                "$top": "25",
-                "$orderby": "receivedDateTime desc",
-                "$select": "id,subject,bodyPreview,receivedDateTime,from,toRecipients,body",
-            },
-            proxies=self.proxy,
-            timeout=25,
-        )
+        try:
+            response = requests.get(
+                GRAPH_MESSAGES_URL,
+                headers={"authorization": f"Bearer {token}", "accept": "application/json"},
+                params={
+                    "$top": "25",
+                    "$orderby": "receivedDateTime desc",
+                    "$select": "id,subject,bodyPreview,receivedDateTime,from,toRecipients,body",
+                },
+                proxies=self.proxy,
+                timeout=25,
+            )
+        except UnicodeError as e:
+            raise RuntimeError(
+                "Microsoft Graph 读取邮件失败（UnicodeError: idna label too long）。"
+                f" email={entry.email} proxy={'Y' if self.proxy else 'N'}"
+            ) from e
         if response.status_code != 200:
             raise RuntimeError(f"Microsoft Graph 读取邮件失败: HTTP {response.status_code} {response.text[:200]}")
         payload = response.json() or {}
         return list(payload.get("value") or [])
 
+    @staticmethod
+    def _validate_imap_host(host: str) -> None:
+        host = str(host or "").strip().strip(".")
+        if not host:
+            raise RuntimeError("IMAP host 为空")
+        if len(host) > 253:
+            raise RuntimeError(f"IMAP host 过长: len={len(host)}")
+        # RFC: each label <= 63
+        for label in host.split("."):
+            if not label:
+                continue
+            if len(label) > 63:
+                raise RuntimeError(f"IMAP host label 过长: {label[:16]}... len={len(label)}")
+
     def _imap_connect(self, entry: LocalMicrosoftMailboxEntry):
         host = entry.imap_host.strip()
+        try:
+            self._validate_imap_host(host)
+        except Exception as e:
+            raise RuntimeError(f"IMAP 配置异常，无法连接: email={entry.email} host={host[:80]}") from e
         port = int(entry.imap_port or 993)
         security = entry.imap_security.lower()
         if port == 993 or "ssl" in security:

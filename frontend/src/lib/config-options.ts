@@ -15,6 +15,12 @@ export type ProviderField = {
   asyncUrl?: string
   asyncValueKey?: string
   asyncLabelKey?: string
+  /**
+   * If set, this async-select will re-fetch options when the form field referenced by asyncDependsOn changes.
+   * The referenced value will be passed to backend via query param asyncQueryParam.
+   */
+  asyncDependsOn?: string
+  asyncQueryParam?: string
 }
 
 export type ProviderOption = {

@@ -112,7 +112,10 @@ def build_phone_callbacks(ctx: RegistrationContext, *, service: str | None = Non
         ctx.log(f"[SMS] provider={provider_key} (来源={source}) 已找到 definition，但认证字段 {auth_fields} 全部为空，phone_callback=None")
         return None, None
 
-    if ctx.proxy and not str(merged.get("sms_proxy") or merged.get("proxy") or "").strip():
+    # 默认不让短信/邮箱等第三方服务走平台代理（避免代理对外部 API 造成额外失败）。
+    # 只有显式配置 sms_proxy / proxy / sms_use_proxy=true 时才使用代理。
+    use_sms_proxy = str(merged.get("sms_use_proxy") or "").strip().lower() in ("1", "true", "yes", "on")
+    if use_sms_proxy and ctx.proxy and not str(merged.get("sms_proxy") or merged.get("proxy") or "").strip():
         merged["sms_proxy"] = ctx.proxy
 
     country = str(
@@ -124,6 +127,10 @@ def build_phone_callbacks(ctx: RegistrationContext, *, service: str | None = Non
         or merged.get("herosms_default_country")
         or merged.get("smsbower_country")
         or merged.get("smsbower_default_country")
+        or merged.get("grizzlysms_country")
+        or merged.get("grizzlysms_default_country")
+        or merged.get("fivesim_country")
+        or merged.get("fivesim_default_country")
         or ""
     ).strip()
     sms_service = str(
@@ -132,6 +139,10 @@ def build_phone_callbacks(ctx: RegistrationContext, *, service: str | None = Non
         or merged.get("herosms_default_service")
         or merged.get("smsbower_service")
         or merged.get("smsbower_default_service")
+        or merged.get("grizzlysms_service")
+        or merged.get("grizzlysms_default_service")
+        or merged.get("fivesim_product")
+        or merged.get("fivesim_default_product")
         or merged.get("sms_activate_service")
         or merged.get("sms_activate_default_service")
         or service

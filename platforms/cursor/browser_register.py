@@ -625,48 +625,54 @@ class CursorBrowserRegister:
             # --- 密码提交后可能再次出现 Turnstile（如"Welcome to Cursor"页面）---
             _handle_turnstile(page, self.log, self._solve_turnstile)
 
-            # --- 检测手机号验证页（"Phone number" + "Send verification code"）---
-            try:
-                phone_input = page.query_selector('input[type="tel"], input[placeholder*="555"], input[autocomplete="tel"]')
-                if not phone_input:
-                    # 等几秒看是否跳转到手机号页
-                    page.wait_for_selector('input[type="tel"]', timeout=4000)
-                    phone_input = page.query_selector('input[type="tel"]')
-            except Exception:
-                phone_input = None
+            def _try_bind_phone() -> bool:
+                """如果出现手机号验证页/输入框，执行绑定并返回 True，否则 False。"""
+                try:
+                    phone_input = page.query_selector('input[type="tel"], input[placeholder*="555"], input[autocomplete="tel"]')
+                    if not phone_input:
+                        return False
+                    if not phone_input.is_visible():
+                        return False
+                except Exception:
+                    return False
 
-            if phone_input and phone_input.is_visible():
-                if self.phone_callback:
-                    phone_number = self.phone_callback()
-                    if phone_number:
-                        self.log(f"检测到手机号验证页，填写手机号: {phone_number[:4]}****")
-                        phone_input.click()
-                        phone_input.fill(str(phone_number).strip())
-                        time.sleep(0.5)
-                        _click_continue(page)
-                        time.sleep(3)
-                        # 等待手机验证码输入框（6位数字）
-                        try:
-                            page.wait_for_selector(
-                                'input[autocomplete="one-time-code"], input[inputmode="numeric"], input[maxlength="1"]',
-                                timeout=30000
-                            )
-                            sms_code = self.phone_callback()  # 复用 callback 获取短信码
-                            if sms_code:
-                                self.log(f"填写短信验证码: {sms_code}")
-                                for digit in str(sms_code).strip():
-                                    page.keyboard.press(digit)
-                                    time.sleep(0.1)
-                                time.sleep(1)
-                                page.keyboard.press("Enter")
-                                time.sleep(3)
-                        except Exception as e:
-                            self.log(f"⚠️ 等待短信验证码失败: {e}")
-                else:
+                if not self.phone_callback:
                     raise RuntimeError(
-                        "Cursor 注册需要手机号验证，但未配置 phone_callback。"
-                        "请在 RegisterConfig.extra 中配置接码服务，或手动完成手机号验证。"
+                        "Cursor 需要手机号验证，但未配置 phone_callback。"
+                        "请在任务参数/全局默认里配置接码服务。"
                     )
+
+                phone_number = str(self.phone_callback() or "").strip()
+                if not phone_number:
+                    raise RuntimeError("未获取到手机号")
+                self.log(f"检测到手机号验证页，填写手机号: {phone_number[:4]}****")
+                try:
+                    phone_input.click()
+                except Exception:
+                    pass
+                phone_input.fill(phone_number)
+                time.sleep(0.5)
+                _click_continue(page)
+
+                # 等待短信验证码输入框（WorkOS 可能是 6 格）
+                try:
+                    page.wait_for_selector(
+                        'input[autocomplete="one-time-code"], input[inputmode="numeric"], input[maxlength="1"], input[type="text"]',
+                        timeout=45000,
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"已提交手机号，但未出现短信验证码输入框: {e}")
+
+                sms_code = str(self.phone_callback() or "").strip()
+                if not sms_code:
+                    raise RuntimeError("未获取到短信验证码")
+                self.log(f"填写短信验证码: {sms_code}")
+                for digit in sms_code:
+                    page.keyboard.type(digit, delay=80)
+                time.sleep(1)
+                page.keyboard.press("Enter")
+                time.sleep(3)
+                return True
 
             # 等待验证码输入框（WorkOS email-verification 页面用 6 个独立格子）
             self.log("等待验证码输入框...")
@@ -725,7 +731,24 @@ class CursorBrowserRegister:
             # WorkOS 自动提交，无需点 Continue；如果没提交就按 Enter
             if "email-verification" in page.url:
                 page.keyboard.press("Enter")
-            time.sleep(5)
+            time.sleep(2)
+
+            # 邮箱 OTP 后可能跳转到手机号验证页（radar-challenge/send）或直接发 token
+            phone_deadline = time.time() + 60
+            while time.time() < phone_deadline:
+                # 先看是否已经拿到 token
+                tok = _wait_for_token(page, timeout=1)
+                if tok:
+                    break
+                # 再看是否出现手机号输入框
+                try:
+                    if _try_bind_phone():
+                        # 绑定后继续等 token
+                        time.sleep(2)
+                except Exception as e:
+                    # 绑定失败要把原因抛出来（最常见是 CF/radar 阻断）
+                    raise
+                time.sleep(1)
 
             # 等待 Session Token
             self.log("等待 WorkosCursorSessionToken")

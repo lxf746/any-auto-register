@@ -102,6 +102,7 @@ class CursorPlatform(BasePlatform):
             worker_builder=lambda ctx, artifacts: __import__("platforms.cursor.protocol_mailbox", fromlist=["CursorProtocolMailboxWorker"]).CursorProtocolMailboxWorker(
                 proxy=ctx.proxy,
                 log_fn=ctx.log,
+                extra={**dict(ctx.extra or {}), "cursor_diag_mode": (ctx.extra or {}).get("cursor_diag_mode", True)},
             ),
             register_runner=lambda worker, ctx, artifacts: worker.run(
                 email=ctx.identity.email,

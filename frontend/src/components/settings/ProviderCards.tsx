@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { apiFetch } from '@/lib/utils'
 import type { ProviderOption, ProviderSetting } from '@/lib/config-options'
 import { Button } from '@/components/ui/button'
@@ -141,10 +141,18 @@ function EditModal({
   const [asyncOptions, setAsyncOptions] = useState<Record<string, Array<{ value: string; label: string }>>>({})
   const [asyncLoading, setAsyncLoading] = useState<Record<string, boolean>>({})
 
+  const buildAsyncUrlWithQuery = (baseUrl: string, params: Record<string, string>) => {
+    const keys = Object.keys(params || {})
+    if (!baseUrl || keys.length === 0) return baseUrl
+    const qs = new URLSearchParams(params).toString()
+    if (!qs) return baseUrl
+    return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${qs}`
+  }
+
   // 加载 async-select 字段的选项
   useEffect(() => {
     for (const field of fields) {
-      if (field.type === 'async-select' && field.asyncUrl && !asyncOptions[field.key]) {
+      if (field.type === 'async-select' && field.asyncUrl && !asyncOptions[field.key] && !field.asyncDependsOn) {
         setAsyncLoading(prev => ({ ...prev, [field.key]: true }))
         apiFetch(field.asyncUrl)
           .then((data: any) => {
@@ -155,6 +163,7 @@ function EditModal({
             if (Array.isArray(data)) items = data
             else if (data?.countries) items = data.countries
             else if (data?.services) items = data.services
+            else if (data?.products) items = data.products
             else if (data?.data) items = Array.isArray(data.data) ? data.data : []
 
             const options = items.map((item: any) => {
@@ -172,6 +181,57 @@ function EditModal({
       }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 加载依赖型 async-select（当 dependsOn 的值变化时刷新）
+  const dependentKeys = useMemo(() => {
+    const keys = new Set<string>()
+    for (const field of fields) {
+      if (field.type === 'async-select' && field.asyncUrl && field.asyncDependsOn) {
+        keys.add(field.asyncDependsOn)
+      }
+    }
+    return Array.from(keys)
+  }, [fields])
+
+  const dependentValues = dependentKeys.map(k => form[k] || '')
+
+  useEffect(() => {
+    for (const field of fields) {
+      if (field.type !== 'async-select' || !field.asyncUrl || !field.asyncDependsOn) continue
+      const depVal = form[field.asyncDependsOn] || ''
+      if (!depVal) continue
+      const queryParam = field.asyncQueryParam || field.asyncDependsOn
+      const url = buildAsyncUrlWithQuery(field.asyncUrl, { [queryParam]: depVal })
+
+      setAsyncLoading(prev => ({ ...prev, [field.key]: true }))
+      apiFetch(url)
+        .then((data: any) => {
+          const valueKey = field.asyncValueKey || 'value'
+          const labelKey = field.asyncLabelKey || 'label'
+          let items: any[] = []
+          if (Array.isArray(data)) items = data
+          else if (data?.countries) items = data.countries
+          else if (data?.services) items = data.services
+          else if (data?.products) items = data.products
+          else if (data?.data) items = Array.isArray(data.data) ? data.data : []
+
+          const options = items.map((item: any) => {
+            if (typeof item === 'object') {
+              const v = String(item[valueKey] ?? item.id ?? item.country ?? '')
+              const l = String(item[labelKey] ?? item.name ?? item.title ?? item.eng ?? v)
+              return { value: v, label: l ? `${l} (${v})` : v }
+            }
+            return { value: String(item), label: String(item) }
+          }).filter(o => o.value)
+
+          // 依赖项变化：直接覆盖
+          setAsyncOptions(prev => ({ ...prev, [field.key]: options }))
+        })
+        .catch(() => setAsyncOptions(prev => ({ ...prev, [field.key]: [] })))
+        .finally(() => setAsyncLoading(prev => ({ ...prev, [field.key]: false })))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields, ...dependentValues]) // depend on dependentValues only
 
   const handleSave = async () => {
     const config: Record<string, string> = {}

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -68,6 +69,256 @@ class BaseSmsProvider(ABC):
     def get_reuse_info(self) -> dict:
         """Return provider-specific reuse state for task scheduling."""
         return {}
+
+
+# ---------------------------------------------------------------------------
+# 5sim implementation (https://5sim.net)
+# ---------------------------------------------------------------------------
+
+
+class FiveSimProvider(BaseSmsProvider):
+    """5sim provider (JWT Bearer token)."""
+
+    BASE_URL = "https://5sim.net/v1"
+    PHONE_LIFETIME = 20 * 60
+    _CACHE_LOCK = threading.Lock()
+    _CACHE: dict | None = None
+    auto_report_success_on_code = True
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        default_country: str = "",
+        default_operator: str = "any",
+        default_product: str = "",
+        reuse_phone_to_max: bool = True,
+        phone_success_max: int = 3,
+        proxy: str | None = None,
+    ):
+        self.api_key = str(api_key or "").strip()
+        self.default_country = str(default_country or "").strip() or "any"
+        self.default_operator = str(default_operator or "").strip() or "any"
+        self.default_product = str(default_product or "").strip()
+        self.reuse_phone_to_max = bool(reuse_phone_to_max)
+        self.phone_success_max = max(0, int(phone_success_max or 0))
+        self.proxies = {"http": proxy, "https": proxy} if proxy else None
+
+    def _headers(self, *, auth: bool) -> dict:
+        h = {"accept": "application/json", "user-agent": "any-auto-register/5sim"}
+        if auth:
+            h["authorization"] = f"Bearer {self.api_key}"
+        return h
+
+    def _request(self, method: str, path: str, *, auth: bool, json_body=None, timeout: int = 30) -> requests.Response:
+        url = f"{self.BASE_URL}{path}"
+        resp = requests.request(
+            method.upper(),
+            url,
+            headers=self._headers(auth=auth),
+            json=json_body,
+            timeout=timeout,
+            proxies=self.proxies,
+        )
+        resp.raise_for_status()
+        return resp
+
+    def get_balance(self) -> float:
+        if not self.api_key:
+            raise RuntimeError("5sim 未配置 API Key")
+        data = self._request("GET", "/user/profile", auth=True).json()
+        # 常见字段：balance
+        bal = data.get("balance")
+        try:
+            return float(bal)
+        except (TypeError, ValueError):
+            raise RuntimeError(f"5sim profile 返回无法解析余额: {data}")
+
+    def _cache_file(self) -> Path:
+        return _project_data_dir() / ".fivesim_phone_cache.json"
+
+    def _save_cache(self, cache: dict | None) -> None:
+        type(self)._CACHE = cache
+        path = self._cache_file()
+        if cache is None:
+            try:
+                path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            return
+        safe = dict(cache)
+        safe["used_codes"] = list(set(safe.get("used_codes") or []))
+        try:
+            path.write_text(json.dumps(safe, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
+
+    def _load_cache(self, product: str, country: str, operator: str) -> dict | None:
+        cache = type(self)._CACHE
+        if cache is None:
+            path = self._cache_file()
+            if not path.exists():
+                return None
+            try:
+                cache = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                return None
+        if not isinstance(cache, dict):
+            return None
+        if str(cache.get("product") or "") != str(product):
+            return None
+        if str(cache.get("country") or "") != str(country):
+            return None
+        if str(cache.get("operator") or "") != str(operator):
+            return None
+        elapsed = time.time() - float(cache.get("acquired_at") or 0)
+        if elapsed >= self.PHONE_LIFETIME or cache.get("reuse_stopped"):
+            self._save_cache(None)
+            return None
+        if self.phone_success_max > 0 and int(cache.get("use_count") or 0) >= self.phone_success_max:
+            cache["reuse_stopped"] = True
+            cache["stop_reason"] = f"success max reached ({self.phone_success_max})"
+            self._save_cache(cache)
+            return None
+        cache["used_codes"] = set(cache.get("used_codes") or [])
+        type(self)._CACHE = cache
+        return cache
+
+    def get_number(self, *, service: str, country: str = "") -> SmsActivation:
+        if not self.api_key:
+            raise RuntimeError("5sim 未配置 API Key")
+        product = str(service or "").strip() or self.default_product
+        if not product:
+            raise RuntimeError("5sim 未配置 product（项目/服务）")
+        country_code = str(country or self.default_country or "any").strip()
+        operator = str(self.default_operator or "any").strip() or "any"
+
+        with self._CACHE_LOCK:
+            cache = self._load_cache(product, country_code, operator) if self.reuse_phone_to_max else None
+            if cache:
+                return SmsActivation(
+                    activation_id=str(cache["activation_id"]),
+                    phone_number=str(cache["phone_number"]),
+                    country=country_code,
+                    metadata={"reused": True, "use_count": int(cache.get("use_count") or 0), "product": product, "operator": operator},
+                )
+
+            path = f"/user/buy/activation/{country_code}/{operator}/{product}"
+            data = self._request("GET", path, auth=True).json()
+            activation_id = str(data.get("id") or "").strip()
+            phone = str(data.get("phone") or "").strip()
+            if not activation_id or not phone:
+                raise RuntimeError(f"5sim buy 返回异常: {data}")
+
+            cache = {
+                "activation_id": activation_id,
+                "phone_number": phone,
+                "country": country_code,
+                "operator": operator,
+                "product": product,
+                "acquired_at": time.time(),
+                "use_count": 0,
+                "used_codes": set(),
+                "reuse_stopped": False,
+                "stop_reason": "",
+            }
+            self._save_cache(cache)
+            return SmsActivation(
+                activation_id=activation_id,
+                phone_number=phone,
+                country=country_code,
+                metadata={"reused": False, "product": product, "operator": operator, "raw": data},
+            )
+
+    def get_code(self, activation_id: str, *, timeout: int = 120) -> str:
+        if not self.api_key:
+            raise RuntimeError("5sim 未配置 API Key")
+        deadline = time.time() + timeout
+        last_status = ""
+        while time.time() < deadline:
+            data = self._request("GET", f"/user/check/{activation_id}", auth=True).json()
+            last_status = str(data.get("status") or last_status or "")
+            sms_list = data.get("sms") or []
+            if isinstance(sms_list, list) and sms_list:
+                # sms item: {id, created_at, date, sender, text, code}
+                for item in sms_list:
+                    if not isinstance(item, dict):
+                        continue
+                    code = str(item.get("code") or "").strip()
+                    if code:
+                        with self._CACHE_LOCK:
+                            cache = type(self)._CACHE
+                            used = set(cache.get("used_codes") or []) if isinstance(cache, dict) else set()
+                            if code in used:
+                                continue
+                            if isinstance(cache, dict) and str(cache.get("activation_id") or "") == str(activation_id):
+                                used.add(code)
+                                cache["used_codes"] = used
+                                self._save_cache(cache)
+                        return code
+                    text = str(item.get("text") or "").strip()
+                    if text:
+                        m = re.search(r"\\b(\\d{4,8})\\b", text)
+                        if m:
+                            code2 = m.group(1)
+                            with self._CACHE_LOCK:
+                                cache = type(self)._CACHE
+                                used = set(cache.get("used_codes") or []) if isinstance(cache, dict) else set()
+                                if code2 in used:
+                                    continue
+                                if isinstance(cache, dict) and str(cache.get("activation_id") or "") == str(activation_id):
+                                    used.add(code2)
+                                    cache["used_codes"] = used
+                                    self._save_cache(cache)
+                            return code2
+            if last_status.upper() in ("CANCELED", "CANCEL", "FINISHED", "BANNED", "TIMEOUT"):
+                return ""
+            time.sleep(3)
+        # 超时则取消
+        try:
+            self.cancel(activation_id)
+        except Exception:
+            pass
+        return ""
+
+    def cancel(self, activation_id: str) -> bool:
+        if not self.api_key:
+            return False
+        try:
+            self._request("GET", f"/user/cancel/{activation_id}", auth=True)
+            with self._CACHE_LOCK:
+                cache = type(self)._CACHE
+                if isinstance(cache, dict) and str(cache.get("activation_id") or "") == str(activation_id):
+                    self._save_cache(None)
+            return True
+        except Exception:
+            return False
+
+    def report_success(self, activation_id: str) -> bool:
+        if not self.api_key:
+            return False
+        with self._CACHE_LOCK:
+            cache = type(self)._CACHE
+            if isinstance(cache, dict) and str(cache.get("activation_id") or "") == str(activation_id):
+                cache["use_count"] = int(cache.get("use_count") or 0) + 1
+                if not self.reuse_phone_to_max:
+                    cache["reuse_stopped"] = True
+                    cache["stop_reason"] = "reuse disabled"
+                elif self.phone_success_max > 0 and int(cache["use_count"]) >= self.phone_success_max:
+                    cache["reuse_stopped"] = True
+                    cache["stop_reason"] = f"success max reached ({self.phone_success_max})"
+                self._save_cache(cache)
+                if not bool(cache.get("reuse_stopped")):
+                    return True
+        try:
+            self._request("GET", f"/user/finish/{activation_id}", auth=True)
+            with self._CACHE_LOCK:
+                cache = type(self)._CACHE
+                if isinstance(cache, dict) and str(cache.get("activation_id") or "") == str(activation_id):
+                    self._save_cache(None)
+            return True
+        except Exception:
+            return False
 
 
 # ---------------------------------------------------------------------------
@@ -1040,6 +1291,21 @@ class SmsBowerProvider(HeroSmsProvider):
         return resp
 
 
+class GrizzlySmsProvider(HeroSmsProvider):
+    """GrizzlySMS provider — API 兼容 HeroSMS/SMS-Activate。"""
+
+    BASE_URL = "https://api.grizzlysms.com/stubs/handler_api.php"
+
+    def _request(self, params: dict, *, needs_key: bool = True, timeout: int = 30) -> requests.Response:
+        # GrizzlySMS 接口统一要求 api_key
+        payload = dict(params)
+        if needs_key or self.api_key:
+            payload["api_key"] = self.api_key
+        resp = requests.get(self.BASE_URL, params=payload, timeout=timeout, proxies=self.proxies)
+        resp.raise_for_status()
+        return resp
+
+
 def is_herosms_phone_cache_alive(config: dict | None = None) -> tuple[bool, dict]:
     """Return whether the current HeroSMS cache is reusable for scheduling."""
     config = dict(config or {})
@@ -1096,6 +1362,32 @@ def create_sms_provider(provider_key: str, config: dict) -> BaseSmsProvider:
             proxy=str(config.get("sms_proxy") or config.get("proxy") or "") or None,
             reuse_phone_to_max=_safe_bool(config.get("register_reuse_phone_to_max"), True),
             phone_success_max=max(0, _safe_int(config.get("register_phone_extra_max") or config.get("register_phone_success_max"), 3)),
+        )
+    if provider_key in ("grizzlysms", "grizzlysms_api"):
+        api_key = str(config.get("grizzlysms_api_key", "") or "").strip()
+        if not api_key:
+            raise RuntimeError("GrizzlySMS 未配置 API Key")
+        return GrizzlySmsProvider(
+            api_key=api_key,
+            default_service=str(config.get("sms_service") or config.get("grizzlysms_service") or config.get("grizzlysms_default_service") or HERO_SMS_DEFAULT_SERVICE),
+            default_country=str(config.get("sms_country") or config.get("grizzlysms_country") or config.get("grizzlysms_default_country") or HERO_SMS_DEFAULT_COUNTRY),
+            max_price=_safe_float(config.get("grizzlysms_max_price"), -1),
+            proxy=str(config.get("sms_proxy") or config.get("proxy") or "") or None,
+            reuse_phone_to_max=_safe_bool(config.get("register_reuse_phone_to_max"), True),
+            phone_success_max=max(0, _safe_int(config.get("register_phone_extra_max") or config.get("register_phone_success_max"), 3)),
+        )
+    if provider_key in ("fivesim", "fivesim_api", "5sim", "5sim"):
+        api_key = str(config.get("fivesim_api_key", "") or config.get("5sim_api_key", "") or "").strip()
+        if not api_key:
+            raise RuntimeError("5sim 未配置 API Key")
+        return FiveSimProvider(
+            api_key=api_key,
+            default_country=str(config.get("sms_country") or config.get("fivesim_country") or config.get("fivesim_default_country") or "any"),
+            default_operator=str(config.get("fivesim_operator") or config.get("fivesim_default_operator") or "any"),
+            default_product=str(config.get("sms_service") or config.get("fivesim_product") or config.get("fivesim_default_product") or ""),
+            reuse_phone_to_max=_safe_bool(config.get("register_reuse_phone_to_max"), True),
+            phone_success_max=max(0, _safe_int(config.get("register_phone_extra_max") or config.get("register_phone_success_max"), 3)),
+            proxy=str(config.get("sms_proxy") or config.get("proxy") or "") or None,
         )
     raise RuntimeError(f"未知的接码服务: {provider_key}")
 
@@ -1211,6 +1503,14 @@ class PhoneCallbackController:
             hook = getattr(self.provider, "mark_send_failed", None)
             if callable(hook):
                 hook(self.activation.activation_id, reason=reason)
+            # 发送阶段失败（例如平台拒绝此号码）时，释放当前激活并允许下次重新租号。
+            try:
+                self.provider.cancel(self.activation.activation_id)
+                self.log(f"发送失败已释放号码: activation_id={self.activation.activation_id}")
+            except Exception:
+                pass
+            self.activation = None
+            self.phase = "need_number"
             self.awaiting_external_success = False
 
     def mark_send_succeeded(self) -> None:

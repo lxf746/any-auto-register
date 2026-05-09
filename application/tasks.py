@@ -517,10 +517,12 @@ def _build_platform_instance(platform_name: str, payload: dict[str, Any], logger
             from infrastructure.provider_settings_repository import ProviderSettingsRepository
 
             extra["mail_provider"] = ProviderSettingsRepository().get_default_provider_key("mailbox")
+        # 默认不让邮箱服务走平台代理；只有显式 mail_use_proxy=true 才继承 platform proxy
+        use_mail_proxy = str(extra.get("mail_use_proxy") or "").strip().lower() in ("1", "true", "yes", "on")
         mailbox = create_mailbox(
             provider=extra.get("mail_provider", ""),
             extra=extra,
-            proxy=resolved_proxy,
+            proxy=resolved_proxy if use_mail_proxy else None,
         )
 
     platform_cls = get(platform_name)
@@ -697,8 +699,21 @@ def _execute_register_task(payload: dict[str, Any], logger: TaskLogger) -> None:
     platform_name = str(payload.get("platform", ""))
     email = payload.get("email") or None
     password = payload.get("password") or None
-    proxy = payload.get("proxy") or None
     extra = dict(payload.get("extra") or {})
+    proxy_source = ""
+    proxy = payload.get("proxy") or None
+    if proxy:
+        proxy_source = "payload.proxy"
+    elif extra.get("proxy"):
+        proxy = extra.get("proxy")
+        proxy_source = "extra.proxy"
+    else:
+        proxy = None
+        proxy_source = "proxy_pool"
+    proxy = str(proxy or "").strip() or None
+    if proxy and "://" not in proxy:
+        proxy = f"http://{proxy}"
+    logger.log(f"代理解析: source={proxy_source} value={'Y' if proxy else 'N'}")
     sms_provider_key, sms_settings = _resolve_sms_provider_for_task(extra)
     herosms_enabled = sms_provider_key == "herosms" and bool(str(sms_settings.get("herosms_api_key") or "").strip())
     hero_extra_max = max(_int_config(sms_settings.get("register_phone_extra_max"), 3), 0) if herosms_enabled else 0
@@ -751,6 +766,8 @@ def _execute_register_task(payload: dict[str, Any], logger: TaskLogger) -> None:
         if logger.is_cancel_requested():
             return "__cancel_requested__"
         resolved_proxy = proxy or proxy_pool.get_next()
+        if not resolved_proxy:
+            logger.log("代理解析结果为空：payload/extra 未传 proxy，且 proxy_pool 无可用代理", level="warning")
         platform = _build_platform_instance(platform_name, payload, logger, resolved_proxy=resolved_proxy, shared_mailbox=shared_mailbox)
         try:
             logger.log(f"开始注册第 {index + 1}/{count} 个账号")
