@@ -104,6 +104,7 @@ class CursorRegister:
         self._password_for_reauth = ""
         self._diag_mode = False
         self._phone_verified = False
+        self._cf_tls_version = ""
 
         # 可选：注入 Cloudflare clearance cookies，提升 radar-challenge/send 成功率（纯协议场景）
         extra = dict(extra or {})
@@ -111,11 +112,15 @@ class CursorRegister:
         # radar-challenge（发短信/验短信）这两步对出口环境更敏感：
         # 默认不走平台注册代理，除非显式开启 cursor_radar_use_proxy=true
         self._radar_use_proxy = str(extra.get("cursor_radar_use_proxy") or "").strip().lower() in ("1", "true", "yes", "on")
-        # 协议优先：禁用浏览器手动采集 cf_clearance，仅走协议 + captcha provider 方案
-        self._auto_fetch_cf_clearance = False
+        # 协议优先：默认不走浏览器采集 cf_clearance（只走协议 + captcha provider 的 CloudFlare5s）。
+        # 如需开启浏览器采集，可在 extra 中传 cursor_auto_fetch_cf_clearance=true
+        auto_fetch_raw = str(extra.get("cursor_auto_fetch_cf_clearance") or "0").strip().lower()
+        self._auto_fetch_cf_clearance = auto_fetch_raw in ("1", "true", "yes", "on")
         self._cf_fetch_timeout = max(30, int(str(extra.get("cursor_cf_fetch_timeout") or "180").strip() or "180"))
-        self._cf_fetch_headless = False
-        self._cf_fetch_use_proxy = False
+        self._cf_fetch_headless = str(extra.get("cursor_cf_fetch_headless") or "").strip().lower() in ("1", "true", "yes", "on")
+        # 浏览器采集（如果开启）是否复用平台代理
+        cf_use_proxy_raw = str(extra.get("cursor_cf_fetch_use_proxy") or "0").strip().lower()
+        self._cf_fetch_use_proxy = cf_use_proxy_raw in ("1", "true", "yes", "on")
         self._cf_clearance = str(
             extra.get("cursor_cf_clearance")
             or extra.get("cf_clearance")
@@ -154,6 +159,28 @@ class CursorRegister:
             )
         if self._diag_mode:
             self.log("[Cursor][TRACE] 诊断模式已启用")
+
+        # 浏览器采集仅在启用时才会用到（协议模式不会走这里）
+
+    def _request(self, method: str, url: str, **kwargs):
+        """统一请求入口：尽量复用 CloudFlare5s 返回的 TLS/UA/代理环境。"""
+        method = str(method or "get").lower().strip()
+        url_s = str(url or "")
+        # 只对 authenticator 域尝试注入 tls_version（避免影响 cursor.com 等域）
+        want_tls = bool(self._cf_tls_version) and ("authenticator.cursor.sh" in url_s)
+        if want_tls and "tls_version" not in kwargs:
+            kwargs["tls_version"] = self._cf_tls_version
+        try:
+            fn = getattr(self.s, method)
+        except Exception:
+            fn = getattr(self.s, "get")
+        try:
+            return fn(url, **kwargs)
+        except TypeError:
+            # 兼容：curl_cffi 版本可能不支持 tls_version 参数
+            if "tls_version" in kwargs:
+                kwargs.pop("tls_version", None)
+            return fn(url, **kwargs)
 
     def _diag(self, msg: str) -> None:
         if self._diag_mode:
@@ -390,6 +417,8 @@ class CursorRegister:
             self._browser_ua = ua
         self._radar_use_proxy = True
         tls_v = str((result or {}).get("tls_version") or "").strip()
+        if tls_v:
+            self._cf_tls_version = tls_v
         self.log(
             f"[Cursor][DEBUG] {provider_name} CloudFlare5s 注入成功: "
             f"cf_clearance={'Y' if clearance else 'N'} __cf_bm={'Y' if bm else 'N'} "
@@ -662,7 +691,7 @@ class CursorRegister:
             # 先请求根态，确保 state 相关 cookie/会话被写入
             init_url = f"{AUTH}/?state={self.state_encoded}"
             try:
-                self.s.get(init_url, headers={"user-agent": self._current_ua(), "accept": "text/html"}, allow_redirects=True)
+                self._request(init_url and "get" or "get", init_url, headers={"user-agent": self._current_ua(), "accept": "text/html"}, allow_redirects=True)
             except Exception:
                 pass
 
@@ -673,7 +702,8 @@ class CursorRegister:
                 f"&redirect_uri={urllib.parse.quote(self.redirect_uri, safe='')}"
             )
 
-            r_local = self.s.get(
+            r_local = self._request(
+                "get",
                 signup_url,
                 headers={"user-agent": self._current_ua(), "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
                 allow_redirects=True,
@@ -693,9 +723,17 @@ class CursorRegister:
         self.authorization_session_id = self._extract_session_id(r)
         self._next_action = self._extract_action_id(getattr(r, "text", "") or "")
 
-        # 首次未拿到 session_id：协议链路直接重试一次（不走浏览器手动采集）
+        # 首次未拿到 session_id：协议链路尝试 CloudFlare5s 采集后重试一次
         if not self.authorization_session_id:
-            self.log("[Cursor][DEBUG] step1 未获取到 authorization_session_id，协议重试一次...")
+            self.log("[Cursor][DEBUG] step1 未获取到 authorization_session_id，尝试 CloudFlare5s 采集后重试...")
+            try:
+                if not self._has_cf_clearance_cookie():
+                    self._try_fetch_cf_assets_with_captcha5s(
+                        captcha_solver=None,
+                        target_url=signup_url,
+                    )
+            except Exception as e:
+                self.log(f"[Cursor][DEBUG] step1 CloudFlare5s 采集失败: {e}")
             signup_url, r = _do_step1_once()
             self.authorization_session_id = self._extract_session_id(r)
             self._next_action = self._extract_action_id(getattr(r, "text", "") or "")
@@ -1147,7 +1185,8 @@ class CursorRegister:
                 pu = urllib.parse.urlparse(cand)
                 if pu.path:
                     next_url = pu.path + (f"?{pu.query}" if pu.query else "")
-                r_pre = self.s.get(
+                r_pre = self._request(
+                    "get",
                     cand,
                     headers={
                         "user-agent": self._current_ua(),
@@ -1237,9 +1276,10 @@ class CursorRegister:
         self._diag(f"step5 action_candidates={len(action_candidates)}")
         if not self._has_cf_clearance_cookie():
             self.log("[Cursor][DEBUG] 当前会话缺少 cf_clearance")
+            # 协议采集：优先走 captcha provider 的 CloudFlare5s（需要代理 & 复用其 UA/TLS）
             self._try_fetch_cf_assets_with_captcha5s(captcha_solver=captcha_solver, target_url=send_url)
             if not self._has_cf_clearance_cookie():
-                self.log("[Cursor][DEBUG] 协议模式未拿到 cf_clearance（已禁用浏览器手动采集）")
+                self.log("[Cursor][DEBUG] 仍未拿到 cf_clearance，后续 Radar/发送可能失败")
         removed = self._dedupe_session_cookies()
         if removed:
             self.log(f"[Cursor][DEBUG] step5_send cookies 去重完成: removed={removed}")
@@ -1296,7 +1336,8 @@ class CursorRegister:
                 matched = False
                 for act_i, act in enumerate(action_candidates, start=1):
                     self.log(f"[Cursor][DEBUG] step5_send using next-action={act[:12]}... (payload#{idx}/action#{act_i})")
-                    r = self.s.post(
+                    r = self._request(
+                        "post",
                         send_url,
                         headers=self._radar_common_headers(
                             referer=send_url,
@@ -1407,7 +1448,8 @@ class CursorRegister:
                 ("1_pending_authentication_token", self._pending_auth_token),
                 ("0", '["$K1"]'),
             ], bd)
-            r2 = self.s.post(
+            r2 = self._request(
+                "post",
                 send_url,
                 headers=self._radar_common_headers(
                     referer=send_url,
@@ -1458,7 +1500,8 @@ class CursorRegister:
                     ("1_pending_authentication_token", self._pending_auth_token),
                     ("0", '["$K1"]'),
                 ], bd)
-                r3 = self.s.post(
+                r3 = self._request(
+                    "post",
                     alt_send_url,
                     headers=self._radar_common_headers(
                         referer=alt_send_url,

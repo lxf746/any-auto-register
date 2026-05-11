@@ -59,9 +59,6 @@ class ProxyPool:
             if p:
                 p.fail_count += 1
                 p.last_checked = datetime.now(timezone.utc)
-                # 连续失败超过10次自动禁用
-                if p.fail_count > 0 and p.success_count == 0 and p.fail_count >= 5:
-                    p.is_active = False
                 s.add(p)
                 s.commit()
 

@@ -237,7 +237,7 @@ def _create_luckmail(extra: dict, proxy: str | None) -> 'BaseMailbox':
         email_type=extra.get("luckmail_email_type", ""),
         domain=extra.get("luckmail_domain", ""),
         variant_mode=extra.get("luckmail_variant_mode", ""),
-        proxy=proxy,
+        proxy=None,
     )
 
 
@@ -1842,7 +1842,7 @@ class LuckMailMailbox(BaseMailbox):
         self.email_type = str(email_type or "").strip()
         self.domain = str(domain or "").strip()
         self.variant_mode = str(variant_mode or "").strip()
-        self.proxy = {"http": proxy, "https": proxy} if proxy else None
+        self.proxy = None
 
     def _assert_ready(self) -> None:
         if not self.api:
