@@ -48,6 +48,9 @@ jobs:
             --add-data "static:static" \
             --collect-all browserforge \
             --collect-all camoufox \
+            --collect-all playwright \
+            --collect-all patchright \
+            --collect-all rich \
             --collect-all apify_fingerprint_datapoints \
             --collect-all language_tags \
             --collect-all ua_parser \
@@ -59,6 +62,7 @@ jobs:
             main.py
           mkdir -p electron/backend
           cp -r dist/backend electron/backend/
+          python scripts/check_playwright_driver_bundle.py electron/backend/backend
 
       - name: Build Electron (macOS)
         run: |
@@ -127,6 +131,9 @@ jobs:
             --add-data "static;static" `
             --collect-all browserforge `
             --collect-all camoufox `
+            --collect-all playwright `
+            --collect-all patchright `
+            --collect-all rich `
             --collect-all apify_fingerprint_datapoints `
             --collect-all language_tags `
             --collect-all ua_parser `
@@ -138,6 +145,7 @@ jobs:
             main.py
           New-Item -ItemType Directory -Force -Path electron/backend
           Copy-Item -Recurse dist/backend electron/backend/
+          python scripts/check_playwright_driver_bundle.py electron/backend/backend
         shell: pwsh
 
       - name: Build Electron (Windows)

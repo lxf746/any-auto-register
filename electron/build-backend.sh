@@ -7,9 +7,10 @@ BACKEND_DIR="$SCRIPT_DIR/../"
 
 cd "$BACKEND_DIR"
 
-# 定位 patchright driver（含 node 二进制 + cli.js）
-DRIVER_DIR="$(.venv/bin/python -c "import pathlib, patchright; print(pathlib.Path(patchright.__file__).parent / 'driver')")"
-echo "[info] patchright driver: $DRIVER_DIR"
+# 定位 Playwright driver（含 node 二进制 + cli.js）。Camoufox 通过
+# playwright.async_api 启动 transport，缺少这里会在 Windows 上触发 WinError 2。
+PLAYWRIGHT_DRIVER_DIR="$(.venv/bin/python -c "import pathlib, playwright; print(pathlib.Path(playwright.__file__).parent / 'driver')")"
+echo "[info] playwright driver: $PLAYWRIGHT_DRIVER_DIR"
 
 echo "[1/3] 清理旧产物..."
 rm -rf dist build backend.spec
@@ -25,8 +26,8 @@ echo "[2/3] 打包后端..."
   --add-data="infrastructure:infrastructure" \
   --add-data="domain:domain" \
   --add-data="static:static" \
-  --add-binary="${DRIVER_DIR}/node:playwright/driver" \
-  --add-data="${DRIVER_DIR}/package:playwright/driver/package" \
+  --add-binary="${PLAYWRIGHT_DRIVER_DIR}/node:playwright/driver" \
+  --add-data="${PLAYWRIGHT_DRIVER_DIR}/package:playwright/driver/package" \
   --hidden-import=uvicorn.logging \
   --hidden-import=uvicorn.loops \
   --hidden-import=uvicorn.loops.auto \
@@ -48,6 +49,7 @@ echo "[2/3] 打包后端..."
   --collect-all=browserforge \
   --collect-all=apify_fingerprint_datapoints \
   --collect-all=camoufox \
+  --collect-all=playwright \
   --collect-all=language_tags \
   --collect-all=hypercorn \
   main.py
