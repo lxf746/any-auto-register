@@ -74,6 +74,32 @@ def _detect_running_chrome_cdp(ports: tuple = (9222, 9223, 9224)) -> str:
     return ""
 
 
+def _cdp_url_candidates(cdp_url: str) -> list[str]:
+    """Build fallback CDP URLs (notably localhost -> 127.0.0.1 for macOS IPv6 issues)."""
+    url = (cdp_url or "").strip()
+    if not url:
+        return []
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        return [url]
+
+    candidates = [url]
+    host = (parsed.hostname or "").lower()
+    if host == "localhost":
+        replacement = parsed.netloc.replace("localhost", "127.0.0.1")
+        candidates.append(parsed._replace(netloc=replacement).geturl())
+    elif host == "127.0.0.1":
+        replacement = parsed.netloc.replace("127.0.0.1", "localhost")
+        candidates.append(parsed._replace(netloc=replacement).geturl())
+
+    # Keep order, remove duplicates.
+    deduped: list[str] = []
+    for candidate in candidates:
+        if candidate not in deduped:
+            deduped.append(candidate)
+    return deduped
+
+
 def _detect_chrome_user_data_dir() -> str:
     """自动检测系统 Chrome 用户数据目录。"""
     import os, sys
@@ -165,10 +191,34 @@ class OAuthBrowser:
 
         if self.chrome_cdp_url:
             # Connect to a running Chrome instance via CDP
-            self.browser = self._pw.chromium.connect_over_cdp(self.chrome_cdp_url)
-            self.context = self.browser.contexts[0] if self.browser.contexts else self.browser.new_context()
-            pages = self.context.pages
-            self.page = pages[0] if pages else self.context.new_page()
+            candidates = _cdp_url_candidates(self.chrome_cdp_url)
+            last_error = None
+            for cdp_url in candidates:
+                try:
+                    self.log(f"[OAuthBrowser] 尝试连接 Chrome CDP: {cdp_url}")
+                    self.browser = self._pw.chromium.connect_over_cdp(cdp_url)
+                    self.context = self.browser.contexts[0] if self.browser.contexts else self.browser.new_context()
+                    pages = self.context.pages
+                    self.page = pages[0] if pages else self.context.new_page()
+                    break
+                except Exception as exc:
+                    last_error = exc
+
+            if not self.browser:
+                parsed = urlparse(self.chrome_cdp_url)
+                host = (parsed.hostname or "").lower()
+                port = parsed.port or 9222
+                if host in ("localhost", "127.0.0.1", "::1") and port == 9222:
+                    self.log("[OAuthBrowser] CDP 连接失败，尝试重启 Chrome 并绑定 127.0.0.1:9222")
+                    if _relaunch_chrome_with_debug_port(9222):
+                        retry_url = "http://127.0.0.1:9222"
+                        self.browser = self._pw.chromium.connect_over_cdp(retry_url)
+                        self.context = self.browser.contexts[0] if self.browser.contexts else self.browser.new_context()
+                        pages = self.context.pages
+                        self.page = pages[0] if pages else self.context.new_page()
+
+            if not self.browser and last_error is not None:
+                raise last_error
         elif self.chrome_user_data_dir:
             # Load user Chrome profile (carries Google/GitHub sessions)
             launch_kwargs = {

@@ -246,12 +246,13 @@ export default function Register() {
   const currentPlatform = platforms.find((p: any) => p.name === form.platform) || null
   const platformOptions = platforms.map((p: any) => [p.name, p.display_name])
   const supportedExecutors = currentPlatform?.supported_executors || []
-  const registrationOptions = buildRegistrationOptions(currentPlatform)
+  const registrationOptions = buildRegistrationOptions(currentPlatform, locale)
   const executorOptions = buildExecutorOptions(
     form.identity_provider,
     supportedExecutors,
     hasReusableOAuthBrowser(form),
     currentPlatform?.supported_executor_options || [],
+    locale,
   )
   const mailboxProviderOptions = getProviderSelectOptions(configOptions.mailbox_providers || [])
   const currentMailboxProvider = (configOptions.mailbox_providers || []).find(provider => provider.value === form.mail_provider) || null
@@ -464,7 +465,7 @@ export default function Register() {
 
   const summaryRegistration = registrationOptions.find(option => option.identityProvider === form.identity_provider && option.oauthProvider === form.oauth_provider)?.label || '-'
   const summaryExecutor = executorOptions.find(option => option.value === form.executor_type)?.label || '-'
-  const summaryVerification = getCaptchaStrategyLabel(form.executor_type, configOptions.captcha_policy, configOptions.captcha_providers)
+  const summaryVerification = getCaptchaStrategyLabel(form.executor_type, configOptions.captcha_policy, configOptions.captcha_providers, locale)
   const activeTaskStats = task ? [
     { label: copy.status, value: getTaskStatusText(task.status, locale), icon: Orbit },
     { label: copy.progress, value: task.progress || '0/0', icon: Workflow },

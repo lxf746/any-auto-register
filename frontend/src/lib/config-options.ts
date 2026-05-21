@@ -82,6 +82,12 @@ export type ProviderSetting = {
   metadata?: Record<string, unknown>
 }
 
+function l(locale: 'en' | 'vi' | 'zh', en: string, vi: string, zh: string) {
+  if (locale === 'en') return en
+  if (locale === 'vi') return vi
+  return zh
+}
+
 export function getProviderSelectOptions(providers: ProviderOption[]): Array<[string, string]> {
   return providers.map(provider => [provider.value, provider.label])
 }
@@ -98,16 +104,28 @@ export function listProviderFieldKeys(providers: ProviderOption[] = []): string[
   return Array.from(keys)
 }
 
-export function getCaptchaStrategyLabel(executorType: string, policy?: CaptchaPolicy, providers?: ProviderOption[]) {
+export function getCaptchaStrategyLabel(
+  executorType: string,
+  policy?: CaptchaPolicy,
+  providers?: ProviderOption[],
+  locale: 'en' | 'vi' | 'zh' = 'zh',
+) {
   if (executorType === 'headless' || executorType === 'headed') {
     const browserDefault = policy?.browser_mode || ''
     const label = providers?.find(item => item.value === browserDefault)?.label || browserDefault
-    return label ? `浏览器模式默认使用 ${label}` : '浏览器模式未配置默认验证码 provider'
+    return label
+      ? l(locale, `Browser mode uses ${label} as default`, `Chế độ trình duyệt mặc định dùng ${label}`, `浏览器模式默认使用 ${label}`)
+      : l(locale, 'Browser mode has no default captcha provider configured', 'Chế độ trình duyệt chưa cấu hình captcha provider mặc định', '浏览器模式未配置默认验证码 provider')
   }
   const order = policy?.protocol_order || []
   if (order.length === 0) {
-    return '协议模式未配置可用的远程验证码 provider'
+    return l(locale, 'Protocol mode has no available remote captcha providers configured', 'Chế độ giao thức chưa cấu hình captcha provider từ xa khả dụng', '协议模式未配置可用的远程验证码 provider')
   }
   const labels = order.map(value => providers?.find(item => item.value === value)?.label || value)
-  return `协议模式按已启用顺序自动选择远程打码服务：${labels.join(' -> ')}`
+  return l(
+    locale,
+    `Protocol mode auto-selects remote captcha providers in enabled order: ${labels.join(' -> ')}`,
+    `Chế độ giao thức tự chọn captcha provider từ xa theo thứ tự đã bật: ${labels.join(' -> ')}`,
+    `协议模式按已启用顺序自动选择远程打码服务：${labels.join(' -> ')}`,
+  )
 }

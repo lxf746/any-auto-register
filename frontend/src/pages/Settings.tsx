@@ -107,6 +107,23 @@ const getProviderMeta = (locale: 'en' | 'vi' | 'zh'): ProviderMeta => ({
   },
 })
 
+const CHOICE_LABELS: Record<string, { en: string; vi: string; zh: string }> = {
+  mailbox: { en: 'System mailbox', vi: 'Mailbox hệ thống', zh: '系统邮箱' },
+  oauth_browser: { en: 'Third-party account', vi: 'Tài khoản bên thứ ba', zh: '第三方账号' },
+  protocol: { en: 'Protocol mode', vi: 'Chế độ giao thức', zh: '协议模式' },
+  headless: { en: 'Background browser automation', vi: 'Tự động trình duyệt nền', zh: '后台浏览器自动' },
+  headed: { en: 'Visible browser automation', vi: 'Tự động trình duyệt có giao diện', zh: '可视浏览器自动' },
+  google: { en: 'Google', vi: 'Google', zh: 'Google' },
+  microsoft: { en: 'Microsoft', vi: 'Microsoft', zh: 'Microsoft' },
+  github: { en: 'GitHub', vi: 'GitHub', zh: 'GitHub' },
+  apple: { en: 'Apple', vi: 'Apple', zh: 'Apple' },
+}
+
+function localizeChoiceLabel(option: ChoiceOption, locale: 'en' | 'vi' | 'zh') {
+  const mapped = CHOICE_LABELS[option.value]?.[locale]
+  return mapped || option.label
+}
+
 function SettingsMetric({
   label,
   value,
@@ -132,6 +149,7 @@ function SettingsMetric({
 }
 
 function PlatformCapsTab() {
+  const { locale } = useI18n()
   const [platforms, setPlatforms] = useState<any[]>([])
   const [drafts, setDrafts] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
@@ -205,45 +223,45 @@ function PlatformCapsTab() {
               </div>
               <button onClick={() => reset(p.name)}
                 className="table-action-btn">
-                恢复默认
+                {locale === 'en' ? 'Restore defaults' : locale === 'vi' ? 'Khôi phục mặc định' : '恢复默认'}
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <p className="text-xs text-[var(--text-muted)] mb-2">执行方式</p>
+                <p className="text-xs text-[var(--text-muted)] mb-2">{locale === 'en' ? 'Executors' : locale === 'vi' ? 'Cách chạy' : '执行方式'}</p>
                 <div className="flex flex-wrap gap-4">
                   {executorOptions.map(option => (
                     <label key={option.value} className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
                       <input type="checkbox" checked={executors.includes(option.value)}
                         onChange={() => toggle(p.name, 'supported_executors', option.value)}
                         className="checkbox-accent" />
-                      {option.label}
+                      {localizeChoiceLabel(option, locale)}
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-muted)] mb-2">注册身份</p>
+                <p className="text-xs text-[var(--text-muted)] mb-2">{locale === 'en' ? 'Registration identities' : locale === 'vi' ? 'Danh tính đăng ký' : '注册身份'}</p>
                 <div className="flex gap-4">
                   {identityOptions.map(option => (
                     <label key={option.value} className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
                       <input type="checkbox" checked={modes.includes(option.value)}
                         onChange={() => toggle(p.name, 'supported_identity_modes', option.value)}
                         className="checkbox-accent" />
-                      {option.label}
+                      {localizeChoiceLabel(option, locale)}
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-muted)] mb-2">第三方入口</p>
+                <p className="text-xs text-[var(--text-muted)] mb-2">{locale === 'en' ? 'Third-party entries' : locale === 'vi' ? 'Cổng bên thứ ba' : '第三方入口'}</p>
                 <div className="flex flex-wrap gap-4">
                   {oauthOptions.map(option => (
                     <label key={option.value} className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
                       <input type="checkbox" checked={oauths.includes(option.value)}
                         onChange={() => toggle(p.name, 'supported_oauth_providers', option.value)}
                         className="checkbox-accent" />
-                      {option.label}
+                      {localizeChoiceLabel(option, locale)}
                     </label>
                   ))}
                 </div>
@@ -252,7 +270,7 @@ function PlatformCapsTab() {
             <div className="mt-4">
               <Button size="sm" onClick={() => save(p.name)} disabled={saving[p.name]}>
                 <Save className="h-3.5 w-3.5 mr-1" />
-                {saved[p.name] ? '已保存 ✓' : saving[p.name] ? '保存中...' : '保存'}
+                {saved[p.name] ? (locale === 'en' ? 'Saved ✓' : locale === 'vi' ? 'Đã lưu ✓' : '已保存 ✓') : saving[p.name] ? (locale === 'en' ? 'Saving...' : locale === 'vi' ? 'Đang lưu...' : '保存中...') : (locale === 'en' ? 'Save' : locale === 'vi' ? 'Lưu' : '保存')}
               </Button>
             </div>
           </div>
@@ -421,6 +439,7 @@ function ProviderField({ field, value, onChange, showSecret, setShowSecret, secr
 }
 
 function HeroSmsTools({ item }: { item: ProviderSetting }) {
+  const { locale } = useI18n()
   const [loading, setLoading] = useState('')
   const [message, setMessage] = useState('')
 
@@ -438,9 +457,9 @@ function HeroSmsTools({ item }: { item: ProviderSetting }) {
         method: 'POST',
         body: JSON.stringify(payload()),
       })
-      setMessage(`余额: $${Number(data.balance ?? 0).toFixed(3)}`)
+      setMessage(locale === 'en' ? `Balance: $${Number(data.balance ?? 0).toFixed(3)}` : locale === 'vi' ? `Số dư: $${Number(data.balance ?? 0).toFixed(3)}` : `余额: $${Number(data.balance ?? 0).toFixed(3)}`)
     } catch (e: any) {
-      setMessage(e.message || '余额查询失败')
+      setMessage(e.message || (locale === 'en' ? 'Failed to query balance' : locale === 'vi' ? 'Không thể truy vấn số dư' : '余额查询失败'))
     } finally {
       setLoading('')
     }
@@ -459,12 +478,12 @@ function HeroSmsTools({ item }: { item: ProviderSetting }) {
       const service = payload().service
       const current = prices?.[country]?.[service]
       if (current) {
-        setMessage(`当前价格: $${current.cost}，可用数量: ${current.count}`)
+        setMessage(locale === 'en' ? `Current price: $${current.cost}, available count: ${current.count}` : locale === 'vi' ? `Giá hiện tại: $${current.cost}, số lượng khả dụng: ${current.count}` : `当前价格: $${current.cost}，可用数量: ${current.count}`)
       } else {
-        setMessage('未找到当前服务/国家的价格信息')
+        setMessage(locale === 'en' ? 'No pricing info found for current service/country' : locale === 'vi' ? 'Không tìm thấy giá cho dịch vụ/quốc gia hiện tại' : '未找到当前服务/国家的价格信息')
       }
     } catch (e: any) {
-      setMessage(e.message || '价格查询失败')
+      setMessage(e.message || (locale === 'en' ? 'Failed to query price' : locale === 'vi' ? 'Không thể truy vấn giá' : '价格查询失败'))
     } finally {
       setLoading('')
     }
@@ -474,15 +493,15 @@ function HeroSmsTools({ item }: { item: ProviderSetting }) {
     <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-3 text-xs text-[var(--text-secondary)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="font-medium text-[var(--text-primary)]">HeroSMS 工具</div>
-          <div className="mt-1 text-[var(--text-muted)]">使用当前 API Key、服务代码和国家 ID 查询余额/价格。</div>
+          <div className="font-medium text-[var(--text-primary)]">{locale === 'en' ? 'HeroSMS tools' : locale === 'vi' ? 'Công cụ HeroSMS' : 'HeroSMS 工具'}</div>
+          <div className="mt-1 text-[var(--text-muted)]">{locale === 'en' ? 'Query balance/price with current API key, service code, and country ID.' : locale === 'vi' ? 'Truy vấn số dư/giá bằng API key, mã dịch vụ và ID quốc gia hiện tại.' : '使用当前 API Key、服务代码和国家 ID 查询余额/价格。'}</div>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={queryBalance} disabled={Boolean(loading)}>
-            {loading === 'balance' ? '查询中...' : '查余额'}
+            {loading === 'balance' ? (locale === 'en' ? 'Querying...' : locale === 'vi' ? 'Đang truy vấn...' : '查询中...') : (locale === 'en' ? 'Query balance' : locale === 'vi' ? 'Tra số dư' : '查余额')}
           </Button>
           <Button size="sm" variant="outline" onClick={queryPrice} disabled={Boolean(loading)}>
-            {loading === 'price' ? '查询中...' : '查价格'}
+            {loading === 'price' ? (locale === 'en' ? 'Querying...' : locale === 'vi' ? 'Đang truy vấn...' : '查询中...') : (locale === 'en' ? 'Query price' : locale === 'vi' ? 'Tra giá' : '查价格')}
           </Button>
         </div>
       </div>
@@ -506,6 +525,7 @@ function ProviderDetailModal({
   onChangeField,
   onSave,
 }: any) {
+  const { locale } = useI18n()
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div className="dialog-panel dialog-panel-md flex flex-col" onClick={e => e.stopPropagation()}>
@@ -519,10 +539,10 @@ function ProviderDetailModal({
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-[var(--border)] bg-[var(--bg-hover)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)]">
-              {item.auth_modes.find((mode: any) => mode.value === item.auth_mode)?.label || item.auth_mode || '未设置认证方式'}
+              {item.auth_modes.find((mode: any) => mode.value === item.auth_mode)?.label || item.auth_mode || (locale === 'en' ? 'Auth mode not set' : locale === 'vi' ? 'Chưa đặt chế độ xác thực' : '未设置认证方式')}
             </span>
             {item.is_default ? (
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-300">默认 Provider</span>
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-300">{locale === 'en' ? 'Default provider' : locale === 'vi' ? 'Provider mặc định' : '默认 Provider'}</span>
             ) : null}
           </div>
           {item.description ? (
@@ -534,7 +554,7 @@ function ProviderDetailModal({
             <HeroSmsTools item={item} />
           ) : null}
           <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-white/5">
-            <label className="text-sm text-[var(--text-secondary)] font-medium">配置名称</label>
+            <label className="text-sm text-[var(--text-secondary)] font-medium">{locale === 'en' ? 'Configuration name' : locale === 'vi' ? 'Tên cấu hình' : '配置名称'}</label>
             <div className="col-span-2">
               <input
                 type="text"
@@ -548,7 +568,7 @@ function ProviderDetailModal({
           </div>
           {item.auth_modes?.length > 0 && (
             <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-white/5">
-              <label className="text-sm text-[var(--text-secondary)] font-medium">认证方式</label>
+              <label className="text-sm text-[var(--text-secondary)] font-medium">{locale === 'en' ? 'Auth mode' : locale === 'vi' ? 'Chế độ xác thực' : '认证方式'}</label>
               <div className="col-span-2">
                 <select
                   value={item.auth_mode}
@@ -562,7 +582,7 @@ function ProviderDetailModal({
             </div>
           )}
           {item.fields.length === 0 ? (
-            <div className="text-sm text-[var(--text-muted)] py-3">这个 provider 当前无需额外配置。</div>
+            <div className="text-sm text-[var(--text-muted)] py-3">{locale === 'en' ? 'This provider currently needs no extra configuration.' : locale === 'vi' ? 'Provider này hiện không cần cấu hình thêm.' : '这个 provider 当前无需额外配置。'}</div>
           ) : (
             <GroupedProviderFields
               fields={item.fields}
@@ -578,16 +598,16 @@ function ProviderDetailModal({
         <div className="flex-shrink-0 flex gap-3 px-6 py-4 border-t border-[var(--border)]">
           {readOnly ? (
             <>
-              <Button onClick={onEdit} className="flex-1">切换到编辑</Button>
-              <Button variant="outline" onClick={onClose} className="flex-1">关闭</Button>
+              <Button onClick={onEdit} className="flex-1">{locale === 'en' ? 'Switch to edit' : locale === 'vi' ? 'Chuyển sang chỉnh sửa' : '切换到编辑'}</Button>
+              <Button variant="outline" onClick={onClose} className="flex-1">{locale === 'en' ? 'Close' : locale === 'vi' ? 'Đóng' : '关闭'}</Button>
             </>
           ) : (
             <>
               <Button onClick={onSave} disabled={saving} className="flex-1">
                 <Save className="h-4 w-4 mr-2" />
-                {saved ? '已保存 ✓' : saving ? '保存中...' : '保存'}
+                {saved ? (locale === 'en' ? 'Saved ✓' : locale === 'vi' ? 'Đã lưu ✓' : '已保存 ✓') : saving ? (locale === 'en' ? 'Saving...' : locale === 'vi' ? 'Đang lưu...' : '保存中...') : (locale === 'en' ? 'Save' : locale === 'vi' ? 'Lưu' : '保存')}
               </Button>
-              <Button variant="outline" onClick={onClose} className="flex-1">取消</Button>
+              <Button variant="outline" onClick={onClose} className="flex-1">{locale === 'en' ? 'Cancel' : locale === 'vi' ? 'Hủy' : '取消'}</Button>
             </>
           )}
         </div>
@@ -731,6 +751,7 @@ function CreateProviderDefinitionModal({
   onClose,
   onCreate,
 }: any) {
+  const { locale } = useI18n()
   const currentDriver = drivers.find((item: ProviderDriver) => item.driver_type === form.driver_type) || null
   const currentAuthModes = currentDriver?.auth_modes || []
   const currentFields = currentDriver?.fields || []
@@ -741,13 +762,13 @@ function CreateProviderDefinitionModal({
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
           <div>
             <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">新增一个动态 provider definition，并同时创建首个可用配置。</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">{locale === 'en' ? 'Create a dynamic provider definition and its first usable configuration.' : locale === 'vi' ? 'Tạo provider definition động và cấu hình khả dụng đầu tiên.' : '新增一个动态 provider definition，并同时创建首个可用配置。'}</p>
           </div>
           <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X className="h-4 w-4" /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-white/5">
-            <label className="text-sm text-[var(--text-secondary)] font-medium">Provider 名称</label>
+            <label className="text-sm text-[var(--text-secondary)] font-medium">{locale === 'en' ? 'Provider name' : locale === 'vi' ? 'Tên provider' : 'Provider 名称'}</label>
             <div className="col-span-2">
               <input value={form.label} onChange={e => onChange('label', e.target.value)} placeholder="My Provider" className="control-surface" />
             </div>
@@ -759,13 +780,13 @@ function CreateProviderDefinitionModal({
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-white/5">
-            <label className="text-sm text-[var(--text-secondary)] font-medium">描述</label>
+            <label className="text-sm text-[var(--text-secondary)] font-medium">{locale === 'en' ? 'Description' : locale === 'vi' ? 'Mô tả' : '描述'}</label>
             <div className="col-span-2">
-              <input value={form.description} onChange={e => onChange('description', e.target.value)} placeholder="可选" className="control-surface" />
+              <input value={form.description} onChange={e => onChange('description', e.target.value)} placeholder={locale === 'en' ? 'Optional' : locale === 'vi' ? 'Tùy chọn' : '可选'} className="control-surface" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-white/5">
-            <label className="text-sm text-[var(--text-secondary)] font-medium">驱动族</label>
+            <label className="text-sm text-[var(--text-secondary)] font-medium">{locale === 'en' ? 'Driver family' : locale === 'vi' ? 'Họ driver' : '驱动族'}</label>
             <div className="col-span-2">
               <select value={form.driver_type} onChange={e => onChange('driver_type', e.target.value)} className="control-surface appearance-none">
                 {drivers.map((driver: ProviderDriver) => (
@@ -777,7 +798,7 @@ function CreateProviderDefinitionModal({
           </div>
           {currentAuthModes.length > 0 && (
             <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-white/5">
-              <label className="text-sm text-[var(--text-secondary)] font-medium">认证方式</label>
+              <label className="text-sm text-[var(--text-secondary)] font-medium">{locale === 'en' ? 'Auth mode' : locale === 'vi' ? 'Chế độ xác thực' : '认证方式'}</label>
               <div className="col-span-2">
                 <select value={form.auth_mode} onChange={e => onChange('auth_mode', e.target.value)} className="control-surface appearance-none">
                   {currentAuthModes.map((mode: any) => (
@@ -788,7 +809,7 @@ function CreateProviderDefinitionModal({
             </div>
           )}
           {currentFields.length === 0 ? (
-            <div className="text-sm text-[var(--text-muted)] py-3">这个驱动族当前无需额外配置字段。</div>
+            <div className="text-sm text-[var(--text-muted)] py-3">{locale === 'en' ? 'This driver family currently needs no extra configuration fields.' : locale === 'vi' ? 'Họ driver này hiện không cần thêm trường cấu hình.' : '这个驱动族当前无需额外配置字段。'}</div>
           ) : (
             <GroupedProviderFields
               fields={currentFields}
@@ -809,9 +830,9 @@ function CreateProviderDefinitionModal({
         <div className="flex-shrink-0 flex gap-3 px-6 py-4 border-t border-[var(--border)]">
           <Button onClick={onCreate} disabled={creating} className="flex-1">
             <Plus className="h-4 w-4 mr-2" />
-            {creating ? '创建中...' : '创建并启用'}
+            {creating ? (locale === 'en' ? 'Creating...' : locale === 'vi' ? 'Đang tạo...' : '创建中...') : (locale === 'en' ? 'Create and enable' : locale === 'vi' ? 'Tạo và bật' : '创建并启用')}
           </Button>
-          <Button variant="outline" onClick={onClose} className="flex-1">取消</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">{locale === 'en' ? 'Cancel' : locale === 'vi' ? 'Hủy' : '取消'}</Button>
         </div>
       </div>
     </div>
@@ -923,12 +944,12 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
   const tab = tabs.find(t => t.id === activeTab) ?? tabs[0]
   const sections = tab.sections ?? []
   const getSelectOptions = (key: string) => {
-    if (key === 'default_executor') return configOptions.executor_options || []
-    if (key === 'default_identity_provider') return configOptions.identity_mode_options || []
+    if (key === 'default_executor') return (configOptions.executor_options || []).map(option => ({ ...option, label: localizeChoiceLabel(option, locale) }))
+    if (key === 'default_identity_provider') return (configOptions.identity_mode_options || []).map(option => ({ ...option, label: localizeChoiceLabel(option, locale) }))
     if (key === 'default_oauth_provider') {
       return [
         { label: locale === 'en' ? 'Do not preselect, decide from the current page' : locale === 'vi' ? 'Không chọn sẵn, để trang hiện tại quyết định' : '不预选，由当前页面选择', value: '' },
-        ...((configOptions.oauth_provider_options || []).filter(option => option.value !== '')),
+        ...((configOptions.oauth_provider_options || []).filter(option => option.value !== '').map(option => ({ ...option, label: localizeChoiceLabel(option, locale) }))),
       ]
     }
     return []
@@ -1216,8 +1237,8 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
             <div className="mb-2">
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">{locale === 'en' ? 'Current strategy' : locale === 'vi' ? 'Chiến lược hiện tại' : '当前策略'}</h3>
             </div>
-            <div className="text-sm text-[var(--text-secondary)]">{getCaptchaStrategyLabel('protocol', configOptions.captcha_policy, configOptions.captcha_providers)}</div>
-            <div className="text-sm text-[var(--text-secondary)] mt-2">{getCaptchaStrategyLabel('headless', configOptions.captcha_policy, configOptions.captcha_providers)}</div>
+            <div className="text-sm text-[var(--text-secondary)]">{getCaptchaStrategyLabel('protocol', configOptions.captcha_policy, configOptions.captcha_providers, locale)}</div>
+            <div className="text-sm text-[var(--text-secondary)] mt-2">{getCaptchaStrategyLabel('headless', configOptions.captcha_policy, configOptions.captcha_providers, locale)}</div>
           </div>
         )}
         <ProviderCards
