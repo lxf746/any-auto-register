@@ -71,3 +71,7 @@ docs/REFACTOR-PLAN.md
 
 # 敏感文件
 *.har
+frontend/package-lock.json
+.serena/project.yml
+.serena/.gitignore
+frontend/package-lock.json

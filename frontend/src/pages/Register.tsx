@@ -4,12 +4,121 @@ import type { ConfigOptionsResponse, ProviderOption, ProviderSetting } from '@/l
 import { getCaptchaStrategyLabel, getProviderSelectOptions, listProviderFieldKeys } from '@/lib/config-options'
 import { apiFetch } from '@/lib/utils'
 import { buildExecutorOptions, buildRegistrationOptions, hasReusableOAuthBrowser, pickOAuthExecutor } from '@/lib/registration'
+import { useI18n } from '@/lib/i18n-context'
 import { TaskLogPanel } from '@/components/tasks/TaskLogPanel'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Play, CheckCircle, XCircle, Loader2, Orbit, Mail, ScanText, ShieldCheck, Workflow } from 'lucide-react'
 import { getTaskStatusText, isTerminalTaskStatus, TASK_STATUS_VARIANTS } from '@/lib/tasks'
+
+const REGISTER_COPY = {
+  en: {
+    providerMetaMissing: 'Provider metadata could not be loaded. Restart the backend and refresh the page.',
+    baseConfig: 'Base configuration',
+    platform: 'Platform',
+    batchCount: 'Batch count',
+    proxyOptional: 'Proxy (optional)',
+    stepIdentity: 'Step 1 · Identity',
+    stepExecutor: 'Step 2 · Execution channel',
+    expectedLoginEmail: 'Expected login email (optional)',
+    chromeProfilePath: 'Chrome profile path',
+    chromeCdpUrl: 'Chrome CDP URL',
+    browserReuseHint: 'For background browser automation with third-party accounts, configure Chrome Profile or Chrome CDP first to reuse an already signed-in local browser session.',
+    mailboxConfig: 'System mailbox configuration',
+    mailboxService: 'Mailbox service',
+    noMailboxProvider: 'No enabled mailbox provider is available. Add and enable a default mailbox provider in settings first.',
+    smsConfig: 'SMS provider configuration',
+    smsService: 'SMS service',
+    summary: 'Current execution summary',
+    identity: 'Identity',
+    executor: 'Executor',
+    verification: 'Verification',
+    registering: 'Registering...',
+    startRegister: 'Start registration',
+    executionStatus: 'Execution status',
+    taskId: 'Task ID',
+    interrupted: 'The task was interrupted after the service restarted',
+    cancelled: 'The task was cancelled',
+    liveLog: 'Live log',
+    waiting: 'Waiting to run',
+    waitingDesc: 'Status and logs will appear after task creation.',
+    status: 'Status',
+    progress: 'Progress',
+    success: 'Succeeded',
+    failure: 'Failed',
+  },
+  vi: {
+    providerMetaMissing: 'Không tải được metadata provider. Hãy khởi động lại backend rồi tải lại trang.',
+    baseConfig: 'Cấu hình cơ bản',
+    platform: 'Nền tảng',
+    batchCount: 'Số lượng hàng loạt',
+    proxyOptional: 'Proxy (tùy chọn)',
+    stepIdentity: 'Bước 1 · Danh tính',
+    stepExecutor: 'Bước 2 · Kênh thực thi',
+    expectedLoginEmail: 'Email đăng nhập dự kiến (tùy chọn)',
+    chromeProfilePath: 'Đường dẫn Chrome profile',
+    chromeCdpUrl: 'Địa chỉ Chrome CDP',
+    browserReuseHint: 'Khi chạy tự động hóa trình duyệt nền với tài khoản bên thứ ba, nên cấu hình Chrome Profile hoặc Chrome CDP trước để tái sử dụng phiên trình duyệt cục bộ đã đăng nhập.',
+    mailboxConfig: 'Cấu hình hộp thư hệ thống',
+    mailboxService: 'Dịch vụ hộp thư',
+    noMailboxProvider: 'Hiện chưa có mailbox provider nào được bật. Hãy thêm và bật một mailbox provider mặc định trong phần cài đặt trước.',
+    smsConfig: 'Cấu hình nhận mã SMS',
+    smsService: 'Dịch vụ SMS',
+    summary: 'Tóm tắt luồng hiện tại',
+    identity: 'Danh tính',
+    executor: 'Cách chạy',
+    verification: 'Xác minh',
+    registering: 'Đang đăng ký...',
+    startRegister: 'Bắt đầu đăng ký',
+    executionStatus: 'Trạng thái thực thi',
+    taskId: 'ID tác vụ',
+    interrupted: 'Tác vụ bị gián đoạn sau khi dịch vụ khởi động lại',
+    cancelled: 'Tác vụ đã bị hủy',
+    liveLog: 'Nhật ký trực tiếp',
+    waiting: 'Đang chờ thực thi',
+    waitingDesc: 'Trạng thái và log sẽ xuất hiện sau khi tạo tác vụ.',
+    status: 'Trạng thái',
+    progress: 'Tiến độ',
+    success: 'Thành công',
+    failure: 'Thất bại',
+  },
+  zh: {
+    providerMetaMissing: '未加载到 provider 元数据。请重启后端后刷新页面。',
+    baseConfig: '基本配置',
+    platform: '平台',
+    batchCount: '批量数量',
+    proxyOptional: '代理 (可选)',
+    stepIdentity: 'Step 1 · 注册身份',
+    stepExecutor: 'Step 2 · 执行通道',
+    expectedLoginEmail: '预期登录邮箱 (可选)',
+    chromeProfilePath: 'Chrome Profile 路径',
+    chromeCdpUrl: 'Chrome CDP 地址',
+    browserReuseHint: '第三方账号走后台浏览器自动时，建议先配置 Chrome Profile 或 Chrome CDP，以便复用本机已登录的浏览器会话。',
+    mailboxConfig: '系统邮箱配置',
+    mailboxService: '邮箱服务',
+    noMailboxProvider: '当前没有已启用的邮箱 provider，请先到设置页新增并启用一个默认邮箱 provider。',
+    smsConfig: '短信接码配置',
+    smsService: '短信服务',
+    summary: '当前编排摘要',
+    identity: 'Identity',
+    executor: 'Executor',
+    verification: 'Verification',
+    registering: '注册中...',
+    startRegister: '开始注册',
+    executionStatus: '执行状态',
+    taskId: '任务 ID',
+    interrupted: '任务在服务重启后被中断',
+    cancelled: '任务已取消',
+    liveLog: '实时日志',
+    waiting: '等待执行',
+    waitingDesc: '创建后显示状态与日志。',
+    status: '状态',
+    progress: '进度',
+    success: '成功',
+    failure: '失败',
+  },
+} as const
 
 const DEFAULT_FORM: Record<string, any> = {
   platform: '',
@@ -44,6 +153,8 @@ function getDefaultProviderKey(settings: ProviderSetting[] = []) {
 }
 
 export default function Register() {
+  const { locale } = useI18n()
+  const copy = REGISTER_COPY[locale]
   const [form, setForm] = useState<Record<string, any>>(DEFAULT_FORM)
   const [platforms, setPlatforms] = useState<any[]>([])
   const [configOptions, setConfigOptions] = useState<ConfigOptionsResponse>({
@@ -104,7 +215,7 @@ export default function Register() {
           identity_mode_options: [],
           oauth_provider_options: [],
         })
-        setOptionsError('未加载到 provider 元数据。请重启后端后刷新页面。')
+        setOptionsError(copy.providerMetaMissing)
       }
       setForm(f => {
         const nextForm: Record<string, any> = {
@@ -130,7 +241,7 @@ export default function Register() {
         return nextForm
       })
     })
-  }, [])
+  }, [copy.providerMetaMissing])
 
   const currentPlatform = platforms.find((p: any) => p.name === form.platform) || null
   const platformOptions = platforms.map((p: any) => [p.name, p.display_name])
@@ -355,10 +466,10 @@ export default function Register() {
   const summaryExecutor = executorOptions.find(option => option.value === form.executor_type)?.label || '-'
   const summaryVerification = getCaptchaStrategyLabel(form.executor_type, configOptions.captcha_policy, configOptions.captcha_providers)
   const activeTaskStats = task ? [
-    { label: '状态', value: getTaskStatusText(task.status), icon: Orbit },
-    { label: '进度', value: task.progress || '0/0', icon: Workflow },
-    { label: '成功', value: String(task.success ?? 0), icon: CheckCircle },
-    { label: '失败', value: String(task.error_count ?? task.errors?.length ?? 0), icon: XCircle },
+    { label: copy.status, value: getTaskStatusText(task.status, locale), icon: Orbit },
+    { label: copy.progress, value: task.progress || '0/0', icon: Workflow },
+    { label: copy.success, value: String(task.success ?? 0), icon: CheckCircle },
+    { label: copy.failure, value: String(task.error_count ?? task.errors?.length ?? 0), icon: XCircle },
   ] : []
 
   return (
@@ -366,18 +477,18 @@ export default function Register() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_340px]">
         <div className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>基本配置</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{copy.baseConfig}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <Select label="平台" k="platform" options={platformOptions} />
+              <Select label={copy.platform} k="platform" options={platformOptions} />
               <div className="grid gap-4 md:grid-cols-2">
-                <Input label="批量数量" k="count" type="number" />
-                <Input label="代理 (可选)" k="proxy" placeholder="http://user:pass@host:port" />
+                <Input label={copy.batchCount} k="count" type="number" />
+                <Input label={copy.proxyOptional} k="proxy" placeholder="http://user:pass@host:port" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Step 1 · 注册身份</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{copy.stepIdentity}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid gap-3 md:grid-cols-2">
                 {registrationOptions.map((option) => {
@@ -409,7 +520,7 @@ export default function Register() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Step 2 · 执行通道</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{copy.stepExecutor}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid gap-3 md:grid-cols-3">
                 {executorOptions.map((option) => {
@@ -439,11 +550,11 @@ export default function Register() {
               </div>
               {form.identity_provider === 'oauth_browser' && (
                 <>
-                  <Input label="预期登录邮箱 (可选)" k="oauth_email_hint" placeholder="your-account@example.com" />
-                  <Input label="Chrome Profile 路径" k="chrome_user_data_dir" placeholder="~/Library/Application Support/Google/Chrome" />
-                  <Input label="Chrome CDP 地址" k="chrome_cdp_url" placeholder="http://localhost:9222" />
+                  <Input label={copy.expectedLoginEmail} k="oauth_email_hint" placeholder="your-account@example.com" />
+                  <Input label={copy.chromeProfilePath} k="chrome_user_data_dir" placeholder="~/Library/Application Support/Google/Chrome" />
+                  <Input label={copy.chromeCdpUrl} k="chrome_cdp_url" placeholder="http://localhost:9222" />
                   <p className="text-xs text-[var(--text-muted)]">
-                    第三方账号走后台浏览器自动时，建议先配置 Chrome Profile 或 Chrome CDP，以便复用本机已登录的浏览器会话。
+                    {copy.browserReuseHint}
                   </p>
                 </>
               )}
@@ -452,7 +563,7 @@ export default function Register() {
 
           {form.identity_provider === 'mailbox' && (
             <Card>
-              <CardHeader><CardTitle>系统邮箱配置</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{copy.mailboxConfig}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {optionsError && (
                   <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -460,10 +571,10 @@ export default function Register() {
                   </div>
                 )}
                 {mailboxProviderOptions.length > 0 ? (
-                  <Select label="邮箱服务" k="mail_provider" options={mailboxProviderOptions} />
+                  <Select label={copy.mailboxService} k="mail_provider" options={mailboxProviderOptions} />
                 ) : (
                   <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                    当前没有已启用的邮箱 provider，请先到设置页新增并启用一个默认邮箱 provider。
+                    {copy.noMailboxProvider}
                   </div>
                 )}
                 {currentMailboxProvider?.description ? (
@@ -476,14 +587,14 @@ export default function Register() {
 
           {smsProviderOptions.length > 0 && (
             <Card>
-              <CardHeader><CardTitle>短信接码配置</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{copy.smsConfig}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {optionsError && (
                   <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                     {optionsError}
                   </div>
                 )}
-                <Select label="短信服务" k="sms_provider" options={smsProviderOptions} />
+                <Select label={copy.smsService} k="sms_provider" options={smsProviderOptions} />
                 {currentSmsProvider?.description ? (
                   <p className="text-xs leading-5 text-[var(--text-muted)]">{currentSmsProvider.description}</p>
                 ) : null}
@@ -496,7 +607,7 @@ export default function Register() {
         <div className="space-y-5 xl:sticky xl:top-4 xl:self-start">
           <Card className="bg-[var(--bg-pane)]/62">
             <CardHeader>
-              <CardTitle>当前编排摘要</CardTitle>
+              <CardTitle>{copy.summary}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
@@ -505,20 +616,20 @@ export default function Register() {
                   <div className="mt-2 text-base font-medium text-[var(--text-primary)]">{currentPlatform?.display_name || form.platform}</div>
                 </div>
                 <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--chip-bg)] p-4">
-                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]"><ShieldCheck className="h-3.5 w-3.5" /> Identity</div>
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]"><ShieldCheck className="h-3.5 w-3.5" /> {copy.identity}</div>
                   <div className="mt-2 text-base font-medium text-[var(--text-primary)]">{summaryRegistration}</div>
                 </div>
                 <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--chip-bg)] p-4">
-                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]"><Workflow className="h-3.5 w-3.5" /> Executor</div>
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]"><Workflow className="h-3.5 w-3.5" /> {copy.executor}</div>
                   <div className="mt-2 text-base font-medium text-[var(--text-primary)]">{summaryExecutor}</div>
                 </div>
                 <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--chip-bg)] p-4">
-                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]"><ScanText className="h-3.5 w-3.5" /> Verification</div>
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]"><ScanText className="h-3.5 w-3.5" /> {copy.verification}</div>
                   <div className="mt-2 text-base font-medium text-[var(--text-primary)]">{summaryVerification}</div>
                 </div>
               </div>
               <Button onClick={submit} disabled={polling} className="w-full">
-                {polling ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />注册中...</> : <><Play className="mr-2 h-4 w-4" />开始注册</>}
+                {polling ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{copy.registering}</> : <><Play className="mr-2 h-4 w-4" />{copy.startRegister}</>}
               </Button>
             </CardContent>
           </Card>
@@ -528,9 +639,9 @@ export default function Register() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    执行状态
+                    {copy.executionStatus}
                     <Badge variant={TASK_STATUS_VARIANTS[task.status] || 'secondary'}>
-                      {getTaskStatusText(task.status)}
+                      {getTaskStatusText(task.status, locale)}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -547,7 +658,7 @@ export default function Register() {
                     ))}
                   </div>
                   <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--chip-bg)] p-3 text-xs text-[var(--text-secondary)]">
-                    <div>任务 ID</div>
+                    <div>{copy.taskId}</div>
                     <div className="mt-1 break-all font-mono text-[var(--text-primary)]">{task.id}</div>
                   </div>
                   {task.errors?.length > 0 && (
@@ -569,19 +680,19 @@ export default function Register() {
                   {task.status === 'interrupted' && !task.error && (
                     <div className="flex items-center gap-2 text-amber-400">
                       <XCircle className="h-4 w-4" />
-                      <span className="text-xs">任务在服务重启后被中断</span>
+                      <span className="text-xs">{copy.interrupted}</span>
                     </div>
                   )}
                   {task.status === 'cancelled' && !task.error && (
                     <div className="flex items-center gap-2 text-amber-400">
                       <XCircle className="h-4 w-4" />
-                      <span className="text-xs">任务已取消</span>
+                      <span className="text-xs">{copy.cancelled}</span>
                     </div>
                   )}
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader><CardTitle>实时日志</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{copy.liveLog}</CardTitle></CardHeader>
                 <CardContent>
                   <TaskLogPanel taskId={task.id} onDone={handleTaskDone} />
                 </CardContent>
@@ -589,8 +700,8 @@ export default function Register() {
             </>
           ) : (
             <Card className="bg-[var(--bg-pane)]/55">
-              <CardHeader><CardTitle>等待执行</CardTitle></CardHeader>
-              <CardContent className="text-sm text-[var(--text-secondary)]">创建后显示状态与日志。</CardContent>
+              <CardHeader><CardTitle>{copy.waiting}</CardTitle></CardHeader>
+              <CardContent className="text-sm text-[var(--text-secondary)]">{copy.waitingDesc}</CardContent>
             </Card>
           )}
         </div>

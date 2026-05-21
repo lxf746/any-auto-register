@@ -20,25 +20,39 @@ export function isTerminalTaskStatus(status: string) {
   return TERMINAL_TASK_STATUSES.has(status)
 }
 
-export function getTaskStatusText(status: string) {
-  switch (status) {
-    case 'succeeded':
-      return '已完成'
-    case 'failed':
-      return '失败'
-    case 'interrupted':
-      return '已中断'
-    case 'cancelled':
-      return '已取消'
-    case 'cancel_requested':
-      return '取消中'
-    case 'running':
-      return '执行中'
-    case 'claimed':
-      return '已领取'
-    case 'pending':
-      return '排队中'
-    default:
-      return status
-  }
+const TASK_STATUS_LABELS: Record<'en' | 'vi' | 'zh', Record<string, string>> = {
+  en: {
+    succeeded: 'Completed',
+    failed: 'Failed',
+    interrupted: 'Interrupted',
+    cancelled: 'Cancelled',
+    cancel_requested: 'Cancelling',
+    running: 'Running',
+    claimed: 'Claimed',
+    pending: 'Queued',
+  },
+  vi: {
+    succeeded: 'Hoàn thành',
+    failed: 'Thất bại',
+    interrupted: 'Bị gián đoạn',
+    cancelled: 'Đã hủy',
+    cancel_requested: 'Đang hủy',
+    running: 'Đang chạy',
+    claimed: 'Đã nhận',
+    pending: 'Đang chờ',
+  },
+  zh: {
+    succeeded: '已完成',
+    failed: '失败',
+    interrupted: '已中断',
+    cancelled: '已取消',
+    cancel_requested: '取消中',
+    running: '执行中',
+    claimed: '已领取',
+    pending: '排队中',
+  },
+}
+
+export function getTaskStatusText(status: string, locale: 'en' | 'vi' | 'zh' = 'zh') {
+  return TASK_STATUS_LABELS[locale][status] || TASK_STATUS_LABELS.zh[status] || status
 }

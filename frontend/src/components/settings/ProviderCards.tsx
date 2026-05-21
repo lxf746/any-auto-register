@@ -5,13 +5,112 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Save, Eye, EyeOff, X, Pencil, Plus, Trash2, FlaskConical, Search } from 'lucide-react'
 import { invalidateConfigOptionsCache } from '@/lib/app-data'
+import { useI18n } from '@/lib/i18n-context'
 
-const CATEGORY_GROUPS = [
-  { key: 'free', label: '免费 / 开箱即用', desc: '无需自建服务，直接使用' },
-  { key: 'selfhost', label: '需要自建服务', desc: '需要自行部署后端服务' },
-  { key: 'thirdparty', label: '第三方服务', desc: '需要注册第三方平台获取凭据' },
-  { key: 'custom', label: '自定义', desc: '通过通用 HTTP 驱动对接任意 API' },
-]
+const PROVIDER_CARDS_COPY = {
+  en: {
+    categories: {
+      free: { label: 'Free / ready to use', desc: 'No self-hosted service required' },
+      selfhost: { label: 'Self-hosted service required', desc: 'Deploy the backend service yourself' },
+      thirdparty: { label: 'Third-party service', desc: 'Create an account on the provider platform to get credentials' },
+      custom: { label: 'Custom', desc: 'Connect any API through the generic HTTP driver' },
+    },
+    selectPlaceholder: 'Please select...',
+    searchPlaceholder: 'Search...',
+    noMatch: 'No matching results',
+    noConfig: 'This service does not require additional configuration.',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    loading: 'Loading...',
+    requestFailed: 'Test request failed',
+    saved: 'Saved ✓',
+    saving: 'Saving...',
+    save: 'Save',
+    testing: 'Testing...',
+    testConnection: 'Test connection',
+    cancel: 'Cancel',
+    testFailed: 'Test failed',
+    defaultBadge: 'Default',
+    edit: 'Edit',
+    test: 'Test',
+    testingShort: 'Testing',
+    defaultDone: 'Default ✓',
+    setDefault: 'Set default',
+    delete: 'Delete',
+    addCustomMailbox: 'Add custom mailbox service',
+    addCustomCaptcha: 'Add custom captcha service',
+    addCustomSms: 'Add custom SMS service',
+    addCustomGeneric: 'Add custom service',
+  },
+  vi: {
+    categories: {
+      free: { label: 'Miễn phí / dùng ngay', desc: 'Không cần tự dựng dịch vụ' },
+      selfhost: { label: 'Cần tự host dịch vụ', desc: 'Bạn cần tự triển khai dịch vụ backend' },
+      thirdparty: { label: 'Dịch vụ bên thứ ba', desc: 'Cần đăng ký nền tảng bên thứ ba để lấy thông tin xác thực' },
+      custom: { label: 'Tùy chỉnh', desc: 'Kết nối bất kỳ API nào qua driver HTTP chung' },
+    },
+    selectPlaceholder: 'Vui lòng chọn...',
+    searchPlaceholder: 'Tìm kiếm...',
+    noMatch: 'Không có kết quả phù hợp',
+    noConfig: 'Dịch vụ này không cần cấu hình thêm.',
+    enabled: 'Đã bật',
+    disabled: 'Chưa bật',
+    loading: 'Đang tải...',
+    requestFailed: 'Yêu cầu kiểm tra thất bại',
+    saved: 'Đã lưu ✓',
+    saving: 'Đang lưu...',
+    save: 'Lưu',
+    testing: 'Đang kiểm tra...',
+    testConnection: 'Kiểm tra kết nối',
+    cancel: 'Hủy',
+    testFailed: 'Kiểm tra thất bại',
+    defaultBadge: 'Mặc định',
+    edit: 'Sửa',
+    test: 'Kiểm tra',
+    testingShort: 'Đang kiểm tra',
+    defaultDone: 'Mặc định ✓',
+    setDefault: 'Đặt mặc định',
+    delete: 'Xóa',
+    addCustomMailbox: 'Thêm dịch vụ mailbox tùy chỉnh',
+    addCustomCaptcha: 'Thêm dịch vụ captcha tùy chỉnh',
+    addCustomSms: 'Thêm dịch vụ SMS tùy chỉnh',
+    addCustomGeneric: 'Thêm dịch vụ tùy chỉnh',
+  },
+  zh: {
+    categories: {
+      free: { label: '免费 / 开箱即用', desc: '无需自建服务，直接使用' },
+      selfhost: { label: '需要自建服务', desc: '需要自行部署后端服务' },
+      thirdparty: { label: '第三方服务', desc: '需要注册第三方平台获取凭据' },
+      custom: { label: '自定义', desc: '通过通用 HTTP 驱动对接任意 API' },
+    },
+    selectPlaceholder: '请选择...',
+    searchPlaceholder: '搜索...',
+    noMatch: '无匹配结果',
+    noConfig: '此服务无需额外配置。',
+    enabled: '已启用',
+    disabled: '未启用',
+    loading: '加载中...',
+    requestFailed: '测试请求失败',
+    saved: '已保存 ✓',
+    saving: '保存中...',
+    save: '保存',
+    testing: '测试中...',
+    testConnection: '测试连接',
+    cancel: '取消',
+    testFailed: '测试失败',
+    defaultBadge: '默认',
+    edit: '编辑',
+    test: '测试',
+    testingShort: '测试中',
+    defaultDone: '默认 ✓',
+    setDefault: '设默认',
+    delete: '删除',
+    addCustomMailbox: '添加自定义邮箱服务',
+    addCustomCaptcha: '添加自定义验证服务',
+    addCustomSms: '添加自定义接码服务',
+    addCustomGeneric: '添加自定义服务',
+  },
+} as const
 
 /* ------------------------------------------------------------------ */
 /*  Toggle                                                             */
@@ -42,6 +141,8 @@ function SearchableSelect({ value, options, placeholder, onChange }: {
   placeholder?: string
   onChange: (v: string) => void
 }) {
+  const { locale } = useI18n()
+  const copy = PROVIDER_CARDS_COPY[locale]
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -73,7 +174,7 @@ function SearchableSelect({ value, options, placeholder, onChange }: {
         className="control-surface w-full text-left flex items-center justify-between"
       >
         <span className={selectedLabel ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}>
-          {selectedLabel || placeholder || '请选择...'}
+          {selectedLabel || placeholder || copy.selectPlaceholder}
         </span>
         <svg className="h-4 w-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
@@ -89,14 +190,14 @@ function SearchableSelect({ value, options, placeholder, onChange }: {
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="搜索..."
+                placeholder={copy.searchPlaceholder}
                 className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-base)] pl-8 pr-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
               />
             </div>
           </div>
           <div className="max-h-48 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-[var(--text-muted)]">无匹配结果</div>
+              <div className="px-3 py-2 text-sm text-[var(--text-muted)]">{copy.noMatch}</div>
             ) : filtered.map(o => (
               <button
                 key={o.value}
@@ -125,6 +226,8 @@ function EditModal({
   provider: ProviderOption; setting: ProviderSetting | null; providerType: string
   onClose: () => void; onSaved: () => void
 }) {
+  const { locale } = useI18n()
+  const copy = PROVIDER_CARDS_COPY[locale]
   const fields = provider.fields || []
   const [form, setForm] = useState<Record<string, string>>(() => {
     const data: Record<string, string> = {}
@@ -141,7 +244,7 @@ function EditModal({
   const [asyncOptions, setAsyncOptions] = useState<Record<string, Array<{ value: string; label: string }>>>({})
   const [asyncLoading, setAsyncLoading] = useState<Record<string, boolean>>({})
 
-  // 加载 async-select 字段的选项
+  // Load async-select field options.
   useEffect(() => {
     for (const field of fields) {
       if (field.type === 'async-select' && field.asyncUrl && !asyncOptions[field.key]) {
@@ -150,7 +253,7 @@ function EditModal({
           .then((data: any) => {
             const valueKey = field.asyncValueKey || 'value'
             const labelKey = field.asyncLabelKey || 'label'
-            // 支持多种响应格式
+            // Support multiple response shapes.
             let items: any[] = []
             if (Array.isArray(data)) items = data
             else if (data?.countries) items = data.countries
@@ -228,7 +331,7 @@ function EditModal({
       })
       setTestResult(result)
     } catch (e: any) {
-      setTestResult({ ok: false, error: e.message || '测试请求失败' })
+      setTestResult({ ok: false, error: e.message || copy.requestFailed })
     } finally {
       setTesting(false)
     }
@@ -246,7 +349,7 @@ function EditModal({
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {fields.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">此服务无需额外配置。</p>
+            <p className="text-sm text-[var(--text-muted)]">{copy.noConfig}</p>
           ) : fields.map(field => {
             const sk = `${provider.value}:${field.key}`
             return (
@@ -261,12 +364,12 @@ function EditModal({
                         onChange={v => setForm(f => ({ ...f, [field.key]: v ? 'true' : 'false' }))}
                       />
                       <span className="text-sm text-[var(--text-muted)]">
-                        {['true', '1', 'yes', 'on'].includes((form[field.key] || '').toLowerCase()) ? '已启用' : '未启用'}
+                        {['true', '1', 'yes', 'on'].includes((form[field.key] || '').toLowerCase()) ? copy.enabled : copy.disabled}
                       </span>
                     </div>
                   ) : field.type === 'async-select' ? (
                     asyncLoading[field.key] ? (
-                      <div className="control-surface text-[var(--text-muted)] text-sm py-2">加载中...</div>
+                      <div className="control-surface text-[var(--text-muted)] text-sm py-2">{copy.loading}</div>
                     ) : (
                       <SearchableSelect
                         value={form[field.key] || ''}
@@ -323,13 +426,13 @@ function EditModal({
         <div className="flex gap-2 border-t border-[var(--border)] px-5 py-3">
           <Button onClick={handleSave} disabled={saving} className="flex-1">
             <Save className="h-3.5 w-3.5 mr-1.5" />
-            {saved ? '已保存 ✓' : saving ? '保存中...' : '保存'}
+            {saved ? copy.saved : saving ? copy.saving : copy.save}
           </Button>
           <Button variant="outline" onClick={handleTest} disabled={testing || fields.length === 0} className="flex-1">
             <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
-            {testing ? '测试中...' : '测试连接'}
+            {testing ? copy.testing : copy.testConnection}
           </Button>
-          <Button variant="outline" onClick={onClose}>取消</Button>
+          <Button variant="outline" onClick={onClose}>{copy.cancel}</Button>
         </div>
       </div>
     </div>
@@ -348,6 +451,8 @@ type Props = {
 }
 
 export default function ProviderCards({ providerType, catalog, settings, onReload, onCreateCustom }: Props) {
+  const { locale } = useI18n()
+  const copy = PROVIDER_CARDS_COPY[locale]
   const [editTarget, setEditTarget] = useState<{ provider: ProviderOption; setting: ProviderSetting | null } | null>(null)
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message?: string; error?: string }>>({})
@@ -420,7 +525,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
       })
       setTestResults(p => ({ ...p, [key]: result }))
     } catch (e: any) {
-      setTestResults(p => ({ ...p, [key]: { ok: false, error: e.message || '测试失败' } }))
+      setTestResults(p => ({ ...p, [key]: { ok: false, error: e.message || copy.testFailed } }))
     } finally {
       setTestingKeys(p => ({ ...p, [key]: false }))
     }
@@ -458,7 +563,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-[var(--text-primary)]">{provider.label}</span>
-              {isDefault && <Badge variant="success">默认</Badge>}
+              {isDefault && <Badge variant="success">{copy.defaultBadge}</Badge>}
             </div>
             {provider.description && (
               <p className="mt-0.5 text-xs text-[var(--text-muted)] line-clamp-1">{provider.description}</p>
@@ -472,7 +577,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
               disabled={!hasFields || !isEnabled}
               className={`table-action-btn ${(!hasFields || !isEnabled) ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
-              <Pencil className="h-3 w-3 mr-1" /> 编辑
+              <Pencil className="h-3 w-3 mr-1" /> {copy.edit}
             </button>
 
             <button
@@ -480,7 +585,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
               disabled={!isEnabled || testingKeys[key]}
               className={`table-action-btn ${!isEnabled ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
-              <FlaskConical className="h-3 w-3 mr-1" /> {testingKeys[key] ? '测试中' : '测试'}
+              <FlaskConical className="h-3 w-3 mr-1" /> {testingKeys[key] ? copy.testingShort : copy.test}
             </button>
 
             <button
@@ -488,7 +593,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
               disabled={!isEnabled || isDefault || loading[key]}
               className={`table-action-btn ${(!isEnabled || isDefault) ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
-              {isDefault ? '默认 ✓' : '设默认'}
+              {isDefault ? copy.defaultDone : copy.setDefault}
             </button>
 
             {allowDelete && (
@@ -497,7 +602,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
                 disabled={!isEnabled || isDefault || loading[key]}
                 className={`table-action-btn table-action-btn-danger ${(!isEnabled || isDefault) ? 'opacity-30 cursor-not-allowed' : ''}`}
               >
-                <Trash2 className="h-3 w-3 mr-1" /> 删除
+                <Trash2 className="h-3 w-3 mr-1" /> {copy.delete}
               </button>
             )}
 
@@ -525,7 +630,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
   return (
     <>
       <div className="space-y-6">
-        {CATEGORY_GROUPS.map(({ key: cat, label, desc }) => {
+        {Object.entries(copy.categories).map(([cat, meta]) => {
           const providers = grouped[cat]
           if (!providers || providers.length === 0) return null
 
@@ -537,8 +642,8 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
           return (
             <div key={cat}>
               <div className="mb-2">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{label}</h3>
-                <p className="text-xs text-[var(--text-muted)]">{desc}</p>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{meta.label}</h3>
+                <p className="text-xs text-[var(--text-muted)]">{meta.desc}</p>
               </div>
               <div className="space-y-1.5">
                 {visible.map(p => renderCard(p, cat === 'custom'))}
@@ -548,7 +653,13 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
                     onClick={() => onCreateCustom?.()}
                   >
                     <Plus className="h-4 w-4" />
-                    添加自定义{providerType === 'mailbox' ? '邮箱' : providerType === 'captcha' ? '验证' : providerType === 'sms' ? '接码' : ''}服务
+                    {providerType === 'mailbox'
+                      ? copy.addCustomMailbox
+                      : providerType === 'captcha'
+                        ? copy.addCustomCaptcha
+                        : providerType === 'sms'
+                          ? copy.addCustomSms
+                          : copy.addCustomGeneric}
                   </button>
                 )}
               </div>

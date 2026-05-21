@@ -9,12 +9,13 @@ import { Card } from '@/components/ui/card'
 import { Save, Eye, EyeOff, Mail, Shield, Cpu, Sliders, Plus, X, Orbit, Package2, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ProviderCards from '@/components/settings/ProviderCards'
+import { useI18n } from '@/lib/i18n-context'
 
 const PROVIDER_TYPES = ['mailbox', 'captcha', 'sms'] as const
 
 type ProviderType = typeof PROVIDER_TYPES[number]
 
-const PROVIDER_META: Record<ProviderType, {
+type ProviderMeta = Record<ProviderType, {
   tabLabel: string
   icon: any
   detailTitle: string
@@ -29,56 +30,82 @@ const PROVIDER_META: Record<ProviderType, {
   availableText: (count: number) => string
   emptyText: string
   metricLabel: string
-}> = {
+}>
+
+const getProviderMeta = (locale: 'en' | 'vi' | 'zh'): ProviderMeta => ({
   mailbox: {
-    tabLabel: '邮箱服务',
+    tabLabel: locale === 'en' ? 'Mailbox services' : locale === 'vi' ? 'Dịch vụ mailbox' : '邮箱服务',
     icon: Mail,
-    detailTitle: '邮箱 Provider 详情',
-    addTitle: '新增邮箱 Provider',
-    createTitle: '新建动态邮箱 Provider',
-    addDialogHint: '从邮箱 provider catalog 中选择',
-    usageHint: '只有在注册身份选择“系统邮箱”时，才会使用这里的邮箱服务配置。列表行内可以直接查看详情、编辑、设默认和删除。',
+    detailTitle: locale === 'en' ? 'Mailbox provider details' : locale === 'vi' ? 'Chi tiết provider mailbox' : '邮箱 Provider 详情',
+    addTitle: locale === 'en' ? 'Add mailbox provider' : locale === 'vi' ? 'Thêm provider mailbox' : '新增邮箱 Provider',
+    createTitle: locale === 'en' ? 'Create dynamic mailbox provider' : locale === 'vi' ? 'Tạo provider mailbox động' : '新建动态邮箱 Provider',
+    addDialogHint: locale === 'en' ? 'Choose from the mailbox provider catalog' : locale === 'vi' ? 'Chọn từ catalog provider mailbox' : '从邮箱 provider catalog 中选择',
+    usageHint: locale === 'en'
+      ? 'These mailbox settings are only used when registration identity is set to System mailbox. You can view, edit, set default, and delete directly from each row.'
+      : locale === 'vi'
+        ? 'Các cấu hình mailbox này chỉ được dùng khi danh tính đăng ký là mailbox hệ thống. Bạn có thể xem, sửa, đặt mặc định và xóa ngay trên từng dòng.'
+        : '只有在注册身份选择“系统邮箱”时，才会使用这里的邮箱服务配置。列表行内可以直接查看详情、编辑、设默认和删除。',
     usageHintClassName: 'rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-[var(--text-secondary)]',
-    listTitle: '邮箱 Provider 列表',
-    listDescription: (count: number) => `${count} 个配置，支持查看详情、编辑、设默认、删除。`,
-    noAvailableText: '当前没有可新增的邮箱 provider',
-    availableText: (count: number) => `还有 ${count} 个邮箱 provider 可新增`,
-    emptyText: '当前没有邮箱 provider 配置，请先新增一个 provider。',
-    metricLabel: '邮箱服务',
+    listTitle: locale === 'en' ? 'Mailbox provider list' : locale === 'vi' ? 'Danh sách provider mailbox' : '邮箱 Provider 列表',
+    listDescription: (count: number) => locale === 'en'
+      ? `${count} configurations, with inline view, edit, default, and delete actions.`
+      : locale === 'vi'
+        ? `${count} cấu hình, hỗ trợ xem, sửa, đặt mặc định và xóa ngay trên dòng.`
+        : `${count} 个配置，支持查看详情、编辑、设默认、删除。`,
+    noAvailableText: locale === 'en' ? 'No mailbox providers available to add' : locale === 'vi' ? 'Không còn provider mailbox nào để thêm' : '当前没有可新增的邮箱 provider',
+    availableText: (count: number) => locale === 'en' ? `${count} mailbox providers still available` : locale === 'vi' ? `Còn ${count} provider mailbox có thể thêm` : `还有 ${count} 个邮箱 provider 可新增`,
+    emptyText: locale === 'en' ? 'No mailbox provider is configured yet. Add one first.' : locale === 'vi' ? 'Chưa có provider mailbox nào. Hãy thêm một provider trước.' : '当前没有邮箱 provider 配置，请先新增一个 provider。',
+    metricLabel: locale === 'en' ? 'Mailbox services' : locale === 'vi' ? 'Dịch vụ mailbox' : '邮箱服务',
   },
   captcha: {
-    tabLabel: '验证服务',
+    tabLabel: locale === 'en' ? 'Captcha services' : locale === 'vi' ? 'Dịch vụ captcha' : '验证服务',
     icon: Shield,
-    detailTitle: '验证 Provider 详情',
-    addTitle: '新增验证 Provider',
-    createTitle: '新建动态验证 Provider',
-    addDialogHint: '从验证 provider catalog 中选择',
-    usageHint: '协议模式会按已启用顺序自动选择远程打码服务；浏览器模式使用当前默认的验证码 provider。列表行内可以直接查看详情、编辑、设默认、删除。',
+    detailTitle: locale === 'en' ? 'Captcha provider details' : locale === 'vi' ? 'Chi tiết provider captcha' : '验证 Provider 详情',
+    addTitle: locale === 'en' ? 'Add captcha provider' : locale === 'vi' ? 'Thêm provider captcha' : '新增验证 Provider',
+    createTitle: locale === 'en' ? 'Create dynamic captcha provider' : locale === 'vi' ? 'Tạo provider captcha động' : '新建动态验证 Provider',
+    addDialogHint: locale === 'en' ? 'Choose from the captcha provider catalog' : locale === 'vi' ? 'Chọn từ catalog provider captcha' : '从验证 provider catalog 中选择',
+    usageHint: locale === 'en'
+      ? 'Protocol mode uses enabled remote captcha services in order. Browser mode uses the current default captcha provider. You can view, edit, set default, and delete inline.'
+      : locale === 'vi'
+        ? 'Chế độ giao thức sẽ dùng lần lượt các dịch vụ captcha từ xa đã bật. Chế độ trình duyệt dùng provider captcha mặc định hiện tại. Có thể xem, sửa, đặt mặc định và xóa ngay trên dòng.'
+        : '协议模式会按已启用顺序自动选择远程打码服务；浏览器模式使用当前默认的验证码 provider。列表行内可以直接查看详情、编辑、设默认、删除。',
     usageHintClassName: 'rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-[var(--text-secondary)]',
-    listTitle: '验证 Provider 列表',
-    listDescription: (count: number) => `${count} 个配置，协议模式会依次读取这里的可用项。`,
-    noAvailableText: '当前没有可新增的验证 provider',
-    availableText: (count: number) => `还有 ${count} 个验证 provider 可新增`,
-    emptyText: '当前没有验证 provider 配置，请先新增一个 provider。',
-    metricLabel: '验证码服务',
+    listTitle: locale === 'en' ? 'Captcha provider list' : locale === 'vi' ? 'Danh sách provider captcha' : '验证 Provider 列表',
+    listDescription: (count: number) => locale === 'en'
+      ? `${count} configurations, used in sequence by protocol mode.`
+      : locale === 'vi'
+        ? `${count} cấu hình, chế độ giao thức sẽ dùng tuần tự các mục khả dụng ở đây.`
+        : `${count} 个配置，协议模式会依次读取这里的可用项。`,
+    noAvailableText: locale === 'en' ? 'No captcha providers available to add' : locale === 'vi' ? 'Không còn provider captcha nào để thêm' : '当前没有可新增的验证 provider',
+    availableText: (count: number) => locale === 'en' ? `${count} captcha providers still available` : locale === 'vi' ? `Còn ${count} provider captcha có thể thêm` : `还有 ${count} 个验证 provider 可新增`,
+    emptyText: locale === 'en' ? 'No captcha provider is configured yet. Add one first.' : locale === 'vi' ? 'Chưa có provider captcha nào. Hãy thêm một provider trước.' : '当前没有验证 provider 配置，请先新增一个 provider。',
+    metricLabel: locale === 'en' ? 'Captcha services' : locale === 'vi' ? 'Dịch vụ captcha' : '验证码服务',
   },
   sms: {
-    tabLabel: '接码服务',
+    tabLabel: locale === 'en' ? 'SMS services' : locale === 'vi' ? 'Dịch vụ SMS' : '接码服务',
     icon: MessageSquare,
-    detailTitle: '接码 Provider 详情',
-    addTitle: '新增接码 Provider',
-    createTitle: '新建动态接码 Provider',
-    addDialogHint: '从接码 provider catalog 中选择',
-    usageHint: '当平台需要手机号验证时，会按这里启用的接码 provider 创建临时号码并回填短信验证码。列表行内可以直接查看详情、编辑、设默认和删除。',
+    detailTitle: locale === 'en' ? 'SMS provider details' : locale === 'vi' ? 'Chi tiết provider SMS' : '接码 Provider 详情',
+    addTitle: locale === 'en' ? 'Add SMS provider' : locale === 'vi' ? 'Thêm provider SMS' : '新增接码 Provider',
+    createTitle: locale === 'en' ? 'Create dynamic SMS provider' : locale === 'vi' ? 'Tạo provider SMS động' : '新建动态接码 Provider',
+    addDialogHint: locale === 'en' ? 'Choose from the SMS provider catalog' : locale === 'vi' ? 'Chọn từ catalog provider SMS' : '从接码 provider catalog 中选择',
+    usageHint: locale === 'en'
+      ? 'When a platform requires phone verification, enabled SMS providers here create temporary numbers and feed the received code back into the flow. Inline actions are available on each row.'
+      : locale === 'vi'
+        ? 'Khi nền tảng cần xác minh số điện thoại, các provider SMS được bật ở đây sẽ tạo số tạm và điền lại mã xác minh nhận được. Có thể thao tác trực tiếp trên từng dòng.'
+        : '当平台需要手机号验证时，会按这里启用的接码 provider 创建临时号码并回填短信验证码。列表行内可以直接查看详情、编辑、设默认和删除。',
     usageHintClassName: 'rounded-lg border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-[var(--text-secondary)]',
-    listTitle: '接码 Provider 列表',
-    listDescription: (count: number) => `${count} 个配置，补手机和短信校验会优先使用这里的默认项。`,
-    noAvailableText: '当前没有可新增的接码 provider',
-    availableText: (count: number) => `还有 ${count} 个接码 provider 可新增`,
-    emptyText: '当前没有接码 provider 配置，请先新增一个 provider。',
-    metricLabel: '接码服务',
+    listTitle: locale === 'en' ? 'SMS provider list' : locale === 'vi' ? 'Danh sách provider SMS' : '接码 Provider 列表',
+    listDescription: (count: number) => locale === 'en'
+      ? `${count} configurations. Phone fill and SMS verification prefer the default entry here.`
+      : locale === 'vi'
+        ? `${count} cấu hình. Luồng điền số điện thoại và xác minh SMS sẽ ưu tiên mục mặc định ở đây.`
+        : `${count} 个配置，补手机和短信校验会优先使用这里的默认项。`,
+    noAvailableText: locale === 'en' ? 'No SMS providers available to add' : locale === 'vi' ? 'Không còn provider SMS nào để thêm' : '当前没有可新增的接码 provider',
+    availableText: (count: number) => locale === 'en' ? `${count} SMS providers still available` : locale === 'vi' ? `Còn ${count} provider SMS có thể thêm` : `还有 ${count} 个接码 provider 可新增`,
+    emptyText: locale === 'en' ? 'No SMS provider is configured yet. Add one first.' : locale === 'vi' ? 'Chưa có provider SMS nào. Hãy thêm một provider trước.' : '当前没有接码 provider 配置，请先新增一个 provider。',
+    metricLabel: locale === 'en' ? 'SMS services' : locale === 'vi' ? 'Dịch vụ SMS' : '接码服务',
   },
-}
+})
 
 function SettingsMetric({
   label,
@@ -235,62 +262,62 @@ function PlatformCapsTab() {
   )
 }
 
-const TABS: { id: string; label: string; icon: any; sections?: any[] }[] = [
+const getTabs = (providerMeta: ProviderMeta, locale: 'en' | 'vi' | 'zh') => [
   {
-    id: 'register', label: '注册策略', icon: Cpu,
+    id: 'register', label: locale === 'en' ? 'Registration strategy' : locale === 'vi' ? 'Chiến lược đăng ký' : '注册策略', icon: Cpu,
     sections: [{
-      section: '默认注册策略',
-      desc: '这里配置的是默认行为，账号列表和注册页会直接复用这些设置。',
+      section: locale === 'en' ? 'Default registration strategy' : locale === 'vi' ? 'Chiến lược đăng ký mặc định' : '默认注册策略',
+      desc: locale === 'en' ? 'These defaults are reused directly by the accounts list and the registration page.' : locale === 'vi' ? 'Các giá trị mặc định này sẽ được tái sử dụng trực tiếp ở danh sách tài khoản và trang đăng ký.' : '这里配置的是默认行为，账号列表和注册页会直接复用这些设置。',
       items: [
-        { key: 'default_identity_provider', label: '默认注册身份' },
-        { key: 'default_oauth_provider', label: '默认第三方入口', placeholder: '' },
-        { key: 'default_executor', label: '默认执行方式' },
+        { key: 'default_identity_provider', label: locale === 'en' ? 'Default registration identity' : locale === 'vi' ? 'Danh tính đăng ký mặc định' : '默认注册身份' },
+        { key: 'default_oauth_provider', label: locale === 'en' ? 'Default third-party entry' : locale === 'vi' ? 'Cổng bên thứ ba mặc định' : '默认第三方入口', placeholder: '' },
+        { key: 'default_executor', label: locale === 'en' ? 'Default executor' : locale === 'vi' ? 'Cách chạy mặc định' : '默认执行方式' },
       ],
     }, {
-      section: '浏览器复用',
-      desc: '第三方账号走后台浏览器自动时，通常需要复用本机已登录浏览器。',
+      section: locale === 'en' ? 'Browser reuse' : locale === 'vi' ? 'Tái sử dụng trình duyệt' : '浏览器复用',
+      desc: locale === 'en' ? 'Third-party account automation in background browser mode usually needs to reuse a locally signed-in browser session.' : locale === 'vi' ? 'Khi tự động hóa tài khoản bên thứ ba bằng trình duyệt nền, thường cần tái sử dụng phiên trình duyệt cục bộ đã đăng nhập.' : '第三方账号走后台浏览器自动时，通常需要复用本机已登录浏览器。',
       items: [
-        { key: 'oauth_email_hint', label: '预期登录邮箱', placeholder: 'your-account@example.com' },
-        { key: 'chrome_user_data_dir', label: 'Chrome Profile 路径', placeholder: '~/Library/Application Support/Google/Chrome' },
-        { key: 'chrome_cdp_url', label: 'Chrome CDP 地址', placeholder: 'http://localhost:9222' },
+        { key: 'oauth_email_hint', label: locale === 'en' ? 'Expected login email' : locale === 'vi' ? 'Email đăng nhập dự kiến' : '预期登录邮箱', placeholder: 'your-account@example.com' },
+        { key: 'chrome_user_data_dir', label: locale === 'en' ? 'Chrome profile path' : locale === 'vi' ? 'Đường dẫn Chrome profile' : 'Chrome Profile 路径', placeholder: '~/Library/Application Support/Google/Chrome' },
+        { key: 'chrome_cdp_url', label: locale === 'en' ? 'Chrome CDP URL' : locale === 'vi' ? 'Địa chỉ Chrome CDP' : 'Chrome CDP 地址', placeholder: 'http://localhost:9222' },
       ],
     }],
   },
   {
-    id: 'mailbox', label: PROVIDER_META.mailbox.tabLabel, icon: PROVIDER_META.mailbox.icon,
+    id: 'mailbox', label: providerMeta.mailbox.tabLabel, icon: providerMeta.mailbox.icon,
     sections: [],
   },
   {
-    id: 'captcha', label: PROVIDER_META.captcha.tabLabel, icon: PROVIDER_META.captcha.icon,
+    id: 'captcha', label: providerMeta.captcha.tabLabel, icon: providerMeta.captcha.icon,
     sections: [],
   },
   {
-    id: 'sms', label: PROVIDER_META.sms.tabLabel, icon: PROVIDER_META.sms.icon,
+    id: 'sms', label: providerMeta.sms.tabLabel, icon: providerMeta.sms.icon,
     sections: [],
   },
   {
-    id: 'platform_caps', label: '高级：平台能力', icon: Sliders,
+    id: 'platform_caps', label: locale === 'en' ? 'Advanced: platform capabilities' : locale === 'vi' ? 'Nâng cao: năng lực nền tảng' : '高级：平台能力', icon: Sliders,
     sections: [],
   },
   {
     id: 'chatgpt', label: 'ChatGPT', icon: Shield,
     sections: [{
-      section: 'CPA 面板',
-      desc: '注册完成后自动上传到 CPA 管理平台',
+      section: locale === 'en' ? 'CPA panel' : locale === 'vi' ? 'Bảng CPA' : 'CPA 面板',
+      desc: locale === 'en' ? 'Automatically upload to the CPA management platform after registration completes' : locale === 'vi' ? 'Tự động tải lên nền tảng quản lý CPA sau khi đăng ký hoàn tất' : '注册完成后自动上传到 CPA 管理平台',
       items: [
         { key: 'cpa_api_url', label: 'API URL', placeholder: 'https://your-cpa.example.com' },
         { key: 'cpa_api_key', label: 'API Key', secret: true },
       ],
     }, {
       section: 'Team Manager',
-      desc: '上传到自建 Team Manager 系统',
+      desc: locale === 'en' ? 'Upload to your self-hosted Team Manager system' : locale === 'vi' ? 'Tải lên hệ thống Team Manager tự host' : '上传到自建 Team Manager 系统',
       items: [
         { key: 'team_manager_url', label: 'API URL', placeholder: 'https://your-tm.example.com' },
         { key: 'team_manager_key', label: 'API Key', secret: true },
       ],
     }, {
       section: 'Any2Api',
-      desc: '同步账号到 Any2Api 服务，用于导出和对接',
+      desc: locale === 'en' ? 'Sync accounts to Any2Api for export and integration' : locale === 'vi' ? 'Đồng bộ tài khoản sang Any2Api để export và tích hợp' : '同步账号到 Any2Api 服务，用于导出和对接',
       items: [
         { key: 'any2api_url', label: 'API URL', placeholder: 'https://your-any2api.example.com' },
         { key: 'any2api_password', label: 'Password', secret: true },
@@ -792,6 +819,9 @@ function CreateProviderDefinitionModal({
 }
 
 export default function Settings({ embedded, defaultTab }: { embedded?: boolean; defaultTab?: string }) {
+  const { locale } = useI18n()
+  const providerMeta = getProviderMeta(locale)
+  const tabs = getTabs(providerMeta, locale)
   const [activeTab, setActiveTab] = useState(defaultTab || 'register')
   const [form, setForm] = useState<Record<string, string>>({})
   const [configOptions, setConfigOptions] = useState<ConfigOptionsResponse>({
@@ -866,13 +896,13 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
         oauth_provider_options: [],
       })
       setProviderSettings({ mailbox: [], captcha: [], sms: [] })
-      setOptionsError('未加载到 provider 元数据。请重启后端后刷新页面。')
+      setOptionsError(locale === 'en' ? 'Provider metadata could not be loaded. Restart the backend and refresh the page.' : locale === 'vi' ? 'Không tải được metadata provider. Hãy khởi động lại backend rồi tải lại trang.' : '未加载到 provider 元数据。请重启后端后刷新页面。')
     }
   }
 
   useEffect(() => {
     loadConfigData()
-  }, [])
+  }, [locale])
 
   // Sync activeTab when defaultTab prop changes (sidebar navigation)
   useEffect(() => {
@@ -890,14 +920,14 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
     } finally { setSaving(false) }
   }
 
-  const tab = TABS.find(t => t.id === activeTab) ?? TABS[0]
+  const tab = tabs.find(t => t.id === activeTab) ?? tabs[0]
   const sections = tab.sections ?? []
   const getSelectOptions = (key: string) => {
     if (key === 'default_executor') return configOptions.executor_options || []
     if (key === 'default_identity_provider') return configOptions.identity_mode_options || []
     if (key === 'default_oauth_provider') {
       return [
-        { label: '不预选，由当前页面选择', value: '' },
+        { label: locale === 'en' ? 'Do not preselect, decide from the current page' : locale === 'vi' ? 'Không chọn sẵn, để trang hiện tại quyết định' : '不预选，由当前页面选择', value: '' },
         ...((configOptions.oauth_provider_options || []).filter(option => option.value !== '')),
       ]
     }
@@ -1035,11 +1065,11 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
       invalidateConfigOptionsCache()
       invalidateConfigCache()
       await loadConfigData()
-      setProviderNotice(current => ({ ...current, [providerType]: `已保存 ${item.catalog_label || item.provider_key} 配置` }))
+      setProviderNotice(current => ({ ...current, [providerType]: locale === 'en' ? `Saved configuration for ${item.catalog_label || item.provider_key}` : locale === 'vi' ? `Đã lưu cấu hình ${item.catalog_label || item.provider_key}` : `已保存 ${item.catalog_label || item.provider_key} 配置` }))
       setProviderSaved(current => ({ ...current, [stateKey]: true }))
       setTimeout(() => setProviderSaved(current => ({ ...current, [stateKey]: false })), 2000)
     } catch (error) {
-      setProviderError(current => ({ ...current, [providerType]: getErrorMessage(error, '保存 provider 配置失败') }))
+      setProviderError(current => ({ ...current, [providerType]: getErrorMessage(error, locale === 'en' ? 'Failed to save provider configuration' : locale === 'vi' ? 'Lưu cấu hình provider thất bại' : '保存 provider 配置失败') }))
     } finally {
       setProviderSaving(current => ({ ...current, [stateKey]: false }))
     }
@@ -1074,10 +1104,10 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
       })
       invalidateConfigOptionsCache()
       await loadConfigData()
-      setProviderNotice(current => ({ ...current, [providerType]: `已新增 ${catalog.label}` }))
+      setProviderNotice(current => ({ ...current, [providerType]: locale === 'en' ? `Added ${catalog.label}` : locale === 'vi' ? `Đã thêm ${catalog.label}` : `已新增 ${catalog.label}` }))
       setProviderAddDialog(null)
     } catch (error) {
-      setProviderError(current => ({ ...current, [providerType]: getErrorMessage(error, '新增 provider 失败') }))
+      setProviderError(current => ({ ...current, [providerType]: getErrorMessage(error, locale === 'en' ? 'Failed to add provider' : locale === 'vi' ? 'Thêm provider thất bại' : '新增 provider 失败') }))
     } finally {
       setProviderCreating(current => ({ ...current, [stateKey]: false }))
     }
@@ -1089,7 +1119,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
     const driver = driverList.find(item => item.driver_type === payload.driver_type) || null
     const definitionKey = `${providerType}:${payload.provider_key || 'new'}`
     if (!payload.provider_key || !payload.label || !payload.driver_type) {
-      setProviderError(current => ({ ...current, [providerType]: '请先填写 Provider 名称、Key 和驱动族' }))
+      setProviderError(current => ({ ...current, [providerType]: locale === 'en' ? 'Fill in provider name, key, and driver family first' : locale === 'vi' ? 'Hãy điền tên provider, key và họ driver trước' : '请先填写 Provider 名称、Key 和驱动族' }))
       return
     }
     setProviderDefinitionCreating(current => ({ ...current, [definitionKey]: true }))
@@ -1124,7 +1154,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
       })
       invalidateConfigOptionsCache()
       await loadConfigData()
-      setProviderNotice(current => ({ ...current, [providerType]: `已创建动态 provider ${payload.label}` }))
+      setProviderNotice(current => ({ ...current, [providerType]: locale === 'en' ? `Created dynamic provider ${payload.label}` : locale === 'vi' ? `Đã tạo provider động ${payload.label}` : `已创建动态 provider ${payload.label}` }))
       setProviderCreateDialog(null)
       setProviderDefinitionForm(current => ({
         ...current,
@@ -1139,7 +1169,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
         },
       }))
     } catch (error) {
-      setProviderError(current => ({ ...current, [providerType]: getErrorMessage(error, '创建动态 provider 失败') }))
+      setProviderError(current => ({ ...current, [providerType]: getErrorMessage(error, locale === 'en' ? 'Failed to create dynamic provider' : locale === 'vi' ? 'Tạo provider động thất bại' : '创建动态 provider 失败') }))
     } finally {
       setProviderDefinitionCreating(current => ({ ...current, [definitionKey]: false }))
     }
@@ -1152,12 +1182,12 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
   const mailboxCount = providerSettings.mailbox.length
   const captchaCount = providerSettings.captcha.length
   const smsCount = providerSettings.sms.length
-  const solverLabel = solverRunning === null ? '—' : solverRunning ? '运行中' : '未运行'
-  const currentTabMeta = TABS.find(item => item.id === activeTab) ?? TABS[0]
+  const solverLabel = solverRunning === null ? '—' : solverRunning ? (locale === 'en' ? 'Running' : locale === 'vi' ? 'Đang chạy' : '运行中') : (locale === 'en' ? 'Stopped' : locale === 'vi' ? 'Chưa chạy' : '未运行')
+  const currentTabMeta = tabs.find(item => item.id === activeTab) ?? tabs[0]
   const currentProviderTab = PROVIDER_TYPES.includes(activeTab as ProviderType) ? activeTab as ProviderType : null
 
   const renderProviderPanel = (providerType: ProviderType) => {
-    const meta = PROVIDER_META[providerType]
+    const meta = providerMeta[providerType]
     const catalog = providerCatalogs[providerType] || []
     const settings = providerSettings[providerType]
 
@@ -1184,7 +1214,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
         {providerType === 'captcha' && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
             <div className="mb-2">
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">当前策略</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">{locale === 'en' ? 'Current strategy' : locale === 'vi' ? 'Chiến lược hiện tại' : '当前策略'}</h3>
             </div>
             <div className="text-sm text-[var(--text-secondary)]">{getCaptchaStrategyLabel('protocol', configOptions.captcha_policy, configOptions.captcha_providers)}</div>
             <div className="text-sm text-[var(--text-secondary)] mt-2">{getCaptchaStrategyLabel('headless', configOptions.captcha_policy, configOptions.captcha_providers)}</div>
@@ -1220,8 +1250,8 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
 
   // Filter tabs: when embedded, exclude platform_caps (moved to Advanced)
   const visibleTabs = embedded
-    ? TABS.filter(t => t.id !== 'platform_caps')
-    : TABS
+    ? tabs.filter(t => t.id !== 'platform_caps')
+    : tabs
 
   return (
     <div className="space-y-4">
@@ -1229,7 +1259,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
         <Card className="overflow-hidden p-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-semibold text-[var(--text-primary)]">配置</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">{locale === 'en' ? 'Configuration' : locale === 'vi' ? 'Cấu hình' : '配置'}</div>
               <Badge variant="default">{currentTabMeta.label}</Badge>
               <Badge variant={solverRunning ? 'success' : solverRunning === false ? 'danger' : 'secondary'}>{solverLabel}</Badge>
             </div>
@@ -1239,11 +1269,11 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
 
       {!embedded && (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <SettingsMetric label={PROVIDER_META.mailbox.metricLabel} value={mailboxCount} icon={PROVIDER_META.mailbox.icon} />
-          <SettingsMetric label={PROVIDER_META.captcha.metricLabel} value={captchaCount} icon={PROVIDER_META.captcha.icon} />
-          <SettingsMetric label={PROVIDER_META.sms.metricLabel} value={smsCount} icon={PROVIDER_META.sms.icon} />
-          <SettingsMetric label="求解器" value={solverLabel} icon={Orbit} />
-          <SettingsMetric label="模块" value={TABS.length} icon={Package2} />
+          <SettingsMetric label={providerMeta.mailbox.metricLabel} value={mailboxCount} icon={providerMeta.mailbox.icon} />
+          <SettingsMetric label={providerMeta.captcha.metricLabel} value={captchaCount} icon={providerMeta.captcha.icon} />
+          <SettingsMetric label={providerMeta.sms.metricLabel} value={smsCount} icon={providerMeta.sms.icon} />
+          <SettingsMetric label={locale === 'en' ? 'Solver' : locale === 'vi' ? 'Solver' : '求解器'} value={solverLabel} icon={Orbit} />
+          <SettingsMetric label={locale === 'en' ? 'Modules' : locale === 'vi' ? 'Mô-đun' : '模块'} value={tabs.length} icon={Package2} />
         </div>
       )}
 
@@ -1275,7 +1305,11 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
             <>
               {activeTab === 'register' && (
                 <div className="rounded-lg border border-[var(--accent-edge)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-                  普通使用者只需要理解两件事：注册身份选“系统邮箱”还是“第三方账号”，执行方式选“协议模式 / 后台浏览器自动 / 可视浏览器自动”。这里的配置只是设置默认值。
+                  {locale === 'en'
+                    ? 'Most users only need to decide two things: whether registration identity uses System mailbox or a third-party account, and whether execution uses protocol mode, background browser automation, or visible browser automation. The settings here only define defaults.'
+                    : locale === 'vi'
+                      ? 'Phần lớn người dùng chỉ cần hiểu hai việc: danh tính đăng ký dùng mailbox hệ thống hay tài khoản bên thứ ba, và cách chạy là chế độ giao thức, tự động trình duyệt nền hay tự động trình duyệt có giao diện. Các cấu hình ở đây chỉ đặt giá trị mặc định.'
+                      : '普通使用者只需要理解两件事：注册身份选“系统邮箱”还是“第三方账号”，执行方式选“协议模式 / 后台浏览器自动 / 可视浏览器自动”。这里的配置只是设置默认值。'}
                 </div>
               )}
               {currentProviderTab && renderProviderPanel(currentProviderTab)}
@@ -1295,7 +1329,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
               {!currentProviderTab && (
                 <Button onClick={save} disabled={saving} className="w-full">
                   <Save className="h-4 w-4 mr-2" />
-                  {saved ? '已保存 ✓' : saving ? '保存中...' : '保存配置'}
+                  {saved ? (locale === 'en' ? 'Saved ✓' : locale === 'vi' ? 'Đã lưu ✓' : '已保存 ✓') : saving ? (locale === 'en' ? 'Saving...' : locale === 'vi' ? 'Đang lưu...' : '保存中...') : (locale === 'en' ? 'Save configuration' : locale === 'vi' ? 'Lưu cấu hình' : '保存配置')}
                 </Button>
               )}
             </>
@@ -1303,7 +1337,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
         </div>
       {providerDialog.providerType && dialogItem && (
         <ProviderDetailModal
-          title={PROVIDER_META[providerDialog.providerType].detailTitle}
+          title={providerMeta[providerDialog.providerType].detailTitle}
           item={dialogItem}
           readOnly={providerDialog.readOnly}
           saving={providerSaving[`${providerDialog.providerType}:${dialogItem.provider_key}`]}
@@ -1320,8 +1354,8 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
       )}
       {providerAddDialog && (
         <AddProviderModal
-          title={PROVIDER_META[providerAddDialog].addTitle}
-          subtitle={PROVIDER_META[providerAddDialog].addDialogHint}
+          title={providerMeta[providerAddDialog].addTitle}
+          subtitle={providerMeta[providerAddDialog].addDialogHint}
           providers={unusedProviders[providerAddDialog]}
           selectedKey={newProviderKey[providerAddDialog]}
           creating={Boolean(newProviderKey[providerAddDialog] && providerCreating[`${providerAddDialog}:${newProviderKey[providerAddDialog]}`])}
@@ -1332,7 +1366,7 @@ export default function Settings({ embedded, defaultTab }: { embedded?: boolean;
       )}
       {providerCreateDialog && (
         <CreateProviderDefinitionModal
-          title={PROVIDER_META[providerCreateDialog].createTitle}
+          title={providerMeta[providerCreateDialog].createTitle}
           providerType={providerCreateDialog}
           drivers={providerDrivers[providerCreateDialog]}
           form={providerDefinitionForm[providerCreateDialog]}

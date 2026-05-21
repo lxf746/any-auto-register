@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { cn, apiFetch } from '@/lib/utils'
 import { getConfig, getConfigOptions, invalidateConfigCache } from '@/lib/app-data'
+import { useI18n } from '@/lib/i18n-context'
 import type { ConfigOptionsResponse } from '@/lib/config-options'
 import { Button } from '@/components/ui/button'
 import { Save, RefreshCw, CheckCircle, ExternalLink, Sparkles } from 'lucide-react'
@@ -38,16 +39,17 @@ function SettingGroup({
 /* ------------------------------------------------------------------ */
 /*  Theme selector                                                     */
 /* ------------------------------------------------------------------ */
-const THEME_OPTIONS = [
-  { value: 'light', label: '浅色', icon: Sun },
-  { value: 'dark', label: '深色', icon: Moon },
-  { value: 'system', label: '跟随系统', icon: Monitor },
-] as const
-
 function ThemeSelector({ theme, setTheme }: { theme: string; setTheme: (t: string) => void }) {
+  const { t } = useI18n()
+  const themeOptions = [
+    { value: 'light', label: t('app.theme.light'), icon: Sun },
+    { value: 'dark', label: t('app.theme.dark'), icon: Moon },
+    { value: 'system', label: t('app.theme.system'), icon: Monitor },
+  ] as const
+
   return (
     <div className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--chip-bg)] p-1">
-      {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+      {themeOptions.map(({ value, label, icon: Icon }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
@@ -76,6 +78,7 @@ function GeneralTab({
   theme: string
   setTheme: (t: string) => void
 }) {
+  const { t } = useI18n()
   const [form, setForm] = useState<Record<string, string>>({})
   const [configOptions, setConfigOptions] = useState<ConfigOptionsResponse | null>(null)
   const [saving, setSaving] = useState(false)
@@ -105,24 +108,24 @@ function GeneralTab({
   const executorOptions = configOptions?.executor_options || []
   const identityOptions = configOptions?.identity_mode_options || []
   const oauthOptions = [
-    { label: '不预选，由当前页面选择', value: '' },
+    { label: localeAwareNone(t), value: '' },
     ...((configOptions?.oauth_provider_options || []).filter((o) => o.value !== '')),
   ]
 
   return (
     <div className="space-y-8">
-      <SettingGroup title="外观主题" desc="选择应用的外观主题，立即生效。">
+      <SettingGroup title={t('settings.appearanceTheme')} desc={t('settings.appearanceThemeDesc')}>
         <ThemeSelector theme={theme} setTheme={setTheme} />
       </SettingGroup>
 
       <div className="border-t border-[var(--border)]" />
 
       <SettingGroup
-        title="默认注册策略"
-        desc="这里配置的是默认行为，账号列表和注册页会直接复用这些设置。"
+        title={t('settings.defaultRegistration')}
+        desc={t('settings.defaultRegistrationDesc')}
       >
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] divide-y divide-[var(--border)]/50">
-          <SettingRow label="默认注册身份">
+          <SettingRow label={t('settings.defaultIdentity')}>
             <select
               value={form.default_identity_provider || identityOptions[0]?.value || ''}
               onChange={(e) => setForm((f) => ({ ...f, default_identity_provider: e.target.value }))}
@@ -135,7 +138,7 @@ function GeneralTab({
               ))}
             </select>
           </SettingRow>
-          <SettingRow label="默认第三方入口">
+          <SettingRow label={t('settings.defaultOAuthEntry')}>
             <select
               value={form.default_oauth_provider || ''}
               onChange={(e) => setForm((f) => ({ ...f, default_oauth_provider: e.target.value }))}
@@ -148,7 +151,7 @@ function GeneralTab({
               ))}
             </select>
           </SettingRow>
-          <SettingRow label="默认执行方式">
+          <SettingRow label={t('settings.defaultExecutor')}>
             <select
               value={form.default_executor || executorOptions[0]?.value || ''}
               onChange={(e) => setForm((f) => ({ ...f, default_executor: e.target.value }))}
@@ -167,11 +170,11 @@ function GeneralTab({
       <div className="border-t border-[var(--border)]" />
 
       <SettingGroup
-        title="浏览器复用"
-        desc="第三方账号走后台浏览器自动时，通常需要复用本机已登录浏览器。"
+        title={t('settings.browserReuse')}
+        desc={t('settings.browserReuseDesc')}
       >
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] divide-y divide-[var(--border)]/50">
-          <SettingRow label="预期登录邮箱">
+          <SettingRow label={t('settings.expectedLoginEmail')}>
             <input
               type="text"
               value={form.oauth_email_hint || ''}
@@ -180,7 +183,7 @@ function GeneralTab({
               className="control-surface"
             />
           </SettingRow>
-          <SettingRow label="Chrome Profile 路径">
+          <SettingRow label={t('settings.chromeProfilePath')}>
             <input
               type="text"
               value={form.chrome_user_data_dir || ''}
@@ -189,7 +192,7 @@ function GeneralTab({
               className="control-surface"
             />
           </SettingRow>
-          <SettingRow label="Chrome CDP 地址">
+          <SettingRow label={t('settings.chromeCdpUrl')}>
             <input
               type="text"
               value={form.chrome_cdp_url || ''}
@@ -203,10 +206,16 @@ function GeneralTab({
 
       <Button onClick={save} disabled={saving} className="w-full">
         <Save className="mr-2 h-4 w-4" />
-        {saved ? '已保存 ✓' : saving ? '保存中...' : '保存设置'}
+        {saved ? t('settings.saved') : saving ? t('settings.saving') : t('settings.save')}
       </Button>
     </div>
   )
+}
+
+function localeAwareNone(t: (key: string, vars?: Record<string, string | number>) => string) {
+  if (t('app.loading') === '加载中...') return '不预选，由当前页面选择'
+  if (t('app.loading') === 'Đang tải...') return 'Không chọn trước, để trang hiện tại quyết định'
+  return 'No preset, choose from the current page'
 }
 
 /* ------------------------------------------------------------------ */
@@ -237,11 +246,12 @@ type VersionResp = {
 }
 
 function AboutTab() {
+  const { t, formatDate } = useI18n()
   const [info, setInfo] = useState<VersionResp | null>(null)
   const [checking, setChecking] = useState(false)
   const formatVersion = (value: string) => {
     const version = String(value || '').trim()
-    if (!version || version === '?') return '未知'
+    if (!version || version === '?') return t('common.unknown')
     return version.startsWith('v') ? version : `v${version}`
   }
 
@@ -262,25 +272,25 @@ function AboutTab() {
 
   return (
     <div className="space-y-8">
-      <SettingGroup title="版本信息" desc="当前应用版本与更新检测。">
+      <SettingGroup title={t('settings.about.versionInfo')} desc={t('settings.about.versionDesc')}>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] divide-y divide-[var(--border)]/50">
           <div className="flex items-center justify-between px-4 py-4">
             <div>
-              <div className="text-sm text-[var(--text-muted)]">当前版本</div>
+              <div className="text-sm text-[var(--text-muted)]">{t('settings.about.currentVersion')}</div>
               <div className="mt-0.5 text-xl font-bold tracking-tight text-[var(--text-primary)]">
-                {info ? formatVersion(info.current) : checking ? '加载中...' : '—'}
+                {info ? formatVersion(info.current) : checking ? t('common.loading') : '—'}
               </div>
             </div>
             <div className="flex items-center gap-2">
               {info && !info.has_update && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-400">
                   <CheckCircle className="h-3.5 w-3.5" />
-                  已是最新
+                  {t('settings.about.upToDate')}
                 </span>
               )}
               <Button variant="outline" size="sm" onClick={fetchVersion} disabled={checking}>
                 <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', checking && 'animate-spin')} />
-                检查更新
+                {t('settings.about.checkUpdates')}
               </Button>
             </div>
           </div>
@@ -290,7 +300,7 @@ function AboutTab() {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-[var(--accent)]" />
                 <span className="text-sm font-semibold text-[var(--text-primary)]">
-                  新版本 v{info.latest.tag} 可用
+                  {t('settings.about.newVersion', { tag: info.latest.tag })}
                 </span>
               </div>
               {info.latest.name && (
@@ -303,7 +313,7 @@ function AboutTab() {
               )}
               {info.latest.published_at && (
                 <div className="text-xs text-[var(--text-muted)]">
-                  发布于 {new Date(info.latest.published_at).toLocaleDateString('zh-CN')}
+                  {t('settings.about.publishedOn', { date: formatDate(info.latest.published_at) })}
                 </div>
               )}
               <Button
@@ -311,7 +321,7 @@ function AboutTab() {
                 onClick={() => info.latest?.html_url && window.open(info.latest.html_url, '_blank')}
               >
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                前往下载
+                {t('common.download')}
               </Button>
             </div>
           )}
@@ -320,13 +330,13 @@ function AboutTab() {
 
       <div className="border-t border-[var(--border)]" />
 
-      <SettingGroup title="项目信息">
+      <SettingGroup title={t('settings.about.projectInfo')}>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] divide-y divide-[var(--border)]/50">
-          <InfoRow label="项目名称" value="Any Auto Register" />
-          <InfoRow label="技术栈" value="FastAPI + React + Electron" />
-          <InfoRow label="开源协议" value="AGPL-3.0" />
+          <InfoRow label={t('settings.about.projectName')} value="Any Auto Register" />
+          <InfoRow label={t('settings.about.techStack')} value="FastAPI + React + Electron" />
+          <InfoRow label={t('settings.about.license')} value="AGPL-3.0" />
           <InfoRow
-            label="GitHub"
+            label={t('settings.about.github')}
             value={
               <a
                 href="https://github.com/lxf746/any-auto-register"
@@ -364,6 +374,7 @@ export default function SettingsPage({
   theme: string
   setTheme: (t: string) => void
 }) {
+  const { t } = useI18n()
   const [searchParams] = useSearchParams()
   const tab = searchParams.get('tab') || 'general'
 
@@ -373,21 +384,21 @@ export default function SettingsPage({
 
   // Page title mapping
   const titles: Record<string, string> = {
-    general: '通用设置',
-    register: '注册策略',
-    mailbox: '邮箱服务',
-    captcha: '验证服务',
-    sms: '接码服务',
-    proxies: '代理资源',
+    general: t('settings.generalSettings'),
+    register: t('app.settings.register'),
+    mailbox: t('app.settings.mailbox'),
+    captcha: t('app.settings.captcha'),
+    sms: t('app.settings.sms'),
+    proxies: t('app.settings.proxies'),
     chatgpt: 'ChatGPT',
-    advanced: '高级设置',
-    about: '关于',
+    advanced: t('settings.advancedSettings'),
+    about: t('settings.about'),
   }
 
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="mb-6 text-xl font-semibold text-[var(--text-primary)]">
-        {titles[tab] || '设置'}
+        {titles[tab] || t('settings.settings')}
       </h1>
 
       {tab === 'general' && <GeneralTab theme={theme} setTheme={setTheme} />}
