@@ -20,7 +20,14 @@ export function isTerminalTaskStatus(status: string) {
   return TERMINAL_TASK_STATUSES.has(status)
 }
 
-export function getTaskStatusText(status: string) {
+export function getTaskStatusText(status: string, t?: (key: string, fallback: string) => string) {
+  if (t) {
+    return t(`history.status.${status}`, getRawStatusText(status))
+  }
+  return getRawStatusText(status)
+}
+
+function getRawStatusText(status: string) {
   switch (status) {
     case 'succeeded':
       return '已完成'

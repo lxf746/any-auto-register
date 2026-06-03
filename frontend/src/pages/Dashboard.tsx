@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getPlatforms } from '@/lib/app-data'
 import { apiFetch } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -24,26 +25,27 @@ const STATUS_VARIANT: Record<string, any> = {
   valid: 'success',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  registered: '已注册',
-  trial: '试用',
-  subscribed: '订阅',
-  expired: '过期',
-  invalid: '失效',
-  free: '空闲',
-  eligible: '可用',
-  unknown: '未知',
-  valid: '有效',
-  active: '活跃',
-  inactive: '未激活',
-  pending: '待处理',
-}
-
 export default function Dashboard() {
+  const { t } = useTranslation()
   const [stats, setStats] = useState<any>(null)
   const [desktopStates, setDesktopStates] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(false)
   const desktopPlatforms = ['cursor', 'kiro', 'chatgpt']
+
+  const STATUS_LABELS: Record<string, string> = {
+    registered: t('dashboard.status_labels.registered', '已注册'),
+    trial: t('dashboard.status_labels.trial', '试用'),
+    subscribed: t('dashboard.status_labels.subscribed', '订阅'),
+    expired: t('dashboard.status_labels.expired', '过期'),
+    invalid: t('dashboard.status_labels.invalid', '失效'),
+    free: t('dashboard.status_labels.free', '空闲'),
+    eligible: t('dashboard.status_labels.eligible', '可用'),
+    unknown: t('dashboard.status_labels.unknown', '未知'),
+    valid: t('dashboard.status_labels.valid', '有效'),
+    active: t('dashboard.status_labels.active', '活跃'),
+    inactive: t('dashboard.status_labels.inactive', '未激活'),
+    pending: t('dashboard.status_labels.pending', '待处理'),
+  }
 
   const load = async () => {
     setLoading(true)
@@ -70,15 +72,15 @@ export default function Dashboard() {
   useEffect(() => { load() }, [])
 
   const statCards = [
-    { label: '总账号数', value: stats?.total ?? '-', icon: Users, color: 'text-[var(--text-accent)]' },
-    { label: '试用中', value: stats?.by_plan_state?.trial ?? 0, icon: Clock, color: 'text-amber-400' },
-    { label: '已订阅', value: stats?.by_plan_state?.subscribed ?? 0, icon: CheckCircle, color: 'text-emerald-400' },
-    { label: '已失效', value: (stats?.by_display_status?.expired ?? 0) + (stats?.by_validity_status?.invalid ?? 0), icon: XCircle, color: 'text-red-400' },
+    { label: t('dashboard.stats.total_accounts', '总账号数'), value: stats?.total ?? '-', icon: Users, color: 'text-[var(--text-accent)]' },
+    { label: t('dashboard.stats.trialing', '试用中'), value: stats?.by_plan_state?.trial ?? 0, icon: Clock, color: 'text-amber-400' },
+    { label: t('dashboard.stats.subscribed', '已订阅'), value: stats?.by_plan_state?.subscribed ?? 0, icon: CheckCircle, color: 'text-emerald-400' },
+    { label: t('dashboard.stats.invalidated', '已失效'), value: (stats?.by_display_status?.expired ?? 0) + (stats?.by_validity_status?.invalid ?? 0), icon: XCircle, color: 'text-red-400' },
   ]
   const platformEntries = Object.entries(stats?.by_platform || {})
   const totalCount = Math.max(Number(stats?.total || 0), 0)
 
-  const renderStatusGroup = (title: string, values: Record<string, number> | undefined, emptyCopy = '暂无数据') => (
+  const renderStatusGroup = (title: string, values: Record<string, number> | undefined, emptyCopy = t('dashboard.no_data', '暂无数据')) => (
     <div className="space-y-2">
       <div className="px-1 text-sm font-medium text-[var(--text-primary)]">{title}</div>
       {values && Object.keys(values).length > 0 ? Object.entries(values).map(([status, count]) => (
@@ -113,10 +115,10 @@ export default function Dashboard() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.55fr)]">
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle>平台分布</CardTitle>
+            <CardTitle>{t('dashboard.platforms', '平台分布')}</CardTitle>
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
               <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              刷新
+              {t('dashboard.refresh', '刷新')}
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -137,23 +139,23 @@ export default function Dashboard() {
                 </div>
               )
             }) : (
-              <div className="empty-state-panel">{stats ? '暂无平台分布数据' : '正在加载统计数据...'}</div>
+              <div className="empty-state-panel">{stats ? t('dashboard.no_platform_data', '暂无平台分布数据') : t('dashboard.stats.loading', '正在加载统计数据...')}</div>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>桌面应用状态</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('dashboard.desktop.title', '桌面应用状态')}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {desktopPlatforms.map((platform) => {
               const state = desktopStates[platform]
               const label = state?.app_name || state?.display_name || platform
               const badges = state
                 ? [
-                    { label: state.installed ? '已安装' : '未安装', variant: state.installed ? 'success' : 'secondary' },
-                    { label: state.configured ? '已配置' : '未配置', variant: state.configured ? 'success' : 'warning' },
-                    { label: state.running ? '已打开' : '未打开', variant: state.running ? 'success' : 'secondary' },
-                    { label: state.ready ? '已就绪' : '未就绪', variant: state.ready ? 'success' : 'warning' },
+                    { label: state.installed ? t('dashboard.desktop.installed', '已安装') : t('dashboard.desktop.not_installed', '未安装'), variant: state.installed ? 'success' : 'secondary' },
+                    { label: state.configured ? t('dashboard.desktop.configured', '已配置') : t('dashboard.desktop.not_configured', '未配置'), variant: state.configured ? 'success' : 'warning' },
+                    { label: state.running ? t('dashboard.desktop.running', '已打开') : t('dashboard.desktop.not_running', '未打开'), variant: state.running ? 'success' : 'secondary' },
+                    { label: state.ready ? t('dashboard.desktop.ready', '已就绪') : t('dashboard.desktop.not_ready', '未就绪'), variant: state.ready ? 'success' : 'warning' },
                   ]
                 : []
               return (
@@ -163,19 +165,19 @@ export default function Dashboard() {
                       <div className="text-sm font-semibold text-[var(--text-primary)]">{label}</div>
                       <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
                         {state?.available === false
-                          ? (state?.message || '当前平台暂未接入桌面状态探测')
-                          : (state?.ready_label || state?.status_label || '桌面账号切换与本地就绪状态')}
+                          ? (state?.message || t('dashboard.desktop.not_supported', '当前平台暂未接入桌面状态探测'))
+                          : (state?.ready_label || state?.status_label || t('dashboard.desktop.desc', '桌面账号切换与本地就绪状态'))}
                       </div>
                     </div>
                     <Badge variant={state?.ready ? 'success' : 'secondary'}>
-                      {state?.ready ? '就绪' : '待命'}
+                      {state?.ready ? t('dashboard.desktop.status_ready', '就绪') : t('dashboard.desktop.status_standby', '待命')}
                     </Badge>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {badges.length > 0 ? badges.map((badge) => (
                       <Badge key={`${platform}-${badge.label}`} variant={badge.variant as any}>{badge.label}</Badge>
                     )) : (
-                      <span className="text-xs text-[var(--text-muted)]">加载中...</span>
+                      <span className="text-xs text-[var(--text-muted)]">{t('common.loading', '加载中...')}</span>
                     )}
                   </div>
                 </div>
@@ -186,11 +188,11 @@ export default function Dashboard() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>状态分布</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t('dashboard.status_dist', '状态分布')}</CardTitle></CardHeader>
         <CardContent className="grid gap-4 xl:grid-cols-3">
-          {renderStatusGroup('套餐', stats?.by_plan_state, '暂无套餐分布数据')}
-          {renderStatusGroup('生命周期', stats?.by_lifecycle_status, '暂无生命周期分布数据')}
-          {renderStatusGroup('有效性', stats?.by_validity_status, '暂无有效性分布数据')}
+          {renderStatusGroup(t('dashboard.plan', '套餐'), stats?.by_plan_state, t('dashboard.no_plan_data', '暂无套餐分布数据'))}
+          {renderStatusGroup(t('dashboard.lifecycle', '生命周期'), stats?.by_lifecycle_status, t('dashboard.no_lifecycle_data', '暂无生命周期分布数据'))}
+          {renderStatusGroup(t('dashboard.validity', '有效性'), stats?.by_validity_status, t('dashboard.no_validity_data', '暂无有效性分布数据'))}
         </CardContent>
       </Card>
     </div>
