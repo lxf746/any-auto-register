@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/lib/utils'
 import type { ProviderOption, ProviderSetting } from '@/lib/config-options'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,7 @@ function SearchableSelect({ value, options, placeholder, onChange }: {
   placeholder?: string
   onChange: (v: string) => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -73,7 +75,7 @@ function SearchableSelect({ value, options, placeholder, onChange }: {
         className="control-surface w-full text-left flex items-center justify-between"
       >
         <span className={selectedLabel ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}>
-          {selectedLabel || placeholder || '请选择...'}
+          {selectedLabel || placeholder || t('common.select_placeholder', '请选择...')}
         </span>
         <svg className="h-4 w-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
@@ -89,14 +91,14 @@ function SearchableSelect({ value, options, placeholder, onChange }: {
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="搜索..."
+                placeholder={t('common.search_placeholder', '搜索...')}
                 className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-base)] pl-8 pr-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
               />
             </div>
           </div>
           <div className="max-h-48 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-[var(--text-muted)]">无匹配结果</div>
+              <div className="px-3 py-2 text-sm text-[var(--text-muted)]">{t('common.no_match', '无匹配结果')}</div>
             ) : filtered.map(o => (
               <button
                 key={o.value}
@@ -125,6 +127,7 @@ function EditModal({
   provider: ProviderOption; setting: ProviderSetting | null; providerType: string
   onClose: () => void; onSaved: () => void
 }) {
+  const { t } = useTranslation()
   const fields = provider.fields || []
   const [form, setForm] = useState<Record<string, string>>(() => {
     const data: Record<string, string> = {}
@@ -228,7 +231,7 @@ function EditModal({
       })
       setTestResult(result)
     } catch (e: any) {
-      setTestResult({ ok: false, error: e.message || '测试请求失败' })
+      setTestResult({ ok: false, error: e.message || t('settings.providers.test_failed', '测试请求失败') })
     } finally {
       setTesting(false)
     }
@@ -246,7 +249,7 @@ function EditModal({
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {fields.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">此服务无需额外配置。</p>
+            <p className="text-sm text-[var(--text-muted)]">{t('settings.providers.no_config', '此服务无需额外配置。')}</p>
           ) : fields.map(field => {
             const sk = `${provider.value}:${field.key}`
             return (
@@ -261,12 +264,12 @@ function EditModal({
                         onChange={v => setForm(f => ({ ...f, [field.key]: v ? 'true' : 'false' }))}
                       />
                       <span className="text-sm text-[var(--text-muted)]">
-                        {['true', '1', 'yes', 'on'].includes((form[field.key] || '').toLowerCase()) ? '已启用' : '未启用'}
+                        {['true', '1', 'yes', 'on'].includes((form[field.key] || '').toLowerCase()) ? t('settings.providers.enabled', '已启用') : t('settings.providers.disabled', '未启用')}
                       </span>
                     </div>
                   ) : field.type === 'async-select' ? (
                     asyncLoading[field.key] ? (
-                      <div className="control-surface text-[var(--text-muted)] text-sm py-2">加载中...</div>
+                      <div className="control-surface text-[var(--text-muted)] text-sm py-2">{t('common.loading', '加载中...')}</div>
                     ) : (
                       <SearchableSelect
                         value={form[field.key] || ''}
@@ -323,13 +326,13 @@ function EditModal({
         <div className="flex gap-2 border-t border-[var(--border)] px-5 py-3">
           <Button onClick={handleSave} disabled={saving} className="flex-1">
             <Save className="h-3.5 w-3.5 mr-1.5" />
-            {saved ? '已保存 ✓' : saving ? '保存中...' : '保存'}
+            {saved ? t('settings.providers.saved', '已保存 ✓') : saving ? t('settings.providers.saving', '保存中...') : t('settings.providers.save_btn', '保存')}
           </Button>
           <Button variant="outline" onClick={handleTest} disabled={testing || fields.length === 0} className="flex-1">
             <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
-            {testing ? '测试中...' : '测试连接'}
+            {testing ? t('settings.providers.testing', '测试中...') : t('settings.providers.test_btn', '测试连接')}
           </Button>
-          <Button variant="outline" onClick={onClose}>取消</Button>
+          <Button variant="outline" onClick={onClose}>{t('common.cancel', '取消')}</Button>
         </div>
       </div>
     </div>
@@ -348,6 +351,7 @@ type Props = {
 }
 
 export default function ProviderCards({ providerType, catalog, settings, onReload, onCreateCustom }: Props) {
+  const { t } = useTranslation()
   const [editTarget, setEditTarget] = useState<{ provider: ProviderOption; setting: ProviderSetting | null } | null>(null)
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message?: string; error?: string }>>({})
@@ -420,7 +424,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
       })
       setTestResults(p => ({ ...p, [key]: result }))
     } catch (e: any) {
-      setTestResults(p => ({ ...p, [key]: { ok: false, error: e.message || '测试失败' } }))
+      setTestResults(p => ({ ...p, [key]: { ok: false, error: e.message || t('settings.providers.test_failed', '测试失败') } }))
     } finally {
       setTestingKeys(p => ({ ...p, [key]: false }))
     }
@@ -458,7 +462,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-[var(--text-primary)]">{provider.label}</span>
-              {isDefault && <Badge variant="success">默认</Badge>}
+              {isDefault && <Badge variant="success">{t('settings.providers.default_badge', '默认')}</Badge>}
             </div>
             {provider.description && (
               <p className="mt-0.5 text-xs text-[var(--text-muted)] line-clamp-1">{provider.description}</p>
@@ -472,7 +476,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
               disabled={!hasFields || !isEnabled}
               className={`table-action-btn ${(!hasFields || !isEnabled) ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
-              <Pencil className="h-3 w-3 mr-1" /> 编辑
+              <Pencil className="h-3 w-3 mr-1" /> {t('settings.providers.edit_btn', '编辑')}
             </button>
 
             <button
@@ -480,7 +484,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
               disabled={!isEnabled || testingKeys[key]}
               className={`table-action-btn ${!isEnabled ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
-              <FlaskConical className="h-3 w-3 mr-1" /> {testingKeys[key] ? '测试中' : '测试'}
+              <FlaskConical className="h-3 w-3 mr-1" /> {testingKeys[key] ? t('settings.providers.testing_compact', '测试中') : t('settings.providers.test_btn_compact', '测试')}
             </button>
 
             <button
@@ -488,7 +492,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
               disabled={!isEnabled || isDefault || loading[key]}
               className={`table-action-btn ${(!isEnabled || isDefault) ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
-              {isDefault ? '默认 ✓' : '设默认'}
+              {isDefault ? t('settings.providers.default_btn_active', '默认 ✓') : t('settings.providers.default_btn', '设默认')}
             </button>
 
             {allowDelete && (
@@ -497,7 +501,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
                 disabled={!isEnabled || isDefault || loading[key]}
                 className={`table-action-btn table-action-btn-danger ${(!isEnabled || isDefault) ? 'opacity-30 cursor-not-allowed' : ''}`}
               >
-                <Trash2 className="h-3 w-3 mr-1" /> 删除
+                <Trash2 className="h-3 w-3 mr-1" /> {t('settings.providers.delete_btn', '删除')}
               </button>
             )}
 
@@ -529,6 +533,9 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
           const providers = grouped[cat]
           if (!providers || providers.length === 0) return null
 
+          const translatedLabel = t('settings.providers.cat.' + cat + '.label', label)
+          const translatedDesc = t('settings.providers.cat.' + cat + '.desc', desc)
+
           // Hide "通用 HTTP 邮箱" from the list — it's the engine behind custom providers
           const visible = cat === 'custom'
             ? providers.filter(p => p.value !== 'generic_http_mailbox')
@@ -537,8 +544,8 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
           return (
             <div key={cat}>
               <div className="mb-2">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{label}</h3>
-                <p className="text-xs text-[var(--text-muted)]">{desc}</p>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{translatedLabel}</h3>
+                <p className="text-xs text-[var(--text-muted)]">{translatedDesc}</p>
               </div>
               <div className="space-y-1.5">
                 {visible.map(p => renderCard(p, cat === 'custom'))}
@@ -548,7 +555,7 @@ export default function ProviderCards({ providerType, catalog, settings, onReloa
                     onClick={() => onCreateCustom?.()}
                   >
                     <Plus className="h-4 w-4" />
-                    添加自定义{providerType === 'mailbox' ? '邮箱' : providerType === 'captcha' ? '验证' : providerType === 'sms' ? '接码' : ''}服务
+                    {t('settings.providers.add_custom_btn', '添加自定义{{type}}服务', { type: providerType === 'mailbox' ? t('settings.providers.type_mail', '邮箱') : providerType === 'captcha' ? t('settings.providers.type_captcha', '验证') : providerType === 'sms' ? t('settings.providers.type_sms', '接码') : '' })}
                   </button>
                 )}
               </div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { API_BASE, apiFetch } from '@/lib/utils'
 import { getTaskStatusText, isTerminalTaskStatus } from '@/lib/tasks'
@@ -10,6 +11,7 @@ export function TaskLogPanel({
   taskId: string
   onDone: (status: string) => void
 }) {
+  const { t } = useTranslation()
   const [lines, setLines] = useState<string[]>([])
   const [task, setTask] = useState<any | null>(null)
   const [doneStatus, setDoneStatus] = useState<string | null>(null)
@@ -131,16 +133,16 @@ export function TaskLogPanel({
     <div className="flex h-full flex-col gap-4">
       <div className="grid gap-3 md:grid-cols-3">
         <div className={`rounded-2xl border px-4 py-3 ${statusTone}`}>
-          <div className="text-[11px] uppercase tracking-[0.18em] opacity-70">Status</div>
-          <div className="mt-1 text-sm font-semibold">{getTaskStatusText(currentStatus)}</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] opacity-70">{t('history.table.status', '状态')}</div>
+          <div className="mt-1 text-sm font-semibold">{getTaskStatusText(currentStatus, t)}</div>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-hover)] px-4 py-3">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Progress</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('history.table.progress', '进度')}</div>
           <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{progress.label || task?.progress || '0/0'}</div>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-hover)] px-4 py-3">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Events</div>
-          <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{lines.length} 条日志</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('history.table.events', '日志')}</div>
+          <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{t('history.events_count', '{{count}} 条日志', { count: lines.length })}</div>
         </div>
       </div>
 
@@ -157,29 +159,29 @@ export function TaskLogPanel({
 
       {errorText ? (
         <div className="rounded-2xl border border-red-400/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          <div className="mb-1 font-semibold">失败原因</div>
+          <div className="mb-1 font-semibold">{t('history.error_reason', '失败原因')}</div>
           <div className="break-words text-red-100/85">{errorText}</div>
         </div>
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Live Log</div>
-          <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">实时执行日志</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('history.live_log', 'Live Log')}</div>
+          <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{t('history.live_log_desc', '实时执行日志')}</div>
         </div>
         <button
           type="button"
           onClick={copyLogs}
           className="rounded-full border border-[var(--border)] bg-[var(--bg-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
-          复制日志
+          {t('history.copy_logs', '复制日志')}
         </button>
       </div>
 
       <div className="min-h-[260px] flex-1 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-input)] p-4 font-mono text-xs ">
         {lines.length === 0 && (
           <div className="flex h-full min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-[var(--border)] text-[var(--text-muted)]">
-            等待任务日志...
+            {t('history.waiting_logs', '等待任务日志...')}
           </div>
         )}
         <div className="space-y-1.5">
