@@ -299,6 +299,7 @@ def mark_incomplete_tasks_interrupted() -> None:
         tasks = session.exec(
             select(TaskModel).where(TaskModel.status.in_(non_terminal))
         ).all()
+        task_ids = [task.id for task in tasks]
         for task in tasks:
             task.status = TASK_STATUS_INTERRUPTED
             task.error = task.error or "Task interrupted after service restart"
@@ -306,9 +307,9 @@ def mark_incomplete_tasks_interrupted() -> None:
             task.updated_at = _utcnow()
             session.add(task)
         session.commit()
-    for task in tasks:
+    for task_id in task_ids:
         append_task_event(
-            task.id,
+            task_id,
             "Task marked as interrupted after service restart",
             event_type="state",
             level="warning",
