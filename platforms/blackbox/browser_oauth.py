@@ -102,17 +102,61 @@ def register_with_browser_oauth(
             except Exception:
                 pass
 
-        # Try to get email from page if available
+        # Extract session token from cookies (next-auth.session-token)
+        session_token = ""
+        try:
+            cookies = browser.context.cookies()
+            for c in cookies:
+                if c.get("name") == "next-auth.session-token":
+                    session_token = c.get("value", "")
+                    break
+        except Exception:
+            pass
+
+        # Try to get email from cookies or page
         actual_email = ""
         try:
-            # Look for email in account settings or profile
-            page.goto(f"{BLACKBOX_APP_URL}/settings", wait_until="domcontentloaded", timeout=15000)
-            time.sleep(2)
-            text = page.inner_text("body")
-            for line in text.split("\n"):
-                if "@" in line and "." in line:
-                    actual_email = line.strip()
+            # First check cookies for email
+            cookies = browser.context.cookies()
+            for c in cookies:
+                if c.get("name") == "userEmail":
+                    actual_email = c.get("value", "")
                     break
+        except Exception:
+            pass
+
+        if not actual_email:
+            try:
+                # Check account-store in localStorage
+                account_store = page.evaluate("() => localStorage.getItem('account-store') || '{}'")
+                import json
+                acc_data = json.loads(account_store)
+                current_account = acc_data.get("state", {}).get("currentAccount", "")
+                if current_account and "@" in current_account:
+                    actual_email = current_account
+            except Exception:
+                pass
+
+        if not actual_email:
+            try:
+                # Look for email in account settings or profile
+                page.goto(f"{BLACKBOX_APP_URL}/settings", wait_until="domcontentloaded", timeout=15000)
+                time.sleep(2)
+                text = page.inner_text("body")
+                for line in text.split("\n"):
+                    if "@" in line and "." in line:
+                        actual_email = line.strip()
+                        break
+            except Exception:
+                pass
+
+        # Get subscription info
+        subscription_status = ""
+        try:
+            sub_cache = page.evaluate("() => localStorage.getItem('subscription-cache') || '{}'")
+            import json
+            sub_data = json.loads(sub_cache)
+            subscription_status = sub_data.get("status", "")
         except Exception:
             pass
 
@@ -121,9 +165,10 @@ def register_with_browser_oauth(
         return {
             "email": resolved_email,
             "password": "",  # OAuth accounts don't have a password
-            "token": token,
+            "token": token or session_token,
             "name": "Blackbox User",
             "oauth_provider": provider,
+            "subscription_status": subscription_status,
         }
 
 

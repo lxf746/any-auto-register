@@ -46,6 +46,10 @@ class BlackboxPlatform(BasePlatform):
         return password or self._make_random_password()
 
     def _map_oauth_result(self, result: dict) -> RegistrationResult:
+        subscription_status = result.get("subscription_status", "").lower()
+        has_subscription = subscription_status in ("pro", "plus", "max", "enterprise")
+        plan_name = "Pro" if has_subscription else "Free"
+        plan_state = "subscribed" if has_subscription else "free"
         return RegistrationResult(
             email=result.get("email", ""),
             password=result.get("password", ""),
@@ -55,9 +59,10 @@ class BlackboxPlatform(BasePlatform):
                 "name": result.get("name", ""),
                 "token": result.get("token", ""),
                 "oauth_provider": result.get("oauth_provider", ""),
+                "subscription_status": subscription_status,
                 "account_overview": {
-                    "plan_state": "free",
-                    "plan_name": "Free",
+                    "plan_state": plan_state,
+                    "plan_name": plan_name,
                     "validity_status": "unknown",
                     "display_status": "registered",
                     "lifecycle_status": "registered",
@@ -117,12 +122,46 @@ class BlackboxPlatform(BasePlatform):
         )
 
     def check_valid(self, account: Account) -> bool:
-        """Verify account is valid by logging in."""
+        """Verify account is valid by logging in or checking OAuth token."""
         email = account.email
         password = account.password
-        if not email or not password:
-            self._last_check_overview = {"validity_status": "invalid", "check_error": "missing credentials"}
+        extra = account.extra or {}
+        is_oauth = bool(extra.get("oauth_provider"))
+        
+        if not email:
+            self._last_check_overview = {"validity_status": "invalid", "check_error": "missing email"}
             return False
+            
+        # For OAuth accounts, check if token is still valid
+        if is_oauth:
+            token = account.token or extra.get("token", "")
+            if token:
+                # Try to verify token via API
+                try:
+                    import requests
+                    headers = {"Authorization": f"Bearer {token}"}
+                    resp = requests.get("https://app.blackbox.ai/api/auth/session", headers=headers, timeout=10)
+                    if resp.status_code == 200:
+                        subscription_status = extra.get("subscription_status", "free")
+                        has_subscription = subscription_status in ("pro", "plus", "max", "enterprise")
+                        self._last_check_overview = {
+                            "validity_status": "valid",
+                            "plan_state": "subscribed" if has_subscription else "free",
+                            "plan_name": "Pro" if has_subscription else "Free",
+                            "display_status": "active",
+                            "check_source": "oauth_token",
+                        }
+                        return True
+                except Exception:
+                    pass
+            self._last_check_overview = {"validity_status": "invalid", "check_error": "OAuth token invalid"}
+            return False
+        
+        # For regular accounts with password
+        if not password:
+            self._last_check_overview = {"validity_status": "invalid", "check_error": "missing password"}
+            return False
+            
         try:
             from platforms.blackbox.browser_register import BlackboxBrowserRegister
             reg = BlackboxBrowserRegister(headless=True)
@@ -151,16 +190,47 @@ class BlackboxPlatform(BasePlatform):
         return dict(self._last_check_overview or {})
 
     def get_platform_actions(self) -> list:
-        return [
+        actions = [
             {"id": "login_check", "label": "Verify login", "params": []},
         ]
+        # Check if account has OAuth provider
+        return actions
 
     def execute_action(self, action_id: str, account: Account, params: dict) -> dict:
         if action_id == "login_check":
             email = account.email
             password = account.password
-            if not email or not password:
-                return {"ok": False, "error": "Missing email or password"}
+            extra = account.extra or {}
+            is_oauth = bool(extra.get("oauth_provider"))
+            
+            if not email:
+                return {"ok": False, "error": "Missing email"}
+                
+            # For OAuth accounts, check token
+            if is_oauth:
+                token = account.token or extra.get("token", "")
+                if not token:
+                    return {"ok": False, "error": "OAuth account missing token"}
+                try:
+                    import requests
+                    headers = {"Authorization": f"Bearer {token}"}
+                    resp = requests.get("https://app.blackbox.ai/api/auth/session", headers=headers, timeout=10)
+                    if resp.status_code == 200:
+                        return {
+                            "ok": True,
+                            "data": {
+                                "logged_in": True,
+                                "token_preview": token[:20] + "..." if token else "",
+                            }
+                        }
+                    else:
+                        return {"ok": False, "error": f"OAuth token invalid (HTTP {resp.status_code})"}
+                except Exception as e:
+                    return {"ok": False, "error": str(e)}
+            
+            # For regular accounts with password
+            if not password:
+                return {"ok": False, "error": "Missing password"}
             try:
                 from platforms.blackbox.browser_register import BlackboxBrowserRegister
                 reg = BlackboxBrowserRegister(headless=True)
