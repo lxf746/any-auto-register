@@ -15,7 +15,6 @@ DEFAULT_LAOUDO_API_URL = "https://laoudo.com/api/email"
 DEFAULT_AITRE_API_URL = "https://mail.aitre.cc/api/tempmail"
 DEFAULT_TEMPMAIL_LOL_API_URL = "https://api.tempmail.lol/v2"
 DEFAULT_TEMPMAIL_WEB_BASE_URL = "https://web2.temp-mail.org"
-DEFAULT_MAILTM_API_URL = "https://api.mail.tm"
 
 
 @dataclass
@@ -213,13 +212,6 @@ def _create_moemail(extra: dict, proxy: str | None) -> 'BaseMailbox':
     )
 
 
-def _create_mailtm(extra: dict, proxy: str | None) -> 'BaseMailbox':
-    return MailTmMailbox(
-        api_url=extra.get("mailtm_api_url", ""),
-        proxy=proxy,
-    )
-
-
 def _create_cfworker(extra: dict, proxy: str | None) -> 'BaseMailbox':
     return CFWorkerMailbox(
         api_url=extra.get("cfworker_api_url", ""),
@@ -289,7 +281,6 @@ MAILBOX_FACTORY_REGISTRY = {
     "ddg_email_api": _create_ddg_email,
     "freemail_api": _create_freemail,
     "moemail_api": _create_moemail,
-    "mailtm_api": _create_mailtm,
     "cfworker_admin_api": _create_cfworker,
     "testmail_api": _create_testmail,
     "local_ms_pool": _create_local_ms_pool,
@@ -302,7 +293,6 @@ MAILBOX_FACTORY_REGISTRY = {
     "duckmail": _create_duckmail,
     "freemail": _create_freemail,
     "moemail": _create_moemail,
-    "mailtm": _create_mailtm,
     "cfworker": _create_cfworker,
     "testmail": _create_testmail,
     "local_ms": _create_local_ms_pool,
@@ -628,147 +618,21 @@ class TempMailLolMailbox(BaseMailbox):
             },
         )
 
-    def get_current_ids(self, account: MailboxAccount) -> set:
-        import requests
-        try:
-            r = requests.get(f"{self.api}/inbox",
-                params={"token": account.account_id},
-                proxies=self.proxy, timeout=10)
-            if r.status_code != 200:
-                return set()
-            return {str(m["id"]) for m in r.json().get("emails", [])}
-        except Exception:
-            return set()
-
-    def wait_for_code(self, account: MailboxAccount, keyword: str = "",
-                      timeout: int = 120, before_ids: set = None, code_pattern: str = None) -> str:
-        import re, time, requests
-        seen = set(before_ids or [])
-        start = time.time()
-        while time.time() - start < timeout:
-            try:
-                r = requests.get(f"{self.api}/inbox",
-                    params={"token": account.account_id},
-                    proxies=self.proxy, timeout=10)
-                if r.status_code != 200:
-                    raise RuntimeError(f"tempmail.lol inbox fetch failed: HTTP {r.status_code}")
-                for mail in sorted(r.json().get("emails", []), key=lambda x: x.get("date", 0), reverse=True):
-                    mid = str(mail.get("id", ""))
-                    if mid in seen:
-                        continue
-                    seen.add(mid)
-                    text = mail.get("subject", "") + " " + mail.get("body", "") + " " + mail.get("html", "")
-                    if keyword and keyword.lower() not in text.lower():
-                        continue
-                    m = re.search(code_pattern or r'(?<!#)(?<!\d)(\d{6})(?!\d)', text)
-                    if m:
-                        return m.group(1) if m.groups() else m.group(0)
-            except Exception:
-                pass
-            time.sleep(3)
-        raise TimeoutError(f"Verification code wait timed out ({timeout}s)")
-
-    def wait_for_link(self, account: MailboxAccount, keyword: str = "",
-                      timeout: int = 120, before_ids: set = None) -> str:
-        import time, requests
-        seen = set(before_ids or [])
-        start = time.time()
-        while time.time() - start < timeout:
-            try:
-                r = requests.get(f"{self.api}/inbox",
-                    params={"token": account.account_id},
-                    proxies=self.proxy, timeout=10)
-                if r.status_code != 200:
-                    raise RuntimeError(f"tempmail.lol inbox fetch failed: HTTP {r.status_code}")
-                for mail in sorted(r.json().get("emails", []), key=lambda x: x.get("date", 0), reverse=True):
-                    mid = str(mail.get("id", ""))
-                    if mid in seen:
-                        continue
-                    seen.add(mid)
-                    text = str(mail.get("subject", "")) + " " + str(mail.get("body", "")) + " " + str(mail.get("html", ""))
-                    link = _extract_verification_link(text, keyword)
-                    if link:
-                        return link
-            except Exception:
-                pass
-            time.sleep(3)
-        raise TimeoutError(f"Verification link wait timed out ({timeout}s)")
-
-
-class MailTmMailbox(BaseMailbox):
-    """mail.tm free temporary mailbox (auto-generated, no configuration required)"""
-
-    def __init__(self, proxy: str = None, api_url: str = ""):
-        self.api = (api_url or DEFAULT_MAILTM_API_URL).rstrip("/")
-        self.proxy = {"http": proxy, "https": proxy} if proxy else None
-        self._token = None
-        self._email = None
-        self._id = None
-
-    @classmethod
-    def from_config(cls, config: dict) -> "MailTmMailbox":
-        return cls(
-            api_url=config.get("mailtm_api_url", ""),
-            proxy=config.get("proxy") or None,
-        )
-
-    def _mailtm_request(self, method, path, json_data=None, headers=None):
-        import requests
-        url = f"{self.api}{path}"
-        h = headers or {}
-        if self._token:
-            h["Authorization"] = f"Bearer {self._token}"
-        resp = requests.request(method, url, json=json_data, headers=h, proxies=self.proxy, timeout=15)
-        resp.raise_for_status()
-        return resp
-
-    def get_email(self) -> MailboxAccount:
-        import requests, random, string
-        # 1. Get available domains
-        r = self._mailtm_request("GET", "/domains")
-        domains = r.json().get("hydra:member", [])
-        if not domains:
-            raise RuntimeError("mail.tm: no available domains")
-        domain = random.choice(domains)["domain"]
-        # 2. Create account
-        username = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
-        password = "".join(random.choices(string.ascii_letters + string.digits, k=12))
-        email = f"{username}@{domain}"
-        self._mailtm_request("POST", "/accounts", json_data={"address": email, "password": password})
-        # 3. Get token
-        r = self._mailtm_request("POST", "/token", json_data={"address": email, "password": password})
-        self._token = r.json().get("token")
-        self._email = email
-        self._id = r.json().get("id")
-        return MailboxAccount(
-            email=self._email,
-            account_id=self._email,
-            extra={
-                "provider_resource": {
-                    "provider_type": "mailbox",
-                    "provider_name": "mailtm",
-                    "resource_type": "mailbox",
-                    "resource_identifier": self._token,
-                    "handle": self._email,
-                    "display_name": self._email,
-                    "metadata": {
-                        "email": self._email,
-                        "token": self._token,
-                        "password": password,
-                    },
-                },
-            },
-        )
+    def _get_mailtm_token(self, account: MailboxAccount) -> str:
+        """Extract mail.tm Bearer token from account extra metadata."""
+        return (account.extra or {}).get("provider_resource", {}).get("metadata", {}).get("token", "")
 
     def get_current_ids(self, account: MailboxAccount) -> set:
         import requests
         try:
-            token = (account.extra or {}).get("provider_resource", {}).get("metadata", {}).get("token", "")
+            token = self._get_mailtm_token(account)
             if not token:
                 return set()
             r = requests.get(f"{self.api}/messages",
                 headers={"Authorization": f"Bearer {token}"},
                 proxies=self.proxy, timeout=10)
+            if r.status_code != 200:
+                return set()
             return {str(m["id"]) for m in r.json().get("hydra:member", [])}
         except Exception:
             return set()
@@ -776,9 +640,9 @@ class MailTmMailbox(BaseMailbox):
     def wait_for_code(self, account: MailboxAccount, keyword: str = "",
                       timeout: int = 120, before_ids: set = None, code_pattern: str = None) -> str:
         import re, time, requests
-        token = (account.extra or {}).get("provider_resource", {}).get("metadata", {}).get("token", "")
+        token = self._get_mailtm_token(account)
         if not token:
-            raise RuntimeError("mail.tm: missing token")
+            raise RuntimeError("mail.tm: missing token in account metadata")
         seen = set(before_ids or [])
         start = time.time()
         while time.time() - start < timeout:
@@ -786,33 +650,36 @@ class MailTmMailbox(BaseMailbox):
                 r = requests.get(f"{self.api}/messages",
                     headers={"Authorization": f"Bearer {token}"},
                     proxies=self.proxy, timeout=10)
-                for mail in sorted(r.json().get("hydra:member", []), key=lambda x: x.get("createdAt", ""), reverse=True):
+                if r.status_code != 200:
+                    raise RuntimeError(f"mail.tm messages fetch failed: HTTP {r.status_code}")
+                messages = r.json().get("hydra:member", [])
+                for mail in sorted(messages, key=lambda x: x.get("createdAt", ""), reverse=True):
                     mid = str(mail.get("id", ""))
                     if mid in seen:
                         continue
                     seen.add(mid)
-                    # Get full message
+                    # Fetch full message
                     msg_r = requests.get(f"{self.api}/messages/{mid}",
                         headers={"Authorization": f"Bearer {token}"},
                         proxies=self.proxy, timeout=10)
                     msg = msg_r.json()
-                    text = msg.get("subject", "") + " " + msg.get("text", "") + " " + msg.get("html", "")
+                    text = str(msg.get("subject", "")) + " " + str(msg.get("text", "")) + " " + str(msg.get("html", ""))
                     if keyword and keyword.lower() not in text.lower():
                         continue
-                    m = re.search(code_pattern or r'(?<!#)(?<!\d)(\d{6})(?!\d)', text)
+                    m = re.search(code_pattern or r'(?<!#)(?<!<\d)(<\d{6})(?!<\d)', text)
                     if m:
                         return m.group(1) if m.groups() else m.group(0)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[mail.tm wait_for_code] Error: {e}")
             time.sleep(3)
         raise TimeoutError(f"Verification code wait timed out ({timeout}s)")
 
     def wait_for_link(self, account: MailboxAccount, keyword: str = "",
                       timeout: int = 120, before_ids: set = None) -> str:
         import time, requests
-        token = (account.extra or {}).get("provider_resource", {}).get("metadata", {}).get("token", "")
+        token = self._get_mailtm_token(account)
         if not token:
-            raise RuntimeError("mail.tm: missing token")
+            raise RuntimeError("mail.tm: missing token in account metadata")
         seen = set(before_ids or [])
         start = time.time()
         while time.time() - start < timeout:
@@ -820,6 +687,8 @@ class MailTmMailbox(BaseMailbox):
                 r = requests.get(f"{self.api}/messages",
                     headers={"Authorization": f"Bearer {token}"},
                     proxies=self.proxy, timeout=10)
+                if r.status_code != 200:
+                    raise RuntimeError(f"mail.tm messages fetch failed: HTTP {r.status_code}")
                 for mail in sorted(r.json().get("hydra:member", []), key=lambda x: x.get("createdAt", ""), reverse=True):
                     mid = str(mail.get("id", ""))
                     if mid in seen:
