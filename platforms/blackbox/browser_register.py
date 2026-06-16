@@ -26,19 +26,46 @@ class BlackboxBrowserRegister:
         return ""
 
     def _check_login(self, page, email: str, password: str) -> bool:
-        """Check if user is logged in by looking for authenticated UI elements."""
+        """Check if user is logged in by looking for authenticated UI elements or URL patterns."""
         try:
+            url = page.url
+            # Successful login redirect patterns
+            if "ref=login-success" in url or "?ref=signup-success" in url:
+                return True
+            if "/chat" in url or "/dashboard" in url or "/keys" in url:
+                return True
+            # Check for authenticated UI elements
             sign_out = page.locator('text=Sign Out').first
             if sign_out.is_visible():
                 return True
             user_menu = page.locator('[data-testid="user-menu"], .user-menu, .avatar').first
             if user_menu.is_visible():
                 return True
-            if "/chat" in page.url or "/dashboard" in page.url or "/keys" in page.url:
+            # Check for settings / account links that only appear when logged in
+            account_link = page.locator('text=Settings').first
+            if account_link.is_visible():
                 return True
             return False
         except Exception:
             return False
+
+    def _get_account_info(self, page) -> dict:
+        """Try to extract account info from the page after login."""
+        info = {"plan": "free", "has_subscription": False}
+        try:
+            # Check if there's any "Pro" or subscription indicator in the UI
+            page.goto("https://app.blackbox.ai/settings", wait_until="domcontentloaded", timeout=15000)
+            page.wait_for_timeout(2000)
+            text = page.inner_text('body').lower()
+            if "pro max" in text or "pro plus" in text:
+                info["plan"] = "pro"
+                info["has_subscription"] = True
+            elif "pro" in text and "upgrade" not in text:
+                info["plan"] = "pro"
+                info["has_subscription"] = True
+        except Exception:
+            pass
+        return info
 
     def run(self, email: str, password: str) -> dict:
         self.log(f"Starting Blackbox AI registration for {email}...")
@@ -140,9 +167,12 @@ class BlackboxBrowserRegister:
                 if password_input.is_visible():
                     password_input.fill(password)
 
-                login_btn = page.locator('button:has-text("Log In")').first
-                if login_btn.is_visible():
-                    login_btn.click()
+                # Try "SIGN IN" first, then fallback to "Log In" or submit button
+                for btn_text in ['SIGN IN', 'Log In', 'SIGNIN']:
+                    login_btn = page.locator(f'button:has-text("{btn_text}")').first
+                    if login_btn.is_visible():
+                        login_btn.click()
+                        break
                 else:
                     page.locator('button[type="submit"]').first.click()
 
@@ -151,7 +181,8 @@ class BlackboxBrowserRegister:
                 if self._check_login(page, email, password):
                     self.log("Login successful!")
                     token = self._get_token(page)
-                    return {"email": email, "password": password, "token": token, "logged_in": True}
+                    account_info = self._get_account_info(page)
+                    return {"email": email, "password": password, "token": token, "logged_in": True, "account_info": account_info}
                 else:
                     self.log(f"Login failed. URL: {page.url}")
                     return {"email": email, "password": password, "token": "", "logged_in": False}

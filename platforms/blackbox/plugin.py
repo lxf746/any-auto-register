@@ -25,6 +25,7 @@ class BlackboxPlatform(BasePlatform):
             self.config = config or RegisterConfig()
             self.supported_executors = saved_executors
         self.mailbox = mailbox
+        self._last_check_overview: dict = {}
 
     def _prepare_registration_password(self, password: str | None) -> str | None:
         return password or self._make_random_password()
@@ -40,6 +41,13 @@ class BlackboxPlatform(BasePlatform):
                 "name": result.get("name", ""),
                 "token": result.get("token", ""),
                 "password": pwd,
+                "account_overview": {
+                    "plan_state": "free",
+                    "plan_name": "Free",
+                    "validity_status": "unknown",
+                    "display_status": "registered",
+                    "lifecycle_status": "registered",
+                },
             },
         )
 
@@ -65,18 +73,37 @@ class BlackboxPlatform(BasePlatform):
 
     def check_valid(self, account: Account) -> bool:
         """Verify account is valid by logging in."""
-        extra = account.extra or {}
         email = account.email
-        password = extra.get("password", "")
+        password = account.password
         if not email or not password:
+            self._last_check_overview = {"validity_status": "invalid", "check_error": "missing credentials"}
             return False
         try:
             from platforms.blackbox.browser_register import BlackboxBrowserRegister
             reg = BlackboxBrowserRegister(headless=True)
             result = reg.login(email, password)
-            return result.get("logged_in", False)
-        except Exception:
+            logged_in = result.get("logged_in", False)
+            account_info = result.get("account_info", {})
+            if logged_in:
+                self._last_check_overview = {
+                    "validity_status": "valid",
+                    "plan_state": account_info.get("plan", "free"),
+                    "plan_name": "Pro" if account_info.get("has_subscription") else "Free",
+                    "display_status": "active",
+                    "check_source": "browser_login",
+                }
+            else:
+                self._last_check_overview = {
+                    "validity_status": "invalid",
+                    "check_source": "browser_login",
+                }
+            return logged_in
+        except Exception as exc:
+            self._last_check_overview = {"validity_status": "invalid", "check_error": str(exc)}
             return False
+
+    def get_last_check_overview(self) -> dict:
+        return dict(self._last_check_overview or {})
 
     def get_platform_actions(self) -> list:
         return [
@@ -85,9 +112,8 @@ class BlackboxPlatform(BasePlatform):
 
     def execute_action(self, action_id: str, account: Account, params: dict) -> dict:
         if action_id == "login_check":
-            extra = account.extra or {}
             email = account.email
-            password = extra.get("password", "")
+            password = account.password
             if not email or not password:
                 return {"ok": False, "error": "Missing email or password"}
             try:
