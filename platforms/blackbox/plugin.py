@@ -1,7 +1,7 @@
 """Blackbox AI platform plugin."""
 from core.base_platform import BasePlatform, Account, AccountStatus, RegisterConfig
 from core.base_mailbox import BaseMailbox
-from core.registration import BrowserRegistrationAdapter, OtpSpec, ProtocolMailboxAdapter, RegistrationCapability, RegistrationResult
+from core.registration import BrowserRegistrationAdapter, OtpSpec, ProtocolMailboxAdapter, ProtocolOAuthAdapter, RegistrationCapability, RegistrationResult
 from core.registration.helpers import resolve_timeout
 from core.registry import register
 
@@ -12,7 +12,8 @@ class BlackboxPlatform(BasePlatform):
     display_name = "Blackbox AI"
     version = "1.0.0"
     supported_executors = ["headless", "headed"]
-    supported_identity_modes = ["mailbox"]
+    supported_identity_modes = ["mailbox", "oauth_browser"]
+    supported_oauth_providers = ["google"]
 
     capabilities = []
 
@@ -27,8 +28,42 @@ class BlackboxPlatform(BasePlatform):
         self.mailbox = mailbox
         self._last_check_overview: dict = {}
 
+    def _run_browser_oauth(self, ctx) -> dict:
+        from platforms.blackbox.browser_oauth import register_with_browser_oauth
+
+        return register_with_browser_oauth(
+            proxy=ctx.proxy,
+            oauth_provider=ctx.identity.oauth_provider,
+            email_hint=ctx.identity.email,
+            timeout=resolve_timeout(ctx.extra, ("browser_oauth_timeout", "manual_oauth_timeout"), 300),
+            log_fn=ctx.log,
+            headless=(ctx.executor_type == "headless"),
+            chrome_user_data_dir=ctx.identity.chrome_user_data_dir,
+            chrome_cdp_url=ctx.identity.chrome_cdp_url,
+        )
+
     def _prepare_registration_password(self, password: str | None) -> str | None:
         return password or self._make_random_password()
+
+    def _map_oauth_result(self, result: dict) -> RegistrationResult:
+        return RegistrationResult(
+            email=result.get("email", ""),
+            password=result.get("password", ""),
+            token=result.get("token", ""),
+            status=AccountStatus.REGISTERED,
+            extra={
+                "name": result.get("name", ""),
+                "token": result.get("token", ""),
+                "oauth_provider": result.get("oauth_provider", ""),
+                "account_overview": {
+                    "plan_state": "free",
+                    "plan_name": "Free",
+                    "validity_status": "unknown",
+                    "display_status": "registered",
+                    "lifecycle_status": "registered",
+                },
+            },
+        )
 
     def _map_result(self, result: dict, *, password: str = "") -> RegistrationResult:
         pwd = password or result.get("password", "")
@@ -64,11 +99,21 @@ class BlackboxPlatform(BasePlatform):
                 email=ctx.identity.email or "",
                 password=ctx.password or "",
             ),
-            capability=RegistrationCapability(),
+            oauth_runner=self._run_browser_oauth,
+            capability=RegistrationCapability(
+                oauth_allowed_executor_types=("headless", "headed"),
+                oauth_headless_requires_browser_reuse=True,
+            ),
             otp_spec=OtpSpec(
                 wait_message="Waiting for Blackbox verification code...",
                 timeout=resolve_timeout(self.config.extra or {}, ("otp_timeout",), 120),
             ),
+        )
+
+    def build_protocol_oauth_adapter(self):
+        return ProtocolOAuthAdapter(
+            oauth_runner=self._run_browser_oauth,
+            result_mapper=lambda ctx, result: self._map_oauth_result(result),
         )
 
     def check_valid(self, account: Account) -> bool:
