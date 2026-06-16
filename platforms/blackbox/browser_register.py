@@ -22,8 +22,8 @@ class BlackboxBrowserRegister:
 
                 # Navigate to signup
                 self.log("Navigating to signup page...")
-                page.goto("https://www.blackbox.ai/signup", wait_until="networkidle")
-                page.wait_for_timeout(2000)
+                page.goto("https://www.blackbox.ai/signup", wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_timeout(3000)
 
                 # Fill in email
                 self.log("Filling email...")
