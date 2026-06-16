@@ -511,7 +511,10 @@ def _build_platform_instance(platform_name: str, payload: dict[str, Any], logger
         proxy=resolved_proxy,
         extra=extra,
     )
-    identity_provider = normalize_identity_provider(extra.get("identity_provider", "mailbox"))
+    identity_provider = normalize_identity_provider(
+        extra.get("identity_provider") or extra.get("identity_mode") or "mailbox"
+    )
+    extra["identity_provider"] = identity_provider
     mailbox = shared_mailbox
     if mailbox is None and identity_provider == "mailbox":
         if not extra.get("mail_provider"):
@@ -733,7 +736,10 @@ def _execute_register_task(payload: dict[str, Any], logger: TaskLogger) -> None:
         from core.base_identity import normalize_identity_provider
         from core.base_mailbox import create_mailbox
 
-        identity_provider = normalize_identity_provider(extra.get("identity_provider", "mailbox"))
+        identity_provider = normalize_identity_provider(
+            extra.get("identity_provider") or extra.get("identity_mode") or "mailbox"
+        )
+        extra["identity_provider"] = identity_provider
         if identity_provider == "mailbox":
             if not extra.get("mail_provider"):
                 from infrastructure.provider_settings_repository import ProviderSettingsRepository

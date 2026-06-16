@@ -87,6 +87,14 @@ PLATFORM_SEEDS: list[dict] = [
         "supported_identity_modes": ["oauth_browser"],
         "supported_oauth_providers": ["google", "x"],
     },
+    {
+        "platform_code": "blackbox",
+        "display_name": "Blackbox AI",
+        "version": "1.0.0",
+        "supported_executors": ["headless", "headed"],
+        "supported_identity_modes": ["mailbox", "oauth_browser"],
+        "supported_oauth_providers": ["google"],
+    },
 ]
 
 PERMISSION_SEEDS: list[dict] = [

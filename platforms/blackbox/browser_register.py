@@ -14,9 +14,15 @@ class BlackboxBrowserRegister:
     def _get_token(self, page) -> str:
         """Extract session token from cookies or localStorage."""
         cookies = page.context.cookies()
+        # First try to get the next-auth.session-token specifically
         for cookie in cookies:
-            if any(k in cookie.get("name", "").lower() for k in ["token", "auth", "session", "jwt"]):
+            if cookie.get("name") == "next-auth.session-token":
                 return cookie.get("value", "")
+        # Fallback: try any auth-related cookie
+        for cookie in cookies:
+            if any(k in cookie.get("name", "").lower() for k in ["auth", "token", "jwt"]):
+                return cookie.get("value", "")
+        # Try localStorage
         try:
             token = page.evaluate("() => localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('session') || ''")
             if token:
