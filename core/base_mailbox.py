@@ -15,6 +15,7 @@ DEFAULT_LAOUDO_API_URL = "https://laoudo.com/api/email"
 DEFAULT_AITRE_API_URL = "https://mail.aitre.cc/api/tempmail"
 DEFAULT_TEMPMAIL_LOL_API_URL = "https://api.tempmail.lol/v2"
 DEFAULT_TEMPMAIL_WEB_BASE_URL = "https://web2.temp-mail.org"
+DEFAULT_MAILTM_API_URL = "https://api.mail.tm"
 
 
 @dataclass
@@ -212,6 +213,14 @@ def _create_moemail(extra: dict, proxy: str | None) -> 'BaseMailbox':
     )
 
 
+def _create_mailtm(extra: dict, proxy: str | None) -> 'BaseMailbox':
+    from providers.mailbox.mailtm import MailTmMailbox
+    return MailTmMailbox(
+        api_url=extra.get("mailtm_api_url", ""),
+        proxy=proxy,
+    )
+
+
 def _create_cfworker(extra: dict, proxy: str | None) -> 'BaseMailbox':
     return CFWorkerMailbox(
         api_url=extra.get("cfworker_api_url", ""),
@@ -281,6 +290,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "ddg_email_api": _create_ddg_email,
     "freemail_api": _create_freemail,
     "moemail_api": _create_moemail,
+    "mailtm_api": _create_mailtm,
     "cfworker_admin_api": _create_cfworker,
     "testmail_api": _create_testmail,
     "local_ms_pool": _create_local_ms_pool,
@@ -293,6 +303,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "duckmail": _create_duckmail,
     "freemail": _create_freemail,
     "moemail": _create_moemail,
+    "mailtm": _create_mailtm,
     "cfworker": _create_cfworker,
     "testmail": _create_testmail,
     "local_ms": _create_local_ms_pool,
