@@ -69,6 +69,18 @@ _BUILTIN_DEFINITIONS: list[dict] = [
     },
     {
         "provider_type": "mailbox",
+        "provider_key": "tempyemail_api",
+        "label": "Tempy.Email",
+        "description": "Free temporary mailbox via tempy.email, no configuration required, auto-generated.",
+        "driver_type": "tempyemail_api",
+        "default_auth_mode": "",
+        "enabled": True,
+        "category": "free",
+        "auth_modes": [],
+        "fields": [],
+    },
+    {
+        "provider_type": "mailbox",
         "provider_key": "mailtm_api",
         "label": "Mail.tm",
         "description": "Free temporary mailbox, no configuration required, auto-generated.",

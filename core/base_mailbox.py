@@ -167,6 +167,14 @@ def _create_tempmail(extra: dict, proxy: str | None) -> 'BaseMailbox':
     )
 
 
+def _create_tempyemail(extra: dict, proxy: str | None) -> 'BaseMailbox':
+    from providers.mailbox.tempyemail import TempyMailbox
+    return TempyMailbox(
+        proxy=proxy,
+        api_url=extra.get("tempyemail_api_url", ""),
+    )
+
+
 def _create_tempmail_web(extra: dict, proxy: str | None) -> 'BaseMailbox':
     return TempMailWebMailbox(
         base_url=extra.get("tempmail_web_base_url", ""),
@@ -296,6 +304,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "local_ms_pool": _create_local_ms_pool,
     "laoudo_api": _create_laoudo,
     "aitre_api": _create_aitre,
+    "tempyemail_api": _create_tempyemail,
     # backward-compat fallback
     "generic_http": _create_generic_http,
     "tempmail_lol": _create_tempmail,
@@ -309,6 +318,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "local_ms": _create_local_ms_pool,
     "laoudo": _create_laoudo,
     "aitre": _create_aitre,
+    "tempyemail": _create_tempyemail,
 }
 
 

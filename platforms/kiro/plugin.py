@@ -1,7 +1,14 @@
 """Kiro platform plugin - based on AWS Builder ID registration"""
 from core.base_platform import BasePlatform, Account, AccountStatus, RegisterConfig
 from core.base_mailbox import BaseMailbox
-from core.registration import BrowserRegistrationAdapter, OtpSpec, ProtocolMailboxAdapter, ProtocolOAuthAdapter, RegistrationCapability, RegistrationResult
+from core.registration import (
+    BrowserRegistrationAdapter,
+    OtpSpec,
+    ProtocolMailboxAdapter,
+    ProtocolOAuthAdapter,
+    RegistrationCapability,
+    RegistrationResult,
+)
 from core.registration.helpers import resolve_timeout
 from core.registry import register
 
@@ -33,11 +40,10 @@ class KiroPlatform(BasePlatform):
     supported_identity_modes = ["mailbox"]
     protocol_captcha_order = ("2captcha", "capsolver", "auto")
 
-    # Declarative capabilities
     capabilities = [
-        "switch_desktop",   # Switch to desktop app
-        "refresh_token",    # Refresh token
-        "query_state",      # Query account state/quota
+        "switch_desktop",
+        "refresh_token",
+        "query_state",
     ]
 
     def __init__(self, config: RegisterConfig = None, mailbox: BaseMailbox = None):
@@ -58,6 +64,7 @@ class KiroPlatform(BasePlatform):
                 "accessToken": result.get("accessToken", ""),
                 "sessionToken": result.get("sessionToken", ""),
                 "csrfToken": result.get("csrfToken", ""),
+                "userId": result.get("userId", ""),
                 "oauthProvider": oauth_provider or result.get("oauthProvider", ""),
                 "clientId": result.get("clientId", ""),
                 "clientSecret": result.get("clientSecret", ""),
@@ -130,13 +137,13 @@ class KiroPlatform(BasePlatform):
         )
 
     def check_valid(self, account: Account) -> bool:
-        """Check if account is valid via refreshToken"""
         extra = account.extra or {}
         refresh_token = extra.get("refreshToken", "")
         if not refresh_token:
             return bool(extra.get("accessToken", "") or account.token)
         try:
             from platforms.kiro.switch import refresh_kiro_token
+
             ok, _ = refresh_kiro_token(
                 refresh_token,
                 extra.get("clientId", ""),
@@ -163,13 +170,13 @@ class KiroPlatform(BasePlatform):
 
         if action_id == "switch_account":
             from platforms.kiro.switch import (
+                get_kiro_desktop_state,
                 get_kiro_portal_state,
                 read_current_kiro_account,
                 refresh_kiro_token,
                 restart_kiro_ide,
                 summarize_kiro_usage,
                 switch_kiro_account,
-                get_kiro_desktop_state,
             )
 
             access_token = extra.get("accessToken", "") or account.token
@@ -264,11 +271,11 @@ class KiroPlatform(BasePlatform):
 
         elif action_id == "get_account_state":
             from platforms.kiro.switch import (
+                get_kiro_desktop_state,
                 get_kiro_portal_state,
                 read_current_kiro_account,
                 refresh_kiro_token,
                 summarize_kiro_usage,
-                get_kiro_desktop_state,
             )
 
             refresh_token = extra.get("refreshToken", "")
@@ -277,7 +284,10 @@ class KiroPlatform(BasePlatform):
             session_token = extra.get("sessionToken", "")
             profile_arn = extra.get("profileArn", "")
             current = read_current_kiro_account() or {}
-            refresh_state = {"ok": False, "message": "Current account missing refreshToken/clientId/clientSecret, cannot perform remote refresh validation"}
+            refresh_state = {
+                "ok": False,
+                "message": "Current account missing refreshToken/clientId/clientSecret, cannot perform remote refresh validation",
+            }
             access_token = extra.get("accessToken", "") or account.token
             if refresh_token and client_id and client_secret:
                 ok, result = refresh_kiro_token(refresh_token, client_id, client_secret)

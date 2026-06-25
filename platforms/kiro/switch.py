@@ -9,6 +9,7 @@ import hashlib
 import logging
 import tempfile
 import re
+import time
 import platform
 from typing import Tuple
 from datetime import datetime, timezone, timedelta
@@ -170,13 +171,17 @@ def _call_kiro_portal_operation(
     access_token: str,
     session_token: str,
     user_id: str,
+    csrf_token: str = "",
 ) -> dict | None:
     if not access_token or not session_token or not user_id:
         return None
     try:
+        h = _kiro_portal_headers(access_token)
+        if csrf_token:
+            h["x-csrf-token"] = csrf_token
         response = cffi_requests.post(
             f"https://app.kiro.dev/service/KiroWebPortalService/operation/{operation}",
-            headers=_kiro_portal_headers(access_token),
+            headers=h,
             cookies={
                 "AccessToken": access_token,
                 "SessionToken": session_token,
@@ -470,3 +475,251 @@ def get_kiro_desktop_state() -> dict:
     )
     state["available"] = True
     return state
+
+
+# ============================================================
+# Q&A — StreamSendMessage / LoadSession
+# ============================================================
+
+import cbor2
+import json
+
+from platforms.kiro.event_stream import iter_aws_event_stream, AWSEventStreamError
+
+
+def _kiro_qa_headers(access_token: str, csrf_token: str = "") -> dict:
+    h = {
+        "Accept": "application/cbor",
+        "Content-Type": "application/cbor",
+        "smithy-protocol": "rpc-v2-cbor",
+        "Origin": "https://app.kiro.dev",
+        "Referer": "https://app.kiro.dev/",
+        "Authorization": f"Bearer {access_token}",
+    }
+    if csrf_token:
+        h["x-csrf-token"] = csrf_token
+    return h
+
+
+def _kiro_qa_cookies(session_token: str, access_token: str, user_id: str) -> dict:
+    return {
+        "SessionToken": session_token,
+        "AccessToken": access_token,
+        "UserId": user_id,
+        "Idp": "BuilderId",
+    }
+
+
+def stream_kiro_portal_operation(
+    operation: str,
+    body: dict,
+    *,
+    access_token: str,
+    session_token: str,
+    user_id: str,
+    csrf_token: str = "",
+    timeout: int = 120,
+) -> list[tuple[dict[str, str], bytes]]:
+    """Call a streaming Kiro portal operation and return all event stream messages.
+
+    Supports operations like StreamSendMessage and LoadSession
+    that return AWS event stream wire format.
+    """
+    if not access_token or not session_token:
+        return []
+
+    try:
+        h = _kiro_qa_headers(access_token, csrf_token)
+        c = _kiro_qa_cookies(session_token, access_token, user_id)
+        response = cffi_requests.post(
+            f"https://app.kiro.dev/service/KiroWebPortalService/operation/{operation}",
+            headers=h,
+            cookies=c,
+            data=cbor2.dumps(body),
+            impersonate="chrome124",
+            timeout=timeout,
+            stream=True,
+        )
+        if response.status_code != 200:
+            logger.error("Kiro %s failed: HTTP %s", operation, response.status_code)
+            return []
+
+        chunks = []
+        for chunk in response.iter_content(chunk_size=65536):
+            if chunk:
+                chunks.append(chunk)
+        data = b"".join(chunks)
+        return list(iter_aws_event_stream(data))
+
+    except AWSEventStreamError as e:
+        logger.error("Kiro %s event stream error: %s", operation, e)
+        return []
+    except Exception as e:
+        logger.error("Kiro %s exception: %s", operation, e)
+        return []
+
+
+def _find_or_create_space(
+    access_token: str,
+    session_token: str,
+    user_id: str,
+    csrf_token: str = "",
+) -> tuple[str, str] | None:
+    """Find existing space or create one. Returns (spaceId, sessionId) or None."""
+    try:
+        h = _kiro_qa_headers(access_token, csrf_token)
+        c = _kiro_qa_cookies(session_token, access_token, user_id)
+
+        r = cffi_requests.post(
+            "https://app.kiro.dev/service/KiroWebPortalService/operation/ListSpaces",
+            headers=h, cookies=c,
+            data=cbor2.dumps({"origin": "KIRO_IDE"}),
+            impersonate="chrome124", timeout=15,
+        )
+        if r.status_code != 200:
+            logger.error("ListSpaces failed: HTTP %s", r.status_code)
+            return None
+
+        spaces = cbor2.loads(r.content).get("spaces", [])
+        for sp in spaces:
+            space_id = sp.get("spaceId", "")
+            sids = sp.get("sessionIds", [])
+            if space_id and sids:
+                return (space_id, sids[0])
+
+        space_name = f"qa-{int(time.time())}"
+        r = cffi_requests.post(
+            "https://app.kiro.dev/service/KiroWebPortalService/operation/CreateSpace",
+            headers=h, cookies=c,
+            data=cbor2.dumps({"origin": "KIRO_IDE", "name": space_name}),
+            impersonate="chrome124", timeout=15,
+        )
+        if r.status_code != 200:
+            logger.error("CreateSpace failed: HTTP %s", r.status_code)
+            return None
+
+        space_id = cbor2.loads(r.content).get("spaceId", "")
+        if space_id:
+            return (space_id, space_id)
+        return None
+
+    except Exception as e:
+        logger.error("Space lookup/create exception: %s", e)
+        return None
+
+
+def send_kiro_message(
+    prompt: str,
+    *,
+    access_token: str,
+    session_token: str,
+    user_id: str,
+    csrf_token: str = "",
+    space_id: str = "",
+    session_id: str = "",
+    timeout: int = 120,
+) -> str:
+    """Send a prompt to Q Developer via StreamSendMessage and return the full assistant response text.
+
+    If space_id/session_id are empty, automatically finds or creates a space/session.
+    Returns the complete assistant response text, or empty string on failure.
+    """
+    if not access_token or not session_token:
+        return ""
+
+    resolved_space = space_id
+    resolved_session = session_id
+
+    if not resolved_space or not resolved_session:
+        result = _find_or_create_space(access_token, session_token, user_id, csrf_token)
+        if result is None:
+            return ""
+        resolved_space, resolved_session = result
+
+    body = {
+        "spaceId": resolved_space,
+        "sessionId": resolved_session,
+        "contentBlocks": [{"text": {"text": prompt}}],
+        "modelId": "auto",
+    }
+    if csrf_token:
+        body["csrfToken"] = csrf_token
+
+    messages = stream_kiro_portal_operation(
+        "StreamSendMessage",
+        body,
+        access_token=access_token,
+        session_token=session_token,
+        user_id=user_id,
+        csrf_token=csrf_token,
+        timeout=timeout,
+    )
+
+    full_text = ""
+    for headers, payload in messages:
+        etype = headers.get(":event-type", "")
+        if etype != "event":
+            continue
+        try:
+            ev = cbor2.loads(payload)
+            if ev.get("eventType") == "agent_message_chunk":
+                raw = ev.get("payload", "")
+                if isinstance(raw, str):
+                    chunk = json.loads(raw)
+                    full_text += chunk.get("text", "")
+        except Exception:
+            continue
+
+    return full_text
+
+
+def load_session_messages(
+    space_id: str,
+    session_id: str,
+    *,
+    access_token: str,
+    session_token: str,
+    user_id: str,
+    csrf_token: str = "",
+    timeout: int = 30,
+) -> list[dict]:
+    """Load session history via LoadSession. Returns list of decoded event dicts.
+
+    Each event dict has 'eventType', 'payload', and optionally parsed fields.
+    """
+    if not access_token or not session_token or not space_id or not session_id:
+        return []
+
+    body = {
+        "spaceId": space_id,
+        "sessionId": session_id,
+    }
+    if csrf_token:
+        body["csrfToken"] = csrf_token
+
+    messages = stream_kiro_portal_operation(
+        "LoadSession",
+        body,
+        access_token=access_token,
+        session_token=session_token,
+        user_id=user_id,
+        csrf_token=csrf_token,
+        timeout=timeout,
+    )
+
+    result = []
+    for headers, payload in messages:
+        if headers.get(":event-type") == "initial-response":
+            continue
+        try:
+            ev = cbor2.loads(payload)
+            result.append({
+                "eventType": ev.get("eventType", "?"),
+                "payload": ev.get("payload", ""),
+            })
+        except Exception:
+            result.append({
+                "eventType": "?",
+                "payload": f"<binary {len(payload)}b>",
+            })
+    return result
