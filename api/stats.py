@@ -1,18 +1,15 @@
 """Registration success rate dashboard API."""
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter
 from sqlmodel import Session, select, func, text
 
+from core.datetime_utils import _utcnow
 from core.db import TaskLog, ProxyModel, AccountModel, AccountOverviewModel, engine
 
 router = APIRouter(prefix="/stats", tags=["stats"])
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 @router.get("/overview")

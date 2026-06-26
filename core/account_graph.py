@@ -7,7 +7,7 @@ from typing import Any
 
 from sqlmodel import Session, delete, select
 
-from core.datetime_utils import ensure_utc_datetime, serialize_datetime
+from core.datetime_utils import ensure_utc_datetime, serialize_datetime, _utcnow
 from core.db import (
     AccountCredentialModel,
     AccountModel,
@@ -71,10 +71,6 @@ NON_LEGACY_EXTRA_KEYS = {
     "region",
     "trial_end_time",
 }
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _safe_dict(value: Any) -> dict[str, Any]:

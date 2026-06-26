@@ -1,19 +1,15 @@
 """Platform plugin registry - auto-scan platforms/ directory to load plugins"""
 import importlib
 import pkgutil
-from datetime import datetime, timezone
 from typing import Dict, Type
 from sqlmodel import Session, select
 from .base_platform import BasePlatform
 from .db import PlatformCapabilityOverrideModel, engine
+from core.datetime_utils import _utcnow
 
 _registry: Dict[str, Type[BasePlatform]] = {}
 
 _CAPABILITY_KEYS = ("supported_executors", "supported_identity_modes", "supported_oauth_providers", "capabilities")
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def register(cls: Type[BasePlatform]):

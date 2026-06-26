@@ -6,14 +6,11 @@ from sqlmodel import Session, select
 from .account_graph import load_account_graphs, patch_account_graph
 from .base_platform import AccountStatus, RegisterConfig
 from .db import engine, AccountModel
+from core.datetime_utils import _utcnow_iso
 from .platform_accounts import build_platform_account
 from .registry import get, load_all
 import threading
 import time
-
-
-def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class Scheduler:

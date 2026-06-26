@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 
+from core.datetime_utils import _utcnow
 from core.db import ProviderDefinitionModel, ProviderSettingModel, engine
 
 logger = logging.getLogger(__name__)
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 _BUILTIN_DEFINITIONS: list[dict] = [

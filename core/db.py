@@ -11,9 +11,7 @@ from typing import Optional
 from sqlalchemy import UniqueConstraint, inspect
 from sqlmodel import Field, SQLModel, Session, create_engine, select
 
-
-def _utcnow():
-    return datetime.now(timezone.utc)
+from core.datetime_utils import _utcnow
 
 
 # ---------------------------------------------------------------------------

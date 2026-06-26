@@ -17,7 +17,7 @@ from core.account_graph import (
     recover_lifecycle_status_for_valid_account,
 )
 from core.base_platform import AccountStatus, RegisterConfig
-from core.datetime_utils import format_local_clock, serialize_datetime
+from core.datetime_utils import _utcnow, _utcnow_iso, format_local_clock, serialize_datetime
 from core.db import AccountModel, TaskEventModel, TaskLog, TaskModel, engine, save_account
 from core.platform_accounts import build_platform_account
 from core.registry import get
@@ -51,14 +51,6 @@ ACTIVE_TASK_STATUSES = {
 
 _task_locks: dict[str, threading.Lock] = {}
 _task_locks_guard = threading.Lock()
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _utcnow_iso() -> str:
-    return _utcnow().isoformat().replace("+00:00", "Z")
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:

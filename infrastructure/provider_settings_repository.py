@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from sqlmodel import Session, select
 
+from core.datetime_utils import _utcnow
 from core.db import ProviderSettingModel, engine
 from infrastructure.provider_definitions_repository import ProviderDefinitionsRepository
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class ProviderSettingsRepository:
