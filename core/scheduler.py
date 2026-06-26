@@ -23,6 +23,7 @@ class Scheduler:
     def __init__(self):
         self._running = False
         self._thread: threading.Thread = None
+        self._stop_event = threading.Event()
 
     def start(self):
         if self._running:
@@ -34,6 +35,9 @@ class Scheduler:
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
+        if self._thread:
+            self._thread.join(timeout=10)
 
     def _loop(self):
         while self._running:
@@ -42,7 +46,7 @@ class Scheduler:
             except Exception as e:
                 logger.error("Error: %s", e)
             # Check every hour
-            time.sleep(POLL_INTERVAL_SECONDS)
+            self._stop_event.wait(POLL_INTERVAL_SECONDS)
 
     def check_trial_expiry(self):
         """Check trial expiry accounts and update status"""

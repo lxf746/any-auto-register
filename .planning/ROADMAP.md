@@ -76,11 +76,11 @@
 | THRD-02 | Phase 3 | Complete |
 | THRD-03 | Phase 3 | Complete |
 | THRD-04 | Phase 3 | Complete |
-| SHTD-01 | Phase 4 | Pending |
-| SHTD-02 | Phase 4 | Pending |
-| SHTD-03 | Phase 4 | Pending |
-| MINR-01 | Phase 4 | Pending |
-| MINR-02 | Phase 4 | Pending |
+| SHTD-01 | Phase 4 | Complete |
+| SHTD-02 | Phase 4 | Complete |
+| SHTD-03 | Phase 4 | Complete |
+| MINR-01 | Phase 4 | Complete |
+| MINR-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 21 total

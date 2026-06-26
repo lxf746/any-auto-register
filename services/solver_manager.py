@@ -126,6 +126,11 @@ def start():
                     stderr_msg = _proc.stderr.read().decode("utf-8", errors="replace")[:500]
                 except Exception as e:
                     logger.debug("Could not read subprocess stderr: %s", e)
+                try:
+                    if _proc.stderr:
+                        _proc.stderr.close()
+                except Exception:
+                    pass
                 _consecutive_failures += 1
                 _last_failure_reason = stderr_msg or f"Process exited with code={_proc.returncode}"
                 logger.error("Subprocess exited abnormally with code=%d (consecutive failures %d/%d)", _proc.returncode, _consecutive_failures, _MAX_CONSECUTIVE_FAILURES)
@@ -172,6 +177,11 @@ def stop():
                 _proc.kill()
                 _proc.wait(timeout=3)
             logger.info("Subprocess stopped")
+        try:
+            if _proc and _proc.stderr:
+                _proc.stderr.close()
+        except Exception:
+            pass
         _proc = None
 
         # 2. Even if _proc is None (Docker / external launch), try to find and kill residual processes by port

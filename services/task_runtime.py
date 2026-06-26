@@ -42,6 +42,13 @@ class TaskRuntime:
         with self._lock:
             self._running = False
         logger.info("Stopping")
+        if self._dispatcher:
+            self._dispatcher.join(timeout=5)
+        with self._lock:
+            workers = dict(self._workers)
+        for worker in workers.values():
+            if worker.thread and worker.thread.is_alive():
+                worker.thread.join(timeout=5)
 
     def wake_up(self) -> None:
         # Polling loop wakes quickly already; this method exists as an explicit runtime hook.

@@ -483,6 +483,8 @@ class LifecycleManager:
 
     def stop(self):
         self._running = False
+        if self._thread:
+            self._thread.join(timeout=5)
 
     def _loop(self):
         # Wait a bit before first run to let the app fully initialize
