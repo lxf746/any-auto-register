@@ -377,6 +377,28 @@ class ProxyModel(SQLModel, table=True):
     last_checked: Optional[datetime] = None
 
 
+class SchemaVersionModel(SQLModel, table=True):
+    __tablename__ = "schema_version"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    version: str = Field(unique=True, index=True)
+    applied_at: datetime = Field(default_factory=_utcnow)
+
+
+def _migration_applied(session: Session, version: str) -> bool:
+    """Check if a migration has already been applied."""
+    existing = session.exec(
+        select(SchemaVersionModel).where(SchemaVersionModel.version == version)
+    ).first()
+    return existing is not None
+
+
+def _mark_migration_applied(session: Session, version: str) -> None:
+    """Record that a migration has been applied."""
+    session.add(SchemaVersionModel(version=version))
+    session.commit()
+
+
 def save_account(account) -> 'AccountModel':
     """Persist base_platform.Account to database (update if same platform and email)"""
     from core.account_graph import sync_platform_account_graph
@@ -438,8 +460,16 @@ def _accounts_columns() -> set[str]:
 
 
 def _migrate_legacy_accounts_schema() -> None:
+    """Migrate legacy accounts table schema. Runs only once (tracked via schema_version)."""
+    with Session(engine) as session:
+        if _migration_applied(session, "legacy_accounts_schema_v1"):
+            return
+
     columns = _accounts_columns()
     if not columns or not any(column in columns for column in LEGACY_ACCOUNT_COLUMNS):
+        # No legacy columns — mark as applied to skip future checks
+        with Session(engine) as session:
+            _mark_migration_applied(session, "legacy_accounts_schema_v1")
         return
 
     from core.account_graph import sync_legacy_account_graph
@@ -502,6 +532,9 @@ def _migrate_legacy_accounts_schema() -> None:
         connection.exec_driver_sql("CREATE INDEX ix_accounts_platform ON accounts (platform)")
         connection.exec_driver_sql("CREATE INDEX ix_accounts_email ON accounts (email)")
         connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+    with Session(engine) as session:
+        _mark_migration_applied(session, "legacy_accounts_schema_v1")
 
 
 def init_db():
@@ -606,10 +639,12 @@ _LEGACY_AUTH_MODE_MAP: dict[str, str] = {
 def _migrate_legacy_provider_keys():
     """Migrate legacy provider_key and auth_mode to new naming.
 
-    Migrate both provider_settings and provider_definitions tables.
-    If the new key already exists, delete the old record (to avoid unique constraint conflicts).
-    After migration, also fix auth_mode values to match valid values in the new definition.
+    Runs only once (tracked via schema_version).
     """
+    with Session(engine) as session:
+        if _migration_applied(session, "legacy_provider_keys_v1"):
+            return
+
     with Session(engine) as session:
         migrated = 0
 
@@ -690,6 +725,8 @@ def _migrate_legacy_provider_keys():
         if fixed:
             session.commit()
             print(f"[DB] Fixed {fixed} legacy auth_mode entries")
+
+        _mark_migration_applied(session, "legacy_provider_keys_v1")
 
 
 def _cleanup_non_real_providers():
