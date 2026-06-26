@@ -18,6 +18,9 @@ from core.registry import get
 
 logger = logging.getLogger(__name__)
 
+# Initial delay before first lifecycle check (seconds)
+LIFECYCLE_STARTUP_DELAY = 30
+
 
 # ---------------------------------------------------------------------------
 # Account validity check
@@ -478,7 +481,7 @@ class LifecycleManager:
 
     def _loop(self):
         # Wait a bit before first run to let the app fully initialize
-        time.sleep(30)
+        time.sleep(LIFECYCLE_STARTUP_DELAY)
         while self._running:
             now = time.time()
             try:
@@ -487,7 +490,7 @@ class LifecycleManager:
 
                 # Validity check
                 if now - self._last_check >= self.check_interval:
-                    print("[LifecycleManager] starting account validity check...")
+                    logger.info("Starting account validity check...")
                     check_accounts_validity()
                     self._last_check = now
 

@@ -15,6 +15,9 @@ import time
 
 logger = logging.getLogger(__name__)
 
+# Scheduler poll interval (1 hour)
+POLL_INTERVAL_SECONDS = 3600
+
 
 class Scheduler:
     def __init__(self):
@@ -39,7 +42,7 @@ class Scheduler:
             except Exception as e:
                 logger.error("Error: %s", e)
             # Check every hour
-            time.sleep(3600)
+            time.sleep(POLL_INTERVAL_SECONDS)
 
     def check_trial_expiry(self):
         """Check trial expiry accounts and update status"""
