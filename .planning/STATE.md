@@ -5,28 +5,29 @@
 Phase: Not started (defining requirements)
 Plan: —
 Status: Planning complete
-Last activity: 2026-06-26 — Milestone v1.0 Security Hardening started
+Last activity: 2026-06-26 — Milestone v1.1 Tech Debt & Code Quality started
 
 ## Milestone
 
-**v1.0 Security Hardening**
+**v1.1 Tech Debt & Code Quality**
 
-Goal: Исправить все критические и высокие проблемы безопасности
+Goal: Убрать deprecated код, консолидировать дублирование, добавить logging и исправить error handling
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Current phase | — |
-| Plans complete | 0/3 |
+| Plans complete | 0/5 |
 | Tasks complete | 0/0 |
 
 ## Context
 
 ### Decisions
 
-- Фокус только на безопасности —其他重构和测试留到单独的 milestone
-- Не трогать существующий API contract — обратная совместимость
+- Не трогать рефакторинг больших файлов — отдельный milestone
+- Не трогать тесты — отдельный milestone
+- Консолидация datetime helpers в core/datetime_utils.py
 
 ### Blockers
 

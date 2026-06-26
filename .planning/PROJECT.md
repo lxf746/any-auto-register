@@ -21,44 +21,50 @@
 - ✓ React фронтенд — existing
 - ✓ Electron десктоп — existing
 - ✓ Customer Portal с JWT авторизацией — existing
+- ✓ Security hardening (timing-safe, session tokens, encryption, CORS, TLS) — v1.0
 
 ### Active
 
-- [ ] Исправить критические проблемы безопасности
-- [ ] Исправить высокие проблемы безопасности
+- [ ] Удалить deprecated модули
+- [ ] Консолидировать дублированные helper-функции
+- [ ] Добавить version tracking для legacy миграций
+- [ ] Заменить print() на logging модуль
+- [ ] Исправить bare except и молчаливое проглатывание ошибок
+- [ ] Вынести magic numbers в именованные константы
 
 ### Out of Scope
 
 - Рефакторинг монолитных файлов — отдельный milestone
+- Memory leaks и thread safety — отдельный milestone
 - Добавление тестов — отдельный milestone
 - Масштабирование (PostgreSQL, connection pooling) — отдельный milestone
 - Новые платформы — отдельный milestone
 
 ## Context
 
-Brownfield проект с существующей кодовой базой. Кодовая карта в `.planning/codebase/`. Основные проблемы безопасности выявлены в `.planning/codebase/CONCERNS.md`.
+Brownfield проект с существующей кодовой базой. Кодовая карта в `.planning/codebase/`. после v1.0 Security Hardening исправлены критические проблемы безопасности.
 
-**Критические находки по безопасности:**
-- Пароли сравниваются через `==` (timing attack)
-- Пароль используется как JWT-токен
-- Дефолтный JWT секрет `"change-me-in-production"`
-- Дефолтные креды админа `admin/admin123456`
-- CORS允许所有来源
-- Пароли хранятся в открытом виде в SQLite
-- TLS-верификация отключена по умолчанию
+**Оставшиеся проблемы (CONCERNS.md):**
+- Deprecated модуль `core/provider_drivers.py` всё ещё существует
+- `_utcnow()` дублируется в 4 файлах
+- Legacy миграции запускаются при каждом старте
+- 643+ `except Exception` с молчаливым проглатыванием
+- `print()` вместо `logging` в 20+ местах
+- Magic numbers без констант
 
 ## Constraints
 
 - **Tech Stack**: Python 3.12, FastAPI, SQLite, SQLAlchemy
 - **Совместимость**: Изменения не должны ломать существующий API
-- **Безопасность**: Все критические проблемы должны быть исправлены до продакшена
+- **Обратная совместимость**: Поведение не должно меняться для пользователей
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Фокус только на безопасности | Приоритет критических проблем | — Pending |
-| Не трогать существующий API contract | Обратная совместимость | — Pending |
+| Не трогать рефакторинг больших файлов | Отдельный milestone, высокий риск | ✓ Good |
+| Не трогать тесты | Отдельный milestone | ✓ Good |
+| Консолидация datetime helpers в core/datetime_utils.py | DRY, уже существует файл | ✓ Good |
 
 ## Evolution
 
@@ -78,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26 after initialization*
+*Last updated: 2026-06-26 after v1.1 milestone start*
