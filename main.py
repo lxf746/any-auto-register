@@ -93,10 +93,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Account Manager", version="2.0.0", lifespan=lifespan)
 
+# CORS: restrict to specific origins via CORS_ORIGINS env var (comma-separated).
+# Default: only allow same-origin requests (no cross-origin).
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "")
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()] if _cors_origins_raw else []
+
 app.add_middleware(AuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
