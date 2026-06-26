@@ -3,88 +3,98 @@
 **Defined:** 2026-06-26
 **Core Value:** Автоматическая регистрация аккаунтов должна работать надёжно и безопасно
 
-## v1.3 Requirements
+## v1.4 Requirements
 
-### Module Structure
+### HTTP Session Management
 
-- [ ] **MODL-01**: Каждый провайдер почты — отдельный файл в `core/mailbox/`
-- [ ] **MODL-02**: BaseMailbox и FallbackMailbox в `core/mailbox/base.py`
-- [ ] **MODL-03**: MailboxAccount dataclass в `core/mailbox/models.py`
-- [ ] **MODL-04**: `__init__.py` экспортирует публичный API
+- [ ] **HTTP-01**: ProtocolExecutor — context manager или explicit close() в base_platform.py
+- [ ] **HTTP-02**: cffi_requests.Session в lifecycle.py — один на все итерации
+- [ ] **HTTP-03**: FreemailMailbox — context manager support
+- [ ] **HTTP-04**: GenericHttpMailbox — context manager support
+- [ ] **HTTP-05**: HTTPClient — гарантированное закрытие session
+- [ ] **HTTP-06**: Any2ApiClient — persistent session
+- [ ] **HTTP-07**: SMS providers — persistent sessions
 
-### Registry
+### Browser Resource Management
 
-- [ ] **REGY-01**: Единый `ProviderRegistry` класс вместо двух параллельных систем
-- [ ] **REGY-02**: Декоратор `@register_provider("mailbox", "name")` для регистрации
-- [ ] **REGY-03**: `create_provider()` фабрика с classmethod `from_config()`
-- [ ] **REGY-04**: Автоматическое обнаружение провайдеров в `core/mailbox/`
+- [ ] **BRWS-01**: TempMailWebMailbox — context manager вместо __del__
+- [ ] **BRWS-02**: PlaywrightExecutor — гарантированное закрытие
+- [ ] **BRWS-03**: Browser context в turnstile_solver — корректное закрытие при ошибках
 
-### Configuration
+### Memory Management
 
-- [ ] **CONF-01**: Базовый `MailboxConfig` dataclass с общими полями
-- [ ] **CONF-02**: Per-provider dataclass'ы (TempMailConfig, MailTmConfig и т.д.)
-- [ ] **CONF-03**: Валидация конфигурации при создании провайдера
-- [ ] **CONF-04**: Значения по умолчанию для всех полей
+- [ ] **MEMO-01**: _task_locks — periodic cleanup stale entries
+- [ ] **MEMO-02**: Global state — единый lock hierarchy
 
-### Resilience
+### Thread Safety
 
-- [ ] **REIL-01**: Pre-flight health check перед первым использованием провайдера
-- [ ] **REIL-02**: Circuit breaker с тремя состояниями (closed/open/half-open)
-- [ ] **REIL-03**: Health check caching (TTL-based)
-- [ ] **REIL-04**: Email deduplication cache — не создавать дубли для одного email
-- [ ] **REIL-05**: Per-provider rate limiting (configurable limits)
+- [ ] **THRD-01**: _FERNET lazy init — lock
+- [ ] **THRD-02**: providers/registry.py load_all() — lock
+- [ ] **THRD-03**: core/registry.py _registry — lock
+- [ ] **THRD-04**: solver_manager globals — lock в get_status()
+
+### Graceful Shutdown
+
+- [ ] **SHTD-01**: Scheduler.stop() — join thread
+- [ ] **SHTD-02**: LifecycleManager.stop() — join thread
+- [ ] **SHTD-03**: TaskRuntime.stop() — join workers
+
+### Minor Issues
+
+- [ ] **MINR-01**: Lock ordering в base_sms.py — документирован и стабилен
+- [ ] **MINR-02**: Subprocess pipe в solver_manager — finally block
 
 ## v2 Requirements
 
-Deferred to future release. Tracked but not in current roadmap.
+### Testing
+
+- **TEST-01**: Unit tests для core модулей
+- **TEST-02**: Integration tests для mailbox providers
+- **TEST-03**: Stress tests для concurrent registration
 
 ### Scaling
 
-- **SCAL-01**: PostgreSQL support для mailbox state
-- **SCAL-02**: Connection pooling для HTTP-провайдеров
-
-### Testing
-
-- **TEST-01**: Unit tests для каждого провайдера
-- **TEST-02**: Integration tests для FallbackMailbox
-- **TEST-03**: Mock-based tests для resilience layer
+- **SCAL-01**: PostgreSQL support
+- **SCAL-02**: Connection pooling
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Рефакторинг других монолитных файлов | Отдельный milestone |
+| Рефакторинг монолитных файлов | Отдельный milestone |
 | Добавление тестов | Отдельный milestone |
 | Масштабирование (PostgreSQL) | Отдельный milestone |
-| Memory leaks и thread safety | Отдельный milestone |
 | Новые платформы | Отдельный milestone |
-| Backward compatibility | Clean break по решению пользователя |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODL-01 | Phase 1 | Pending |
-| MODL-02 | Phase 1 | Pending |
-| MODL-03 | Phase 1 | Pending |
-| MODL-04 | Phase 1 | Pending |
-| REGY-01 | Phase 2 | Pending |
-| REGY-02 | Phase 2 | Pending |
-| REGY-03 | Phase 2 | Pending |
-| REGY-04 | Phase 2 | Pending |
-| CONF-01 | Phase 3 | Pending |
-| CONF-02 | Phase 3 | Pending |
-| CONF-03 | Phase 3 | Pending |
-| CONF-04 | Phase 3 | Pending |
-| REIL-01 | Phase 4 | Pending |
-| REIL-02 | Phase 4 | Pending |
-| REIL-03 | Phase 4 | Pending |
-| REIL-04 | Phase 4 | Pending |
-| REIL-05 | Phase 4 | Pending |
+| HTTP-01 | Phase 1 | Pending |
+| HTTP-02 | Phase 1 | Pending |
+| HTTP-03 | Phase 1 | Pending |
+| HTTP-04 | Phase 1 | Pending |
+| HTTP-05 | Phase 1 | Pending |
+| HTTP-06 | Phase 1 | Pending |
+| HTTP-07 | Phase 1 | Pending |
+| BRWS-01 | Phase 2 | Pending |
+| BRWS-02 | Phase 2 | Pending |
+| BRWS-03 | Phase 2 | Pending |
+| MEMO-01 | Phase 3 | Pending |
+| MEMO-02 | Phase 3 | Pending |
+| THRD-01 | Phase 3 | Pending |
+| THRD-02 | Phase 3 | Pending |
+| THRD-03 | Phase 3 | Pending |
+| THRD-04 | Phase 3 | Pending |
+| SHTD-01 | Phase 4 | Pending |
+| SHTD-02 | Phase 4 | Pending |
+| SHTD-03 | Phase 4 | Pending |
+| MINR-01 | Phase 4 | Pending |
+| MINR-02 | Phase 4 | Pending |
 
 **Coverage:**
-- v1.3 requirements: 17 total
-- Mapped to phases: 17
+- v1.4 requirements: 21 total
+- Mapped to phases: 21
 - Unmapped: 0 ✓
 
 ---

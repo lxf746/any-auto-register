@@ -2,16 +2,16 @@
 
 ## Current Position
 
-Phase: All complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone complete
-Last activity: 2026-06-26 — Milestone v1.3 complete
+Status: Defining requirements
+Last activity: 2026-06-26 — Milestone v1.4 Memory Leaks & Thread Safety started
 
 ## Milestone
 
-**v1.3 Enterprise Email Provider Abstractions**
+**v1.4 Memory Leaks & Thread Safety**
 
-Goal: Рефакторинг email-подсистемы из монолитного base_mailbox.py в модульную архитектуру с enterprise-возможностями
+Goal: Исправить все утечки памяти и проблемы потокобезопасности, переписать проблемные модули с правильными паттернами
 
 ## Progress
 
@@ -25,9 +25,8 @@ Goal: Рефакторинг email-подсистемы из монолитно�
 
 ### Decisions
 
-- Email subsystem clean break — полный рефакторинг без обратной совместимости
-- Single registry — единый реестр вместо двух параллельных систем
-- Typed config — dataclass-based конфигурация вместо строкового extra dict
+- Full refactor — переписать проблемные модули с правильными паттернами
+- Clean break — меняем публичный API если нужно, без шимов и бэквард компата
 
 ### Blockers
 
