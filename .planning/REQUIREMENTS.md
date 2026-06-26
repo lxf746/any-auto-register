@@ -1,76 +1,90 @@
-# Requirements: Remove Electron Desktop & React UI
+# Requirements: Any Auto Register
 
 **Defined:** 2026-06-26
-**Core Value:** Убрать дублирующий код, оставить только API + Customer Portal
+**Core Value:** Автоматическая регистрация аккаунтов должна работать надёжно и безопасно
 
-## v1 Requirements
+## v1.3 Requirements
 
-### Delete Directories
+### Module Structure
 
-- [ ] **DEL-01**: Удалить директорию `electron/` целиком
-- [ ] **DEL-02**: Удалить директорию `frontend/` целиком
-- [ ] **DEL-03**: Удалить `pyinstaller` из `requirements.txt`
+- [ ] **MODL-01**: Каждый провайдер почты — отдельный файл в `core/mailbox/`
+- [ ] **MODL-02**: BaseMailbox и FallbackMailbox в `core/mailbox/base.py`
+- [ ] **MODL-03**: MailboxAccount dataclass в `core/mailbox/models.py`
+- [ ] **MODL-04**: `__init__.py` экспортирует публичный API
 
-### Modify Backend
+### Registry
 
-- [ ] **API-01**: Убрать SPA fallback блок из `main.py`
-- [ ] **API-02**: Убрать неиспользуемые импорты `FileResponse`, `StaticFiles` из `main.py`
+- [ ] **REGY-01**: Единый `ProviderRegistry` класс вместо двух параллельных систем
+- [ ] **REGY-02**: Декоратор `@register_provider("mailbox", "name")` для регистрации
+- [ ] **REGY-03**: `create_provider()` фабрика с classmethod `from_config()`
+- [ ] **REGY-04**: Автоматическое обнаружение провайдеров в `core/mailbox/`
 
-### Docker & CI
+### Configuration
 
-- [ ] **DOC-01**: Убрать Node.js build stage из `Dockerfile`
-- [ ] **DOC-02**: Убрать копирование static из `Dockerfile`
-- [ ] **CI-01**: Убрать Electron build jobs из `.github/workflows/release.yml`
-- [ ] **CI-02**: Упростить release job (только Docker)
+- [ ] **CONF-01**: Базовый `MailboxConfig` dataclass с общими полями
+- [ ] **CONF-02**: Per-provider dataclass'ы (TempMailConfig, MailTmConfig и т.д.)
+- [ ] **CONF-03**: Валидация конфигурации при создании провайдера
+- [ ] **CONF-04**: Значения по умолчанию для всех полей
 
-### Cleanup
+### Resilience
 
-- [ ] **IGN-01**: Убрать frontend/electron записи из `.gitignore`
-- [ ] **IGN-02**: Убрать frontend/electron записи из `.dockerignore`
-- [ ] **DOC-03**: Обновить `README.md` — убрать десктопные ссылки
-- [ ] **DOC-04**: Обновить `README_en.md` — убрать десктопные ссылки
-- [ ] **DOC-05**: Обновить `README_vi.md` — убрать десктопные ссылки
+- [ ] **REIL-01**: Pre-flight health check перед первым использованием провайдера
+- [ ] **REIL-02**: Circuit breaker с тремя состояниями (closed/open/half-open)
+- [ ] **REIL-03**: Health check caching (TTL-based)
+- [ ] **REIL-04**: Email deduplication cache — не создавать дубли для одного email
+- [ ] **REIL-05**: Per-provider rate limiting (configurable limits)
 
 ## v2 Requirements
 
-Deferred to future milestone.
+Deferred to future release. Tracked but not in current roadmap.
 
-### Refactoring
+### Scaling
 
-- **REF-01**: Разбить `core/account_graph.py` (1060 строк) на модули
-- **REF-02**: Разбить `core/base_mailbox.py` (2059 строк) по провайдерам
-- **REF-03**: Разбить `platforms/chatgpt/browser_register.py` (3908 строк) по шагам
+- **SCAL-01**: PostgreSQL support для mailbox state
+- **SCAL-02**: Connection pooling для HTTP-провайдеров
+
+### Testing
+
+- **TEST-01**: Unit tests для каждого провайдера
+- **TEST-02**: Integration tests для FallbackMailbox
+- **TEST-03**: Mock-based tests для resilience layer
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| core/desktop_apps.py | Core feature — детекция локальных IDE |
-| Customer Portal | Отдельное приложение |
-| API endpoints | Не меняются |
+| Рефакторинг других монолитных файлов | Отдельный milestone |
+| Добавление тестов | Отдельный milestone |
+| Масштабирование (PostgreSQL) | Отдельный milestone |
+| Memory leaks и thread safety | Отдельный milestone |
+| Новые платформы | Отдельный milestone |
+| Backward compatibility | Clean break по решению пользователя |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEL-01 | Phase 9 | Pending |
-| DEL-02 | Phase 9 | Pending |
-| DEL-03 | Phase 9 | Pending |
-| API-01 | Phase 9 | Pending |
-| API-02 | Phase 9 | Pending |
-| DOC-01 | Phase 9 | Pending |
-| DOC-02 | Phase 9 | Pending |
-| CI-01 | Phase 10 | Pending |
-| CI-02 | Phase 10 | Pending |
-| IGN-01 | Phase 9 | Pending |
-| IGN-02 | Phase 9 | Pending |
-| DOC-03 | Phase 10 | Pending |
-| DOC-04 | Phase 10 | Pending |
-| DOC-05 | Phase 10 | Pending |
+| MODL-01 | Phase 1 | Pending |
+| MODL-02 | Phase 1 | Pending |
+| MODL-03 | Phase 1 | Pending |
+| MODL-04 | Phase 1 | Pending |
+| REGY-01 | Phase 2 | Pending |
+| REGY-02 | Phase 2 | Pending |
+| REGY-03 | Phase 2 | Pending |
+| REGY-04 | Phase 2 | Pending |
+| CONF-01 | Phase 3 | Pending |
+| CONF-02 | Phase 3 | Pending |
+| CONF-03 | Phase 3 | Pending |
+| CONF-04 | Phase 3 | Pending |
+| REIL-01 | Phase 4 | Pending |
+| REIL-02 | Phase 4 | Pending |
+| REIL-03 | Phase 4 | Pending |
+| REIL-04 | Phase 4 | Pending |
+| REIL-05 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 14 total
-- Mapped to phases: 14
+- v1.3 requirements: 17 total
+- Mapped to phases: 17
 - Unmapped: 0 ✓
 
 ---

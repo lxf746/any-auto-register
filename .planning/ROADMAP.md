@@ -1,75 +1,85 @@
-# Roadmap: Remove Electron Desktop & React UI
+# Roadmap: v1.3 Enterprise Email Provider Abstractions
 
-**Milestone:** v1.2 Remove Desktop
-**Created:** 2026-06-26
+**Milestone:** v1.3
+**Phases:** 4
+**Requirements:** 17
 
-## Phase Overview
+## Phase 1: Module Split
 
-| # | Phase | Goal | Requirements | Success Criteria |
-|---|-------|------|--------------|------------------|
-| 9 | Delete Desktop Code | Удалить Electron, React, PyInstaller и убрать SPA fallback | DEL-01, DEL-02, DEL-03, API-01, API-02, DOC-01, DOC-02, IGN-01, IGN-02 | 9 |
-| 10 | Update CI & Docs | Убрать Electron из CI, обновить README'и | CI-01, CI-02, DOC-03, DOC-04, DOC-05 | 5 |
+**Goal:** Разбить base_mailbox.py (2059 строк, 11 классов) на отдельные модули
 
-**Total: 2 phases | 14 requirements | All covered ✓**
-
-## Phase Details
-
-### Phase 9: Delete Desktop Code
-
-**Goal:** Удалить Electron, React UI, PyInstaller и убрать SPA fallback из main.py
-
-**Requirements:**
-- DEL-01: Удалить `electron/` целиком
-- DEL-02: Удалить `frontend/` целиком
-- DEL-03: Удалить `pyinstaller` из `requirements.txt`
-- API-01: Убрать SPA fallback блок из `main.py`
-- API-02: Убрать неиспользуемые импорты `FileResponse`, `StaticFiles`
-- DOC-01: Убрать Node.js build stage из `Dockerfile`
-- DOC-02: Убрать копирование static из `Dockerfile`
-- IGN-01: Убрать frontend/electron записи из `.gitignore`
-- IGN-02: Убрать frontend/electron записи из `.dockerignore`
+**Requirements:** MODL-01, MODL-02, MODL-03, MODL-04
 
 **Success criteria:**
-1. `ls electron/` и `ls frontend/` возвращают ошибку (не существуют)
-2. `grep -r "pyinstaller" requirements.txt` не находит результатов
-3. `main.py` не содержит SPA fallback и не импортирует `FileResponse`/`StaticFiles`
-4. `Dockerfile` не содержит `node:20` stage и не копирует `static/`
-5. `.gitignore` и `.dockerignore` не содержат frontend/electron записей
+1. Каждый провайдер почты в отдельном файле core/mailbox/<provider>.py
+2. BaseMailbox и FallbackMailbox в core/mailbox/base.py
+3. MailboxAccount dataclass в core/mailbox/models.py
+4. core/mailbox/__init__.py экспортирует публичный API
 
-**Files to modify/delete:**
-- `electron/` — удалить
-- `frontend/` — удалить
-- `requirements.txt` — удалить pyinstaller
-- `main.py` — удалить SPA fallback + импорты
-- `Dockerfile` — удалить Node build stage
-- `.gitignore` — удалить frontend/electron записи
-- `.dockerignore` — удалить frontend/electron записи
+## Phase 2: Unified Registry
 
----
+**Goal:** Заменить две параллельные системы реестра на единую
 
-### Phase 10: Update CI & Docs
-
-**Goal:** Убрать Electron из CI pipeline и обновить документацию
-
-**Requirements:**
-- CI-01: Убрать Electron build jobs из release.yml
-- CI-02: Упростить release job (только Docker)
-- DOC-03: Обновить `README.md` — убрать десктопные ссылки и electron из tree
-- DOC-04: Обновить `README_en.md` — то же
-- DOC-05: Обновить `README_vi.md` — то же
+**Requirements:** REGY-01, REGY-02, REGY-03, REGY-04
 
 **Success criteria:**
-1. `.github/workflows/release.yml` не содержит `build-mac` или `build-win` jobs
-2. Release job не зависит от Electron artifacts
-3. `README.md` не содержит ссылок на "桌面版" или electron/
-4. `README_en.md` не содержит "desktop" download links
-5. `README_vi.md` не содержит "desktop" download links
+1. ProviderRegistry класс取代ляет MAILBOX_FACTORY_REGISTRY и _registry["mailbox"]
+2. Декоратор @register_provider работает для всех типов провайдеров
+3. create_provider() фабрика использует from_config() classmethod
+4. Автоматическое обнаружение провайдеров при импорте core/mailbox
 
-**Files to modify:**
-- `.github/workflows/release.yml`
-- `README.md`
-- `README_en.md`
-- `README_vi.md`
+## Phase 3: Typed Config
+
+**Goal:** Заменить строковый extra dict на dataclass-based конфигурацию
+
+**Requirements:** CONF-01, CONF-02, CONF-03, CONF-04
+
+**Success criteria:**
+1. Базовый MailboxConfig dataclass определён
+2. Per-provider dataclass'ы для каждого провайдера
+3. Валидация конфигурации при создании провайдера
+4. Все поля имеют значения по умолчанию
+
+## Phase 4: Resilience Layer
+
+**Goal:** Добавить enterprise-возможности для провайдеров
+
+**Requirements:** REIL-01, REIL-02, REIL-03, REIL-04, REIL-05
+
+**Success criteria:**
+1. Pre-flight health check выполняется перед первым использованием
+2. Circuit breaker переключается между closed/open/half-open
+3. Health check результаты кэшируются с TTL
+4. Email dedup не создаёт дубли для одного адреса
+5. Per-provider rate limits конфигурируются
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| MODL-01 | Phase 1 | Pending |
+| MODL-02 | Phase 1 | Pending |
+| MODL-03 | Phase 1 | Pending |
+| MODL-04 | Phase 1 | Pending |
+| REGY-01 | Phase 2 | Pending |
+| REGY-02 | Phase 2 | Pending |
+| REGY-03 | Phase 2 | Pending |
+| REGY-04 | Phase 2 | Pending |
+| CONF-01 | Phase 3 | Pending |
+| CONF-02 | Phase 3 | Pending |
+| CONF-03 | Phase 3 | Pending |
+| CONF-04 | Phase 3 | Pending |
+| REIL-01 | Phase 4 | Pending |
+| REIL-02 | Phase 4 | Pending |
+| REIL-03 | Phase 4 | Pending |
+| REIL-04 | Phase 4 | Pending |
+| REIL-05 | Phase 4 | Pending |
+
+**Coverage:**
+- v1.3 requirements: 17 total
+- Mapped to phases: 17
+- Unmapped: 0 ✓
 
 ---
-*Created: 2026-06-26*
+*Roadmap created: 2026-06-26*
+*Last updated: 2026-06-26 after initial creation*

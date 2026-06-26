@@ -4,30 +4,30 @@
 
 Phase: Not started (defining requirements)
 Plan: —
-Status: Planning complete
-Last activity: 2026-06-26 — Milestone v1.2 Remove Desktop started
+Status: Defining requirements
+Last activity: 2026-06-26 — Milestone v1.3 Enterprise Email Provider Abstractions started
 
 ## Milestone
 
-**v1.2 Remove Desktop**
+**v1.3 Enterprise Email Provider Abstractions**
 
-Goal: Удалить Electron десктоп и React UI — они дублируют веб
+Goal: Рефакторинг email-подсистемы из монолитного base_mailbox.py в модульную архитектуру с enterprise-возможностями
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Current phase | — |
-| Plans complete | 0/2 |
+| Plans complete | 0/0 |
 | Tasks complete | 0/0 |
 
 ## Context
 
 ### Decisions
 
-- Удалить Electron + React — дублирует веб, API покрывает всё
-- Оставить core/desktop_apps.py — детекция локальных IDE
-- Оставить Customer Portal — отдельное приложение
+- Email subsystem clean break — полный рефакторинг без обратной совместимости
+- Single registry — единый реестр вместо двух параллельных систем
+- Typed config — dataclass-based конфигурация вместо строкового extra dict
 
 ### Blockers
 
