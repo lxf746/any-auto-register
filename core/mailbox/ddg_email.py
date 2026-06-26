@@ -30,6 +30,16 @@ class DDGEmailMailbox(BaseMailbox):
         "yahoo.com": "imap.mail.yahoo.com",
     }
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'DDGEmailMailbox':
+        return cls(
+            bearer=config.get("ddg_bearer", ""),
+            imap_host=config.get("ddg_imap_host", ""),
+            imap_user=config.get("ddg_imap_user", ""),
+            imap_pass=config.get("ddg_imap_pass", ""),
+            proxy=config.get("proxy"),
+        )
+
     def __init__(self, bearer: str = "", imap_host: str = "",
                  imap_user: str = "", imap_pass: str = "", proxy: str = None):
         self.bearer = bearer

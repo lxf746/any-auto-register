@@ -13,6 +13,14 @@ DEFAULT_LAOUDO_API_URL = "https://laoudo.com/api/email"
 
 class LaoudoMailbox(BaseMailbox):
     """laoudo.com mailbox service"""
+    @classmethod
+    def from_config(cls, config: dict) -> 'LaoudoMailbox':
+        return cls(
+            auth_token=config.get("laoudo_auth", ""),
+            email=config.get("laoudo_email", ""),
+            account_id=config.get("laoudo_account_id", ""),
+        )
+
     def __init__(self, auth_token: str, email: str, account_id: str, api_url: str = ""):
         self.auth = auth_token
         self._email = email

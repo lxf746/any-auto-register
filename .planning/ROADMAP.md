@@ -61,10 +61,10 @@
 | MODL-02 | Phase 1 | Complete |
 | MODL-03 | Phase 1 | Complete |
 | MODL-04 | Phase 1 | Complete |
-| REGY-01 | Phase 2 | Pending |
-| REGY-02 | Phase 2 | Pending |
-| REGY-03 | Phase 2 | Pending |
-| REGY-04 | Phase 2 | Pending |
+| REGY-01 | Phase 2 | Complete |
+| REGY-02 | Phase 2 | Complete |
+| REGY-03 | Phase 2 | Complete |
+| REGY-04 | Phase 2 | Complete |
 | CONF-01 | Phase 3 | Pending |
 | CONF-02 | Phase 3 | Pending |
 | CONF-03 | Phase 3 | Pending |

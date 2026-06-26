@@ -13,6 +13,15 @@ from core.tls import insecure_request
 class DuckMailMailbox(BaseMailbox):
     """DuckMail auto-generated mailbox (randomly created account)"""
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'DuckMailMailbox':
+        return cls(
+            api_url=config.get("duckmail_api_url", ""),
+            provider_url=config.get("duckmail_provider_url", ""),
+            bearer=config.get("duckmail_bearer", ""),
+            proxy=config.get("proxy"),
+        )
+
     def __init__(self, api_url: str = "",
                  provider_url: str = "",
                  bearer: str = "",

@@ -14,6 +14,16 @@ from core.mailbox.utils import extract_verification_link, normalize_api_base_url
 class TestmailMailbox(BaseMailbox):
     """testmail.app email service, address format is {namespace}.{tag}@inbox.testmail.app."""
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'TestmailMailbox':
+        return cls(
+            api_url=config.get("testmail_api_url", ""),
+            api_key=config.get("testmail_api_key", ""),
+            namespace=config.get("testmail_namespace", ""),
+            tag_prefix=config.get("testmail_tag_prefix", ""),
+            proxy=config.get("proxy"),
+        )
+
     def __init__(
         self,
         api_url: str = "",

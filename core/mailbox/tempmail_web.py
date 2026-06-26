@@ -19,6 +19,13 @@ DEFAULT_TEMPMAIL_WEB_BASE_URL = "https://web2.temp-mail.org"
 class TempMailWebMailbox(BaseMailbox):
     """Same Temp-Mail Web API as the reference project."""
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'TempMailWebMailbox':
+        return cls(
+            base_url=config.get("tempmail_web_base_url", ""),
+            proxy=config.get("proxy"),
+        )
+
     def __init__(self, base_url: str = "", proxy: str = None):
         self.base_url = normalize_api_base_url(
             base_url,

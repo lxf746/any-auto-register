@@ -6,24 +6,7 @@ from core.mailbox.models import MailboxAccount
 from core.mailbox.base import BaseMailbox, FallbackMailbox
 from core.mailbox.utils import extract_verification_link as _extract_verification_link
 from core.mailbox.utils import normalize_api_base_url as _normalize_api_base_url
-from core.mailbox.registry import (
-    MAILBOX_FACTORY_REGISTRY,
-    create_mailbox,
-    _create_tempmail,
-    _create_tempyemail,
-    _create_tempmail_web,
-    _create_duckmail,
-    _create_ddg_email,
-    _create_freemail,
-    _create_moemail,
-    _create_mailtm,
-    _create_cfworker,
-    _create_testmail,
-    _create_local_ms_pool,
-    _create_laoudo,
-    _create_aitre,
-    _create_generic_http,
-)
+from core.mailbox.registry import create_mailbox
 
 # Re-export provider classes for backward compatibility
 from core.mailbox.laoudo import LaoudoMailbox

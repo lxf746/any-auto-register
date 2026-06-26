@@ -19,6 +19,16 @@ class FreemailMailbox(BaseMailbox):
     Supports admin token and username/password authentication
     """
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'FreemailMailbox':
+        return cls(
+            api_url=config.get("freemail_api_url", ""),
+            admin_token=config.get("freemail_admin_token", ""),
+            username=config.get("freemail_username", ""),
+            password=config.get("freemail_password", ""),
+            proxy=config.get("proxy"),
+        )
+
     def __init__(self, api_url: str, admin_token: str = "",
                  username: str = "", password: str = "",
                  proxy: str = None):

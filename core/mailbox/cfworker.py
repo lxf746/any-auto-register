@@ -15,6 +15,16 @@ logger = logging.getLogger(__name__)
 class CFWorkerMailbox(BaseMailbox):
     """Cloudflare Worker self-hosted temporary mailbox service"""
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'CFWorkerMailbox':
+        return cls(
+            api_url=config.get("cfworker_api_url", ""),
+            admin_token=config.get("cfworker_admin_token", ""),
+            domain=config.get("cfworker_domain", ""),
+            fingerprint=config.get("cfworker_fingerprint", ""),
+            proxy=config.get("proxy"),
+        )
+
     def __init__(self, api_url: str, admin_token: str = "", domain: str = "",
                  fingerprint: str = "", proxy: str = None):
         self.api = api_url.rstrip("/")

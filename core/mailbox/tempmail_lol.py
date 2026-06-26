@@ -17,6 +17,13 @@ DEFAULT_TEMPMAIL_LOL_API_URL = "https://api.tempmail.lol/v2"
 class TempMailLolMailbox(BaseMailbox):
     """tempmail.lol free temporary mailbox (auto-generated, no registration required)"""
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'TempMailLolMailbox':
+        return cls(
+            proxy=config.get("proxy"),
+            api_url=config.get("tempmail_lol_api_url", ""),
+        )
+
     def __init__(self, proxy: str = None, api_url: str = ""):
         self.api = (api_url or DEFAULT_TEMPMAIL_LOL_API_URL).rstrip("/")
         self.proxy = {"http": proxy, "https": proxy} if proxy else None

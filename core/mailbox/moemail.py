@@ -19,6 +19,16 @@ logger = logging.getLogger(__name__)
 class MoeMailMailbox(BaseMailbox):
     """MoeMail (sall.cc) mailbox service - auto-register account and generate temporary mailbox"""
 
+    @classmethod
+    def from_config(cls, config: dict) -> 'MoeMailMailbox':
+        return cls(
+            api_url=config.get("moemail_api_url"),
+            username=config.get("moemail_username", ""),
+            password=config.get("moemail_password", ""),
+            session_token=config.get("moemail_session_token", ""),
+            proxy=config.get("proxy"),
+        )
+
     def __init__(
         self,
         api_url: str = "",
