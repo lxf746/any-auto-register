@@ -1,6 +1,9 @@
 """Database models - SQLite via SQLModel"""
+import base64
+import hashlib
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -11,6 +14,82 @@ from sqlmodel import Field, SQLModel, Session, create_engine, select
 
 def _utcnow():
     return datetime.now(timezone.utc)
+
+
+# ---------------------------------------------------------------------------
+# Password encryption at rest
+# ---------------------------------------------------------------------------
+
+_FERNET = None
+
+
+def _get_fernet():
+    """Lazy-init Fernet cipher from ACCOUNT_ENCRYPTION_KEY env var."""
+    global _FERNET
+    if _FERNET is not None:
+        return _FERNET
+    from cryptography.fernet import Fernet
+
+    raw_key = os.getenv("ACCOUNT_ENCRYPTION_KEY", "")
+    if not raw_key:
+        # Derive a deterministic key from a passphrase (not truly secure for
+        # production, but better than plaintext; set ACCOUNT_ENCRYPTION_KEY
+        # in production).
+        raw_key = hashlib.pbkdf2_hmac(
+            "sha256",
+            b"any-auto-register-default-key",
+            b"any-auto-register-salt",
+            100_000,
+        )
+        key = base64.urlsafe_b64encode(raw_key)
+    else:
+        key = base64.urlsafe_b64encode(
+            hashlib.pbkdf2_hmac("sha256", raw_key.encode(), b"any-auto-register-salt", 100_000)
+        )
+    _FERNET = Fernet(key)
+    return _FERNET
+
+
+def encrypt_password(plaintext: str) -> str:
+    """Encrypt a password for storage. Returns base64-encoded ciphertext."""
+    if not plaintext:
+        return plaintext
+    f = _get_fernet()
+    return f.encrypt(plaintext.encode()).decode()
+
+
+def decrypt_password(ciphertext: str) -> str:
+    """Decrypt a stored password. Handles both encrypted and legacy plaintext."""
+    if not ciphertext:
+        return ciphertext
+    f = _get_fernet()
+    try:
+        return f.decrypt(ciphertext.encode()).decode()
+    except Exception:
+        # Legacy plaintext — return as-is
+        return ciphertext
+
+
+# ---------------------------------------------------------------------------
+# SQL injection prevention for _ensure_column
+# ---------------------------------------------------------------------------
+
+_VALID_TABLES = frozenset({
+    "accounts",
+    "account_overviews",
+    "account_credentials",
+    "provider_accounts",
+    "provider_resources",
+    "provider_definitions",
+    "provider_settings",
+    "platform_capability_overrides",
+    "task_logs",
+    "tasks",
+    "task_events",
+    "proxies",
+})
+
+_VALID_IDENTIFIER_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
 def _default_database_url() -> str:
@@ -311,7 +390,7 @@ def save_account(account) -> 'AccountModel':
             .where(AccountModel.email == account.email)
         ).first()
         if existing:
-            existing.password = account.password
+            existing.password = encrypt_password(account.password)
             existing.user_id = account.user_id or ""
             existing.updated_at = _utcnow()
             session.add(existing)
@@ -323,7 +402,7 @@ def save_account(account) -> 'AccountModel':
         m = AccountModel(
             platform=account.platform,
             email=account.email,
-            password=account.password,
+            password=encrypt_password(account.password),
             user_id=account.user_id or "",
         )
         session.add(m)
@@ -446,7 +525,17 @@ def init_db():
 
 
 def _ensure_column(table: str, column: str, col_type: str):
-    """Safely add a column to an existing table (SQLite does not support IF NOT EXISTS ADD COLUMN)."""
+    """Safely add a column to an existing table (SQLite does not support IF NOT EXISTS ADD COLUMN).
+
+    Validates table and column names against an allowlist to prevent SQL injection.
+    """
+    if table not in _VALID_TABLES:
+        raise ValueError(f"Invalid table name: {table!r}")
+    if not _VALID_IDENTIFIER_RE.match(column):
+        raise ValueError(f"Invalid column name: {column!r}")
+    if not _VALID_IDENTIFIER_RE.match(col_type.split()[0]):
+        raise ValueError(f"Invalid column type: {col_type!r}")
+
     inspector = inspect(engine)
     tables = set(inspector.get_table_names())
     if table not in tables:
