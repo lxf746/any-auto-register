@@ -69,11 +69,11 @@
 | CONF-02 | Phase 3 | Complete |
 | CONF-03 | Phase 3 | Complete |
 | CONF-04 | Phase 3 | Complete |
-| REIL-01 | Phase 4 | Pending |
-| REIL-02 | Phase 4 | Pending |
-| REIL-03 | Phase 4 | Pending |
-| REIL-04 | Phase 4 | Pending |
-| REIL-05 | Phase 4 | Pending |
+| REIL-01 | Phase 4 | Complete |
+| REIL-02 | Phase 4 | Complete |
+| REIL-03 | Phase 4 | Complete |
+| REIL-04 | Phase 4 | Complete |
+| REIL-05 | Phase 4 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 17 total

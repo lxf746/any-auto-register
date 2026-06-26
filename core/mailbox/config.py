@@ -1,11 +1,19 @@
 """Mailbox provider configurations — typed dataclasses for provider settings."""
 from dataclasses import dataclass, field
 
+from core.mailbox.resilience import (
+    CircuitBreakerConfig,
+    HealthCheckConfig,
+    RateLimiterConfig,
+    ResilienceConfig,
+)
+
 
 @dataclass
 class MailboxConfig:
     """Base configuration for all mailbox providers."""
     proxy: str | None = None
+    resilience: ResilienceConfig = field(default_factory=ResilienceConfig)
 
 
 @dataclass
