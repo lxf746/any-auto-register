@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -22,33 +23,35 @@ from core.datetime_utils import _utcnow
 # ---------------------------------------------------------------------------
 
 _FERNET = None
+_fernet_lock = threading.Lock()
 
 
 def _get_fernet():
     """Lazy-init Fernet cipher from ACCOUNT_ENCRYPTION_KEY env var."""
     global _FERNET
-    if _FERNET is not None:
-        return _FERNET
-    from cryptography.fernet import Fernet
+    with _fernet_lock:
+        if _FERNET is not None:
+            return _FERNET
+        from cryptography.fernet import Fernet
 
-    raw_key = os.getenv("ACCOUNT_ENCRYPTION_KEY", "")
-    if not raw_key:
-        # Derive a deterministic key from a passphrase (not truly secure for
-        # production, but better than plaintext; set ACCOUNT_ENCRYPTION_KEY
-        # in production).
-        raw_key = hashlib.pbkdf2_hmac(
-            "sha256",
-            b"any-auto-register-default-key",
-            b"any-auto-register-salt",
-            100_000,
-        )
-        key = base64.urlsafe_b64encode(raw_key)
-    else:
-        key = base64.urlsafe_b64encode(
-            hashlib.pbkdf2_hmac("sha256", raw_key.encode(), b"any-auto-register-salt", 100_000)
-        )
-    _FERNET = Fernet(key)
-    return _FERNET
+        raw_key = os.getenv("ACCOUNT_ENCRYPTION_KEY", "")
+        if not raw_key:
+            # Derive a deterministic key from a passphrase (not truly secure for
+            # production, but better than plaintext; set ACCOUNT_ENCRYPTION_KEY
+            # in production).
+            raw_key = hashlib.pbkdf2_hmac(
+                "sha256",
+                b"any-auto-register-default-key",
+                b"any-auto-register-salt",
+                100_000,
+            )
+            key = base64.urlsafe_b64encode(raw_key)
+        else:
+            key = base64.urlsafe_b64encode(
+                hashlib.pbkdf2_hmac("sha256", raw_key.encode(), b"any-auto-register-salt", 100_000)
+            )
+        _FERNET = Fernet(key)
+        return _FERNET
 
 
 def encrypt_password(plaintext: str) -> str:

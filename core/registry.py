@@ -1,6 +1,7 @@
 """Platform plugin registry - auto-scan platforms/ directory to load plugins"""
 import importlib
 import pkgutil
+import threading
 from typing import Dict, Type
 from sqlmodel import Session, select
 from .base_platform import BasePlatform
@@ -8,30 +9,39 @@ from .db import PlatformCapabilityOverrideModel, engine
 from core.datetime_utils import _utcnow
 
 _registry: Dict[str, Type[BasePlatform]] = {}
+_registry_lock = threading.Lock()
+_loaded = False
 
 _CAPABILITY_KEYS = ("supported_executors", "supported_identity_modes", "supported_oauth_providers", "capabilities")
 
 
 def register(cls: Type[BasePlatform]):
     """Decorator: register a platform plugin"""
-    _registry[cls.name] = cls
+    with _registry_lock:
+        _registry[cls.name] = cls
     return cls
 
 
 def load_all():
     """Auto-scan and load all plugins under platforms/"""
-    import platforms
-    for finder, name, _ in pkgutil.iter_modules(platforms.__path__, platforms.__name__ + "."):
-        try:
-            importlib.import_module(f"{name}.plugin")
-        except ModuleNotFoundError:
-            pass
+    global _loaded
+    with _registry_lock:
+        if _loaded:
+            return
+        import platforms
+        for finder, name, _ in pkgutil.iter_modules(platforms.__path__, platforms.__name__ + "."):
+            try:
+                importlib.import_module(f"{name}.plugin")
+            except ModuleNotFoundError:
+                pass
+        _loaded = True
 
 
 def get(name: str) -> Type[BasePlatform]:
-    if name not in _registry:
-        raise KeyError(f"Platform '{name}' is not registered, registered: {list(_registry.keys())}")
-    return _registry[name]
+    with _registry_lock:
+        if name not in _registry:
+            raise KeyError(f"Platform '{name}' is not registered, registered: {list(_registry.keys())}")
+        return _registry[name]
 
 
 def _class_defaults(cls: Type[BasePlatform]) -> dict[str, list[str]]:
@@ -104,16 +114,17 @@ def get_platform_capabilities(name: str) -> dict[str, list[str]]:
 
 
 def list_platforms() -> list:
-    with Session(engine) as session:
-        persisted = _ensure_platform_capabilities_seeded(session)
-        result = []
-        for cls in _registry.values():
-            item = persisted.get(cls.name)
-            caps = _normalize_platform_capabilities(item.get_capabilities() if item else None, cls)
-            result.append({
-                "name": cls.name,
-                "display_name": cls.display_name,
-                "version": cls.version,
-                **caps,
-            })
-        return result
+    with _registry_lock:
+        with Session(engine) as session:
+            persisted = _ensure_platform_capabilities_seeded(session)
+            result = []
+            for cls in _registry.values():
+                item = persisted.get(cls.name)
+                caps = _normalize_platform_capabilities(item.get_capabilities() if item else None, cls)
+                result.append({
+                    "name": cls.name,
+                    "display_name": cls.display_name,
+                    "version": cls.version,
+                    **caps,
+                })
+            return result

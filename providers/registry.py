@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib
 import logging
 import pkgutil
+import threading
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ _registry: dict[str, dict[str, type]] = {
 }
 
 _loaded = False
+_load_lock = threading.Lock()
 
 
 def register_provider(provider_type: str, driver_type: str):
@@ -70,21 +72,22 @@ def list_registered(provider_type: str) -> dict[str, type]:
 def load_all() -> None:
     """Scan and import every provider module under ``providers/``."""
     global _loaded
-    if _loaded:
-        return
+    with _load_lock:
+        if _loaded:
+            return
 
-    import providers.captcha
-    import providers.proxy
-    import providers.sms
-    import providers.mailbox
+        import providers.captcha
+        import providers.proxy
+        import providers.sms
+        import providers.mailbox
 
-    for package in (providers.captcha, providers.proxy, providers.sms, providers.mailbox):
-        for _finder, name, _ispkg in pkgutil.iter_modules(
-            package.__path__, package.__name__ + "."
-        ):
-            try:
-                importlib.import_module(name)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Failed to load provider module %s: %s", name, exc)
+        for package in (providers.captcha, providers.proxy, providers.sms, providers.mailbox):
+            for _finder, name, _ispkg in pkgutil.iter_modules(
+                package.__path__, package.__name__ + "."
+            ):
+                try:
+                    importlib.import_module(name)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Failed to load provider module %s: %s", name, exc)
 
-    _loaded = True
+        _loaded = True

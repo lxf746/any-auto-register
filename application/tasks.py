@@ -87,6 +87,9 @@ def _mutate_task(task_id: str, fn: Callable[[TaskModel], None]) -> Optional[Task
             session.add(task)
             session.commit()
             session.refresh(task)
+            if task.status in TERMINAL_TASK_STATUSES:
+                with _task_locks_guard:
+                    _task_locks.pop(task_id, None)
             return task
 
 

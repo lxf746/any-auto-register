@@ -31,14 +31,15 @@ def is_running() -> bool:
 
 def get_status() -> dict:
     """Return detailed solver status for API usage."""
-    running = is_running()
-    info: dict = {"running": running}
-    if not running and _last_failure_reason:
-        info["last_error"] = _last_failure_reason
-    if not running and _consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
-        info["stopped_retrying"] = True
-        info["message"] = f"{_consecutive_failures} consecutive startup failures, retry stopped. Please troubleshoot and restart manually."
-    return info
+    with _lock:
+        running = is_running()
+        info: dict = {"running": running}
+        if not running and _last_failure_reason:
+            info["last_error"] = _last_failure_reason
+        if not running and _consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
+            info["stopped_retrying"] = True
+            info["message"] = f"{_consecutive_failures} consecutive startup failures, retry stopped. Please troubleshoot and restart manually."
+        return info
 
 
 def _ensure_camoufox_browser() -> bool:
