@@ -81,16 +81,16 @@ class FallbackMailbox(BaseMailbox):
         errors: list[str] = []
         for provider_key, mailbox in self.providers:
             try:
-                print(f"[Mailbox] Trying provider: {provider_key}")
+                logger.info("Trying provider: %s", provider_key)
                 account = mailbox.get_email()
                 self._accounts[str(account.email or "").strip()] = mailbox
                 self._inject_provider_metadata(account, provider_key)
-                print(f"[Mailbox] Provider succeeded: {provider_key} -> {account.email}")
+                logger.info("Provider succeeded: %s -> %s", provider_key, account.email)
                 return account
             except Exception as exc:
                 message = str(exc).strip() or exc.__class__.__name__
                 errors.append(f"{provider_key}: {message}")
-                print(f"[Mailbox] Provider failed: {provider_key} -> {message}")
+                logger.warning("Provider failed: %s -> %s", provider_key, message)
                 continue
         raise RuntimeError("All mailbox providers failed: " + " | ".join(errors))
 
@@ -691,7 +691,7 @@ class TempMailLolMailbox(BaseMailbox):
                     if m:
                         return m.group(1) if m.groups() else m.group(0)
             except Exception as e:
-                print(f"[mail.tm wait_for_code] Error: {e}")
+                logger.error("[mail.tm wait_for_code] Error: %s", e)
             time.sleep(3)
         raise TimeoutError(f"Verification code wait timed out ({timeout}s)")
 
@@ -844,7 +844,7 @@ class TempMailWebMailbox(BaseMailbox):
             if status != 429 or attempt >= max_attempts:
                 return self._decode_json_response(result, action)
             wait_seconds = min(20, 3 * attempt + random.uniform(0.5, 2.5))
-            print(f"[TempMailWeb] {action} encountered 429, retrying in {wait_seconds:.1f}s ({attempt}/{max_attempts})")
+            logger.warning("%s encountered 429, retrying in %.1fs (%d/%d)", action, wait_seconds, attempt, max_attempts)
             time.sleep(wait_seconds)
 
         return self._decode_json_response(result, action)
@@ -858,7 +858,7 @@ class TempMailWebMailbox(BaseMailbox):
         if not address or not token:
             raise RuntimeError(f"Temp-Mail Web create mailbox failed: {json.dumps(data, ensure_ascii=False)[:300]}")
         self._accounts[address] = token
-        print(f"[TempMailWeb] Generated mailbox: {address}")
+        logger.info("Generated mailbox: %s", address)
         return MailboxAccount(
             email=address,
             account_id=token,
@@ -946,7 +946,7 @@ class TempMailWebMailbox(BaseMailbox):
                         continue
                     code = self._extract_code(item, code_pattern=code_pattern)
                     if code:
-                        print(f"[TempMailWeb] Received verification code: {code}")
+                        logger.debug("Received verification code: %s", code)
                         return code
             except Exception:
                 pass
@@ -1177,12 +1177,12 @@ class CFWorkerMailbox(BaseMailbox):
         r = requests.post(f"{self.api}/admin/new_address",
             json=payload, headers=self._headers(),
             proxies=self.proxy, timeout=15)
-        print(f"[CFWorker] new_address status={r.status_code} resp={r.text[:200]}")
+        logger.debug("new_address status=%d resp=%s", r.status_code, r.text[:200])
         data = r.json()
         email = data.get("email", data.get("address", ""))
         token = data.get("token", data.get("jwt", ""))
         self._token = token
-        print(f"[CFWorker] Generated mailbox: {email} token={token[:40] if token else 'NONE'}...")
+        logger.info("Generated mailbox: %s token=%s...", email, token[:40] if token else 'NONE')
         return MailboxAccount(
             email=email,
             account_id=token,
@@ -1332,7 +1332,7 @@ class MoeMailMailbox(BaseMailbox):
             self._apply_session_token(s, self._configured_session_token)
             self._session = s
             self._session_token = self._configured_session_token
-            print("[MoeMail] Using provided session-token")
+            logger.info("Using provided session-token")
             return self._configured_session_token
 
         if not (self._configured_username and self._configured_password):
@@ -1361,7 +1361,7 @@ class MoeMailMailbox(BaseMailbox):
         token = self._extract_session_token(s)
         if token:
             self._session_token = token
-            print("[MoeMail] Successfully logged in with manually registered account")
+            logger.info("Successfully logged in with manually registered account")
             return token
         raise RuntimeError(
             f"MoeMail login failed: username/password provided but session-token not obtained (HTTP {login_resp.status_code})"
@@ -1383,12 +1383,12 @@ class MoeMailMailbox(BaseMailbox):
         password = "Test" + "".join(random.choices(string.digits, k=8)) + "!"
         self._username = username
         self._password = password
-        print(f"[MoeMail] Registering account: {username} / {password}")
+        logger.info("Registering account: %s / %s", username, password)
         with suppress_insecure_request_warning():
             r_reg = s.post(f"{self.api}/api/auth/register",
                 json={"username": username, "password": password, "turnstileToken": ""},
                 timeout=15)
-        print(f"[MoeMail] Register result: {r_reg.status_code} {r_reg.text[:80]}")
+        logger.info("Register result: %d %s", r_reg.status_code, r_reg.text[:80])
         if r_reg.status_code >= 400:
             try:
                 register_error = r_reg.json().get("error") or r_reg.text
@@ -1415,9 +1415,9 @@ class MoeMailMailbox(BaseMailbox):
         token = self._extract_session_token(s)
         if token:
             self._session_token = token
-            print(f"[MoeMail] Login successful")
+            logger.info("Login successful")
             return token
-        print(f"[MoeMail] Login failed, cookies: {[c.name for c in s.cookies]}")
+        logger.warning("Login failed, cookies: %s", [c.name for c in s.cookies])
         raise RuntimeError(
             f"MoeMail login failed: session-token not obtained (HTTP {login_resp.status_code})"
         )
@@ -1454,9 +1454,9 @@ class MoeMailMailbox(BaseMailbox):
         data = r.json()
         self._email = data.get("email", data.get("address", ""))
         email_id = data.get("id", "")
-        print(f"[MoeMail] Generated mailbox: {self._email} id={email_id} domain={domain} status={r.status_code}")
+        logger.info("Generated mailbox: %s id=%s domain=%s status=%d", self._email, email_id, domain, r.status_code)
         if not email_id:
-            print(f"[MoeMail] Generation failed: {data}")
+            logger.warning("Generation failed: %s", data)
             generate_error = data.get("error") or data.get("message") or r.text
             raise RuntimeError(f"MoeMail mailbox generation failed: {str(generate_error).strip() or f'HTTP {r.status_code}'}")
         if not self._email:
@@ -1604,7 +1604,7 @@ class FreemailMailbox(BaseMailbox):
         data = r.json()
         email = data.get("email", "")
         self._email = email
-        print(f"[Freemail] Generated mailbox: {email}")
+        logger.info("Generated mailbox: %s", email)
         provider_account = {
             "provider_type": "mailbox",
             "provider_name": "freemail",
@@ -1937,7 +1937,7 @@ class DDGEmailMailbox(BaseMailbox):
         if not address:
             raise RuntimeError(f"DDG Email alias creation failed: {r.text[:200]}")
         email = f"{address}@duck.com"
-        print(f"[DDG Email] Created alias: {email}")
+        logger.info("Created alias: %s", email)
         return MailboxAccount(
             email=email,
             account_id=address,
@@ -1987,7 +1987,7 @@ class DDGEmailMailbox(BaseMailbox):
                 if not baseline_done:
                     seen_ids = set(ids)
                     baseline_done = True
-                    print(f"[DDG Email] IMAP baseline: {len(seen_ids)} existing emails skipped")
+                    logger.info("IMAP baseline: %d existing emails skipped", len(seen_ids))
                     conn.logout()
                     conn = None
                     time.sleep(5)
@@ -2037,12 +2037,12 @@ class DDGEmailMailbox(BaseMailbox):
                     m = re.search(pattern, combined)
                     if m:
                         code = m.group(1) if m.groups() else m.group(0)
-                        print(f"[DDG Email] IMAP verification code retrieved: {code}")
+                        logger.info("IMAP verification code retrieved: %s", code)
                         return code
 
                 conn.logout()
             except (imaplib.IMAP4.error, OSError) as e:
-                print(f"[DDG Email] IMAP connection error: {e}")
+                logger.error("IMAP connection error: %s", e)
             finally:
                 if conn:
                     try:

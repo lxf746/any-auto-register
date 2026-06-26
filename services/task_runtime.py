@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import logging
 import threading
 import time
 
 from application.tasks import claim_next_runnable_task, execute_task, mark_incomplete_tasks_interrupted
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -33,12 +36,12 @@ class TaskRuntime:
             mark_incomplete_tasks_interrupted()
             self._dispatcher = threading.Thread(target=self._loop, daemon=True, name="task-runtime")
             self._dispatcher.start()
-            print("[TaskRuntime] Started")
+            logger.info("Started")
 
     def stop(self) -> None:
         with self._lock:
             self._running = False
-        print("[TaskRuntime] Stopping")
+        logger.info("Stopping")
 
     def wake_up(self) -> None:
         # Polling loop wakes quickly already; this method exists as an explicit runtime hook.

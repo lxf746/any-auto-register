@@ -2,11 +2,14 @@
 import base64
 import hashlib
 import json
+import logging
 import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import UniqueConstraint, inspect
 from sqlmodel import Field, SQLModel, Session, create_engine, select
@@ -576,7 +579,7 @@ def _ensure_column(table: str, column: str, col_type: str):
         return
     with engine.begin() as conn:
         conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
-    print(f"[DB] Added column {table}.{column}")
+    logger.info("Added column %s.%s", table, column)
 
 
 def _cleanup_empty_provider_settings():
@@ -690,7 +693,7 @@ def _migrate_legacy_provider_keys():
 
         if migrated:
             session.commit()
-            print(f"[DB] Migrated {migrated} legacy provider keys")
+            logger.info("Migrated %d legacy provider keys", migrated)
 
         # 2. Fix auth_mode values
         fixed = 0
@@ -724,7 +727,7 @@ def _migrate_legacy_provider_keys():
 
         if fixed:
             session.commit()
-            print(f"[DB] Fixed {fixed} legacy auth_mode entries")
+            logger.info("Fixed %d legacy auth_mode entries", fixed)
 
         _mark_migration_applied(session, "legacy_provider_keys_v1")
 
