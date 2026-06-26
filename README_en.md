@@ -282,7 +282,6 @@ If `any2api_url` is not set, this integration is silently skipped.
 | Frontend | React + TypeScript + Vite + TailwindCSS |
 | HTTP | curl_cffi (browser fingerprint spoofing) |
 | Browser automation | Playwright / Camoufox |
-| Desktop | Electron + Nuitka packaging |
 
 ## Development
 
@@ -312,7 +311,6 @@ account_manager/
 ├── providers/              # provider plugins (mailbox / captcha / SMS / proxy)
 ├── services/               # background services (Solver process / task runner)
 ├── customer_portal_api/    # consumer + admin APIs
-├── electron/               # Electron desktop packaging
 ├── tests/                  # tests
 └── frontend/               # React frontend
 ```

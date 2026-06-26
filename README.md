@@ -282,7 +282,6 @@ python3 -m uvicorn main:app --port 8000
 | 前端 | React + TypeScript + Vite + TailwindCSS |
 | HTTP | curl_cffi(浏览器指纹伪装) |
 | 浏览器自动化 | Playwright / Camoufox |
-| 桌面端 | Electron + Nuitka 打包 |
 
 ## 开发文档
 
@@ -316,7 +315,6 @@ account_manager/
 │   └── proxy/
 ├── services/               # 后台服务(Solver 进程 / 任务执行器)
 ├── customer_portal_api/    # C 端 / 管理端独立 API
-├── electron/               # Electron 桌面端打包
 ├── tests/                  # 测试
 └── frontend/               # React 前端
 ```

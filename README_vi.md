@@ -280,9 +280,8 @@ Nếu không đặt `any2api_url`, tích hợp này sẽ được bỏ qua một
 |------|------|
 | Backend | FastAPI + SQLite (SQLModel) |
 | Frontend | React + TypeScript + Vite + TailwindCSS |
-| HTTP | curl_cffi (giả lập browser fingerprint) |
-| Browser automation | Playwright / Camoufox |
-| Desktop | Electron + đóng gói Nuitka |
+| HTTP | curl_cffi (giả mạo print header trình duyệt) |
+| Tự động hóa trình duyệt | Playwright / Camoufox |
 
 ## Phát triển
 
@@ -312,7 +311,6 @@ account_manager/
 ├── providers/              # provider plugins
 ├── services/               # dịch vụ nền (Solver / task runner)
 ├── customer_portal_api/    # API người dùng + admin
-├── electron/               # đóng gói Electron desktop
 ├── tests/                  # tests
 └── frontend/               # React frontend
 ```

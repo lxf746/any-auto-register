@@ -12,7 +12,6 @@ aiofiles>=23.0.0
 patchright>=1.0.0
 quart>=0.19.0
 rich>=13.0.0
-pyinstaller>=6.0.0
 
 # 2FA TOTP support
 pyotp>=2.9.0

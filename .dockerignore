@@ -1,12 +1,10 @@
 .venv/
 frontend/node_modules/
-electron/node_modules/
 __pycache__/
 *.pyc
 *.pyo
 .git/
 data/
-static/
 *.egg-info/
 dist/
 build/

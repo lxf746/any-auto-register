@@ -32,14 +32,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-# PyInstaller static-analysis hook — makes modulefinder track Solver subprocess deps (quart, etc.)
-# Does not run at runtime; only for PyInstaller to see
-if False:  # pragma: no cover
-    import services.turnstile_solver.api_solver  # noqa: F401
-    import quart  # noqa: F401
-    import patchright  # noqa: F401
-    import rich  # noqa: F401
-
 from api.account_checks import router as account_checks_router
 from api.accounts import router as accounts_router
 from api.actions import router as actions_router
@@ -136,15 +128,6 @@ if os.path.isdir(_static_dir):
 
 
 if __name__ == "__main__":
-    import sys
     import uvicorn
-
-    # When backend is spawned by itself with --solver flag (PyInstaller bundled mode),
-    # do not start FastAPI main server; run as Turnstile Solver subprocess instead
-    if len(sys.argv) > 1 and sys.argv[1] == "--solver":
-        sys.argv = [sys.argv[0]] + sys.argv[2:]  # strip --solver so argparse sees remaining args
-        from services.turnstile_solver.start import main as solver_main
-        solver_main()
-        sys.exit(0)
 
     uvicorn.run(app, host="0.0.0.0", port=8000)

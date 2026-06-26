@@ -30,18 +30,8 @@ account.txt
 frontend/node_modules/
 frontend/dist/
 
-# Electron
-electron/node_modules/
-electron/dist/
-electron/backend/
-
 # PyInstaller
 backend.spec
---add-data=*
---add-binary=*
---hidden-import=*
---collect-all=*
-static/
 
 # Docker 数据
 data/

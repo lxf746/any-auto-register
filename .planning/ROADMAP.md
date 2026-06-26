@@ -1,139 +1,75 @@
-# Roadmap: Tech Debt & Code Quality
+# Roadmap: Remove Electron Desktop & React UI
 
-**Milestone:** v1.1 Tech Debt & Code Quality
+**Milestone:** v1.2 Remove Desktop
 **Created:** 2026-06-26
 
 ## Phase Overview
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 4 | Deprecated Code & DRY | Удалить deprecated код и консолидировать дублированные helpers | DEPR-01, DEPR-02, DRY-01, DRY-02, DRY-03 | 5 |
-| 5 | Legacy Migration Safety | Остановить повторный запуск legacy миграций | MIGR-01, MIGR-02, MIGR-03, MIGR-04 | 4 |
-| 6 | Logging | Заменить print() на logging модуль | LOG-01, LOG-02, LOG-03, LOG-04, LOG-05 | 5 |
-| 7 | Error Handling | Исправить bare except и молчаливое проглатывание | ERR-01, ERR-02, ERR-03, ERR-04 | 4 |
-| 8 | Constants | Вынести magic numbers в именованные константы | CONST-01, CONST-02, CONST-03 | 3 |
+| 9 | Delete Desktop Code | Удалить Electron, React, PyInstaller и убрать SPA fallback | DEL-01, DEL-02, DEL-03, API-01, API-02, DOC-01, DOC-02, IGN-01, IGN-02 | 9 |
+| 10 | Update CI & Docs | Убрать Electron из CI, обновить README'и | CI-01, CI-02, DOC-03, DOC-04, DOC-05 | 5 |
 
-**Total: 5 phases | 21 requirements | All covered ✓**
+**Total: 2 phases | 14 requirements | All covered ✓**
 
 ## Phase Details
 
-### Phase 4: Deprecated Code & DRY
+### Phase 9: Delete Desktop Code
 
-**Goal:** Удалить deprecated модуль и консолидировать дублированные datetime helpers
+**Goal:** Удалить Electron, React UI, PyInstaller и убрать SPA fallback из main.py
 
 **Requirements:**
-- DEPR-01: Удалить deprecated модуль `core/provider_drivers.py`
-- DEPR-02: Проверить что никакой код не импортирует удалённый модуль
-- DRY-01: Консолидировать `_utcnow()` из 4 файлов в `core/datetime_utils.py`
-- DRY-02: Консолидировать `_utcnow_iso()` и `_utcnow_ts()` в `core/datetime_utils.py`
-- DRY-03: Обновить все импорты в затронутых файлах
+- DEL-01: Удалить `electron/` целиком
+- DEL-02: Удалить `frontend/` целиком
+- DEL-03: Удалить `pyinstaller` из `requirements.txt`
+- API-01: Убрать SPA fallback блок из `main.py`
+- API-02: Убрать неиспользуемые импорты `FileResponse`, `StaticFiles`
+- DOC-01: Убрать Node.js build stage из `Dockerfile`
+- DOC-02: Убрать копирование static из `Dockerfile`
+- IGN-01: Убрать frontend/electron записи из `.gitignore`
+- IGN-02: Убрать frontend/electron записи из `.dockerignore`
 
 **Success criteria:**
-1. `core/provider_drivers.py` удалён
-2. `grep -r "provider_drivers" .` не находит импортов
-3. `core/datetime_utils.py` содержит `_utcnow`, `_utcnow_iso`, `_utcnow_ts`
-4. `core/db.py`, `core/lifecycle.py`, `core/account_graph.py`, `application/tasks.py` импортируют из `core/datetime_utils.py`
-5. Нет дублированных определений `_utcnow` в кодовой базе
+1. `ls electron/` и `ls frontend/` возвращают ошибку (не существуют)
+2. `grep -r "pyinstaller" requirements.txt` не находит результатов
+3. `main.py` не содержит SPA fallback и не импортирует `FileResponse`/`StaticFiles`
+4. `Dockerfile` не содержит `node:20` stage и не копирует `static/`
+5. `.gitignore` и `.dockerignore` не содержат frontend/electron записей
 
-**Files to modify:**
-- `core/provider_drivers.py` — удалить
-- `core/datetime_utils.py` — добавить функции
-- `core/db.py` — обновить импорт
-- `core/lifecycle.py` — обновить импорт
-- `core/account_graph.py` — обновить импорт
-- `application/tasks.py` — обновить импорт
+**Files to modify/delete:**
+- `electron/` — удалить
+- `frontend/` — удалить
+- `requirements.txt` — удалить pyinstaller
+- `main.py` — удалить SPA fallback + импорты
+- `Dockerfile` — удалить Node build stage
+- `.gitignore` — удалить frontend/electron записи
+- `.dockerignore` — удалить frontend/electron записи
 
 ---
 
-### Phase 5: Legacy Migration Safety
+### Phase 10: Update CI & Docs
 
-**Goal:** Остановить повторный запуск legacy миграций через version tracking
-
-**Requirements:**
-- MIGR-01: Добавить таблицу `schema_version` для трекинга миграций
-- MIGR-02: Legacy миграции запускаются только один раз
-- MIGR-03: `_migrate_legacy_accounts_schema` проверяет version перед запуском
-- MIGR-04: `_migrate_legacy_provider_keys` проверяет version перед запуском
-
-**Success criteria:**
-1. Таблица `schema_version` создаётся при старте
-2. Каждая миграция записывает свой ID в `schema_version` после выполнения
-3. `_migrate_legacy_accounts_schema` пропускается если миграция уже выполнена
-4. `_migrate_legacy_provider_keys` пропускается если миграция уже выполнена
-
-**Files to modify:**
-- `core/db.py` — добавить таблицу `schema_version`, изменить логику миграций
-
----
-
-### Phase 6: Logging
-
-**Goal:** Заменить все print() на logging модуль
+**Goal:** Убрать Electron из CI pipeline и обновить документацию
 
 **Requirements:**
-- LOG-01: Заменить `print()` в `core/db.py`
-- LOG-02: Заменить `print()` в `core/scheduler.py`
-- LOG-03: Заменить `print()` в `core/base_mailbox.py`
-- LOG-04: Заменить `print()` в `services/task_runtime.py`
-- LOG-05: Заменить `print()` в `services/solver_manager.py`
+- CI-01: Убрать Electron build jobs из release.yml
+- CI-02: Упростить release job (только Docker)
+- DOC-03: Обновить `README.md` — убрать десктопные ссылки и electron из tree
+- DOC-04: Обновить `README_en.md` — то же
+- DOC-05: Обновить `README_vi.md` — то же
 
 **Success criteria:**
-1. Все `print()` в перечисленных файлах заменены на `logger.info()`/`logger.debug()`/`logger.error()`
-2. Каждый модуль имеет `logger = logging.getLogger(__name__)`
-3. `grep -rn "print(" core/db.py core/scheduler.py core/base_mailbox.py services/task_runtime.py services/solver_manager.py` не находит результатов
+1. `.github/workflows/release.yml` не содержит `build-mac` или `build-win` jobs
+2. Release job не зависит от Electron artifacts
+3. `README.md` не содержит ссылок на "桌面版" или electron/
+4. `README_en.md` не содержит "desktop" download links
+5. `README_vi.md` не содержит "desktop" download links
 
 **Files to modify:**
-- `core/db.py`
-- `core/scheduler.py`
-- `core/base_mailbox.py`
-- `services/task_runtime.py`
-- `services/solver_manager.py`
-
----
-
-### Phase 7: Error Handling
-
-**Goal:** Исправить bare except и добавить логирование в проглоченные ошибки
-
-**Requirements:**
-- ERR-01: Заменить bare `except:` на `except Exception:` в `services/turnstile_solver/api_solver.py`
-- ERR-02: Добавить логирование в пустые `except Exception:` в `services/solver_manager.py`
-- ERR-03: Добавить логирование в пустые `except Exception:` в `platforms/windsurf/browser_register.py`
-- ERR-04: Добавить логирование в пустые `except Exception:` в `platforms/trae/browser_register.py`
-
-**Success criteria:**
-1. Нет bare `except:` (без типа) в `api_solver.py`
-2. Пустые `except Exception:` блоки в `solver_manager.py` содержат `logger.debug()`
-3. Пустые `except Exception:` блоки в `windsurf/browser_register.py` содержат `logger.debug()`
-4. Пустые `except Exception:` блоки в `trae/browser_register.py` содержат `logger.debug()`
-
-**Files to modify:**
-- `services/turnstile_solver/api_solver.py`
-- `services/solver_manager.py`
-- `platforms/windsurf/browser_register.py`
-- `platforms/trae/browser_register.py`
-
----
-
-### Phase 8: Constants
-
-**Goal:** Вынести magic numbers в именованные константы
-
-**Requirements:**
-- CONST-01: Вынести `time.sleep(3600)` в `POLL_INTERVAL_SECONDS` в `core/scheduler.py`
-- CONST-02: Вынести `time.sleep(30)` в `LIFECYCLE_CHECK_INTERVAL` в `core/lifecycle.py`
-- CONST-03: Вынести `time.sleep(3)` в `SMS_RETRY_DELAY` в `core/base_sms.py`
-
-**Success criteria:**
-1. `core/scheduler.py` использует `POLL_INTERVAL_SECONDS = 3600`
-2. `core/lifecycle.py` использует `LIFECYCLE_CHECK_INTERVAL = 30`
-3. `core/base_sms.py` использует `SMS_RETRY_DELAY = 3`
-4. Нет magic numbers `3600`, `30`, `3` в `time.sleep()` вызовах в этих файлах
-
-**Files to modify:**
-- `core/scheduler.py`
-- `core/lifecycle.py`
-- `core/base_sms.py`
+- `.github/workflows/release.yml`
+- `README.md`
+- `README_en.md`
+- `README_vi.md`
 
 ---
 *Created: 2026-06-26*
