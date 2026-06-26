@@ -67,9 +67,9 @@
 | HTTP-05 | Phase 1 | Complete |
 | HTTP-06 | Phase 1 | Complete |
 | HTTP-07 | Phase 1 | Complete |
-| BRWS-01 | Phase 2 | Pending |
-| BRWS-02 | Phase 2 | Pending |
-| BRWS-03 | Phase 2 | Pending |
+| BRWS-01 | Phase 2 | Complete |
+| BRWS-02 | Phase 2 | Complete |
+| BRWS-03 | Phase 2 | Complete |
 | MEMO-01 | Phase 3 | Pending |
 | MEMO-02 | Phase 3 | Pending |
 | THRD-01 | Phase 3 | Pending |

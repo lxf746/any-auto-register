@@ -265,16 +265,29 @@ class TempMailWebMailbox(BaseMailbox):
             time.sleep(5)
         raise TimeoutError(f"Verification link wait timed out ({timeout}s)")
 
-    def __del__(self):
-        executor = getattr(self, "_executor", None)
-        browser = getattr(self, "_browser", None)
-        if executor is not None and browser is not None:
+    def close(self):
+        if self._page is not None:
             try:
-                executor.submit(browser.__exit__, None, None, None).result(timeout=5)
+                self._page.close()
             except Exception:
                 pass
-        if executor is not None:
+            self._page = None
+        if self._browser is not None:
             try:
-                executor.shutdown(wait=False, cancel_futures=False)
+                self._browser.__exit__(None, None, None)
             except Exception:
                 pass
+            self._browser = None
+        if self._executor is not None:
+            try:
+                self._executor.shutdown(wait=False, cancel_futures=False)
+            except Exception:
+                pass
+            self._executor = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False

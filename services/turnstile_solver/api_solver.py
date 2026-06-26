@@ -626,7 +626,8 @@ class TurnstileAPIServer:
         proxy = None
 
         index, browser, browser_config = await self.browser_pool.get()
-        
+        context = None
+
         try:
             if hasattr(browser, 'is_connected') and not browser.is_connected():
                 if self.debug:
@@ -922,13 +923,14 @@ class TurnstileAPIServer:
             if self.debug:
                 logger.debug(f"Browser {index}: Closing browser context and cleaning up")
             
-            try:
-                await context.close()
-                if self.debug:
-                    logger.debug(f"Browser {index}: Context closed successfully")
-            except Exception as e:
-                if self.debug:
-                    logger.warning(f"Browser {index}: Error closing context: {str(e)}")
+            if context is not None:
+                try:
+                    await context.close()
+                    if self.debug:
+                        logger.debug(f"Browser {index}: Context closed successfully")
+                except Exception as e:
+                    if self.debug:
+                        logger.warning(f"Browser {index}: Error closing context: {str(e)}")
             
             try:
                 if hasattr(browser, 'is_connected') and browser.is_connected():
