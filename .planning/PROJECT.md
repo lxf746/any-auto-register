@@ -8,7 +8,7 @@
 
 Автоматическая регистрация аккаунтов должна работать надёжно и безопасно — аккаунты создаются, данные защищены, система не подвержена компрометации.
 
-## Current Milestone: v1.3 Enterprise Email Provider Abstractions
+## Current Milestone: v1.3 Enterprise Email Provider Abstractions (Complete)
 
 **Goal:** Рефакторинг email-подсистемы из монолитного base_mailbox.py в модульную архитектуру с enterprise-возможностями
 
@@ -36,17 +36,11 @@
 - ✓ Security hardening — v1.0
 - ✓ Tech debt & code quality — v1.1
 - ✓ Удалить Electron десктоп — v1.2
+- ✓ Enterprise Email Provider Abstractions — v1.3
 
 ### Active
 
-- [ ] Разбить base_mailbox.py на отдельные модули
-- [ ] Единый реестр провайдеров
-- [ ] Typed config для провайдеров
-- [ ] Pre-flight health checks
-- [ ] Circuit breaker per provider
-- [ ] Health check caching
-- [ ] Email deduplication cache
-- [ ] Per-provider rate limiting
+(None — milestone complete)
 
 ### Out of Scope
 
@@ -58,7 +52,7 @@
 
 ## Context
 
-Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v1.2 (Electron removal). Email-подсистема — монолитный base_mailbox.py (2059 строк, 11 классов) с двумя параллельными системами реестра и строковой конфигурацией.
+Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v1.2 (Electron removal), v1.3 (Enterprise Email Provider Abstractions). Email-подсистема теперь модульная: core/mailbox/ пакет с отдельными провайдерами, единый реестр, typed config, resilience layer (health checks, circuit breaker, rate limiting, dedup).
 
 ## Constraints
 
@@ -73,8 +67,8 @@ Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v
 | Удалить Electron + React | Дублирует веб, API покрывает всё | ✓ Good |
 | Оставить core/desktop_apps.py | Детекция локальных IDE — core feature | ✓ Good |
 | Оставить Customer Portal | Отдельное приложение, не связано с Electron | ✓ Good |
-| Email subsystem clean break | Полный рефакторинг без обратной совместимости | — Pending |
-| Single registry | Единый реестр вместо двух параллельных систем | — Pending |
+| Email subsystem clean break | Полный рефакторинг без обратной совместимости | ✓ Good |
+| Single registry | Единый реестр вместо двух параллельных систем | ✓ Good |
 
 ## Evolution
 
@@ -94,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26 after v1.3 milestone start*
+*Last updated: 2026-06-26 after v1.3 milestone complete*
