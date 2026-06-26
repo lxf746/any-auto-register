@@ -60,13 +60,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HTTP-01 | Phase 1 | Pending |
-| HTTP-02 | Phase 1 | Pending |
-| HTTP-03 | Phase 1 | Pending |
-| HTTP-04 | Phase 1 | Pending |
-| HTTP-05 | Phase 1 | Pending |
-| HTTP-06 | Phase 1 | Pending |
-| HTTP-07 | Phase 1 | Pending |
+| HTTP-01 | Phase 1 | Complete |
+| HTTP-02 | Phase 1 | Complete |
+| HTTP-03 | Phase 1 | Complete |
+| HTTP-04 | Phase 1 | Complete |
+| HTTP-05 | Phase 1 | Complete |
+| HTTP-06 | Phase 1 | Complete |
+| HTTP-07 | Phase 1 | Complete |
 | BRWS-01 | Phase 2 | Pending |
 | BRWS-02 | Phase 2 | Pending |
 | BRWS-03 | Phase 2 | Pending |

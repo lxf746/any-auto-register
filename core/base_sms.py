@@ -117,18 +117,30 @@ class SmsActivateProvider(BaseSmsProvider):
         self.api_key = api_key
         self.default_country = default_country or "ru"
         self._proxy = {"http": proxy, "https": proxy} if proxy else None
+        self._session = None
+
+    def _get_session(self) -> requests.Session:
+        if self._session is None:
+            s = requests.Session()
+            s.proxies = self._proxy or {}
+            self._session = s
+        return self._session
 
     def _request(self, action: str, **params) -> str:
         params["api_key"] = self.api_key
         params["action"] = action
-        resp = requests.get(
+        resp = self._get_session().get(
             self.BASE_URL,
             params=params,
             timeout=20,
-            proxies=self._proxy,
         )
         resp.raise_for_status()
         return resp.text.strip()
+
+    def close(self):
+        if self._session:
+            self._session.close()
+            self._session = None
 
     def get_balance(self) -> float:
         result = self._request("getBalance")
@@ -356,12 +368,25 @@ class HeroSmsProvider(BaseSmsProvider):
         self.openai_resend_callback: Callable[[], None] | None = None
         self.last_code_result: dict | None = None
         self.current_activation: SmsActivation | None = None
+        self._session = None
+
+    def _get_session(self) -> requests.Session:
+        if self._session is None:
+            s = requests.Session()
+            s.proxies = self.proxies or {}
+            self._session = s
+        return self._session
+
+    def close(self):
+        if self._session:
+            self._session.close()
+            self._session = None
 
     def _request(self, params: dict, *, needs_key: bool = True, timeout: int = 30) -> requests.Response:
         payload = dict(params)
         if needs_key:
             payload["api_key"] = self.api_key
-        resp = requests.get(self.BASE_URL, params=payload, timeout=timeout, proxies=self.proxies)
+        resp = self._get_session().get(self.BASE_URL, params=payload, timeout=timeout)
         resp.raise_for_status()
         return resp
 
@@ -1038,7 +1063,7 @@ class SmsBowerProvider(HeroSmsProvider):
         payload = dict(params)
         if needs_key or self.api_key:
             payload["api_key"] = self.api_key
-        resp = requests.get(self.BASE_URL, params=payload, timeout=timeout, proxies=self.proxies)
+        resp = self._get_session().get(self.BASE_URL, params=payload, timeout=timeout)
         resp.raise_for_status()
         return resp
 

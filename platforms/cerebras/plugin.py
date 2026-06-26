@@ -60,15 +60,15 @@ class CerebrasPlatform(BasePlatform):
             return False
         try:
             from core.executors.protocol import ProtocolExecutor
-            ex = ProtocolExecutor(proxy=self.config.proxy if self.config else None)
-            r = ex.get(
-                "https://api.cerebras.ai/v1/models",
-                headers={
-                    "authorization": f"Bearer {api_key}",
-                    "accept": "application/json",
-                },
-            )
-            return r.status_code == 200
+            with ProtocolExecutor(proxy=self.config.proxy if self.config else None) as ex:
+                r = ex.get(
+                    "https://api.cerebras.ai/v1/models",
+                    headers={
+                        "authorization": f"Bearer {api_key}",
+                        "accept": "application/json",
+                    },
+                )
+                return r.status_code == 200
         except Exception:
             return False
 

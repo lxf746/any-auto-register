@@ -190,6 +190,18 @@ class GenericHttpMailbox(BaseMailbox):
             self._session = s
         return self._session
 
+    def close(self):
+        if self._session:
+            self._session.close()
+            self._session = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
     # ── Step execution engine ──────────────────────────────────────────────────
 
     def _execute_step(self, step_config: dict) -> dict | list | None:

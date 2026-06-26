@@ -49,6 +49,8 @@ class FreemailMailbox(BaseMailbox):
         self._email = None
 
     def _get_session(self):
+        if self._session is not None:
+            return self._session
         s = requests.Session()
         s.proxies = self.proxy
         if self.admin_token:
@@ -59,6 +61,18 @@ class FreemailMailbox(BaseMailbox):
                 timeout=15)
         self._session = s
         return s
+
+    def close(self):
+        if self._session:
+            self._session.close()
+            self._session = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
 
     def get_email(self) -> MailboxAccount:
         if not self._session:

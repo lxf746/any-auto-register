@@ -306,7 +306,9 @@ def refresh_and_sync_cpa(
 
     active_statuses = {"registered", "trial", "subscribed"}
 
-    for acc in accounts:
+    s = cffi_requests.Session(impersonate="chrome120")
+    try:
+      for acc in accounts:
         graph = graphs.get(int(acc.id or 0), {})
         if graph.get("lifecycle_status") not in active_statuses:
             results["skipped"] += 1
@@ -325,7 +327,7 @@ def refresh_and_sync_cpa(
         try:
             # 1. Use session_token to refresh access_token
             proxy = credentials.get("proxy", None)
-            s = cffi_requests.Session(impersonate="chrome120", proxy=proxy)
+            s.proxies = {"http": proxy, "https": proxy} if proxy else {}
             s.cookies.set("__Secure-next-auth.session-token", session_token,
                           domain=".chatgpt.com", path="/")
             resp = s.get("https://chatgpt.com/api/auth/session",
@@ -366,10 +368,10 @@ def refresh_and_sync_cpa(
                     sess.commit()
 
             # 2. Check liveness
-            check_resp = cffi_requests.get(
+            check_resp = s.get(
                 "https://chatgpt.com/backend-api/me",
                 headers={"authorization": f"Bearer {access_token}", "accept": "application/json"},
-                proxy=proxy, timeout=15, impersonate="chrome120",
+                timeout=15,
             )
 
             if check_resp.status_code != 200:
@@ -437,6 +439,9 @@ def refresh_and_sync_cpa(
         except Exception as exc:
             results["error"] += 1
             log(f"  ✗ {acc.email}: error {exc}")
+
+    finally:
+      s.close()
 
     log(f"[CPA Sync] refreshed {results['refreshed']}, uploaded {results['uploaded']}, "
         f"banned {results['dead']}, skipped {results['skipped']}, error {results['error']}")

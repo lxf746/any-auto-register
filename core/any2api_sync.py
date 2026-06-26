@@ -23,10 +23,15 @@ class Any2ApiClient:
         self.password = password
         self.timeout = timeout
         self._session_cookie = ""
+        self._http = requests.Session()
+
+    def close(self):
+        if self._http:
+            self._http.close()
 
     def _login(self) -> bool:
         try:
-            resp = requests.post(
+            resp = self._http.post(
                 f"{self.base_url}/admin/api/login",
                 json={"password": self.password},
                 timeout=self.timeout,
@@ -62,7 +67,7 @@ class Any2ApiClient:
         if not self._ensure_login():
             return None
         try:
-            resp = requests.post(
+            resp = self._http.post(
                 f"{self.base_url}{path}",
                 json=body,
                 headers=self._headers(),
@@ -74,7 +79,7 @@ class Any2ApiClient:
                 self._session_cookie = ""
                 if not self._login():
                     return None
-                resp = requests.post(
+                resp = self._http.post(
                     f"{self.base_url}{path}",
                     json=body,
                     headers=self._headers(),
@@ -90,7 +95,7 @@ class Any2ApiClient:
         if not self._ensure_login():
             return None
         try:
-            resp = requests.put(
+            resp = self._http.put(
                 f"{self.base_url}{path}",
                 json=body,
                 headers=self._headers(),
@@ -101,7 +106,7 @@ class Any2ApiClient:
                 self._session_cookie = ""
                 if not self._login():
                     return None
-                resp = requests.put(
+                resp = self._http.put(
                     f"{self.base_url}{path}",
                     json=body,
                     headers=self._headers(),
@@ -289,5 +294,8 @@ def push_account_to_any2api(account: Any, *, log_fn=None) -> bool:
     except Exception as exc:
         log(f"  [Any2API] Push failed: {exc}")
         return False
+
+    finally:
+        client.close()
 
     return False
