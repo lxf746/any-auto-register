@@ -57,10 +57,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODL-01 | Phase 1 | Pending |
-| MODL-02 | Phase 1 | Pending |
-| MODL-03 | Phase 1 | Pending |
-| MODL-04 | Phase 1 | Pending |
+| MODL-01 | Phase 1 | Complete |
+| MODL-02 | Phase 1 | Complete |
+| MODL-03 | Phase 1 | Complete |
+| MODL-04 | Phase 1 | Complete |
 | REGY-01 | Phase 2 | Pending |
 | REGY-02 | Phase 2 | Pending |
 | REGY-03 | Phase 2 | Pending |
