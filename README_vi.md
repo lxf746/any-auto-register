@@ -441,7 +441,8 @@ Tham gia nhóm người dùng để cập nhật mới nhất, activation code, 
 | Nhóm 1 | `1081650009` | Đã đầy |
 | Nhóm 2 | `1097916468` | Đã đầy |
 | Nhóm 3 | `100799970` | Đã đầy |
-| Nhóm 4 | `469274724` | Còn chỗ |
+| Nhóm 4 | `469274724` | Đã đầy |
+| Nhóm 5 | `906077873` | Còn chỗ |
 
 Tìm mã nhóm trong QQ để tham gia. Báo bug và yêu cầu tính năng vui lòng dùng [Issues](https://github.com/lxf746/any-auto-register/issues).
 
