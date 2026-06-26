@@ -299,91 +299,85 @@ class FireworksRegister:
             self.log("  Creating API key...")
             api_key = None
 
-            # Navigate to API keys page
-            page.goto(f"{FIREWORKS_APP}/account/api-keys", wait_until="domcontentloaded", timeout=15000)
-            time.sleep(8)
+            # Navigate to API keys via sidebar link (direct URL returns 404)
+            page.evaluate("""() => {
+                const links = document.querySelectorAll('a');
+                for (const a of links) {
+                    if (a.innerText?.trim() === 'API Keys') { a.click(); return; }
+                }
+            }""")
+            time.sleep(10)
             _dc(page)
-
-            self.log(f"  API keys URL: {page.url}")
 
             if "/login" in page.url:
                 browser.close()
                 raise FireworksAuthError("Session expired during API key creation")
 
-            # If on onboarding, try to skip
-            if "/onboarding" in page.url:
-                for _ in range(5):
-                    _dc(page)
-                    skip = page.locator("button:has-text('Skip')")
-                    if skip.count() > 0 and skip.first.is_visible():
-                        skip.first.click(force=True)
-                        time.sleep(3)
-                    else:
-                        break
-                page.goto(f"{FIREWORKS_APP}/account/api-keys", wait_until="domcontentloaded", timeout=15000)
-                time.sleep(8)
+            # Click "Create API Key" button → opens dropdown menu
+            create_btn = page.locator("button:has-text('Create API Key')")
+            if create_btn.count() > 0 and create_btn.first.is_visible():
+                create_btn.first.click(force=True)
+                time.sleep(3)
                 _dc(page)
 
-            body = page.inner_text("body")
+                # Click "API Key" from dropdown menu
+                menu_item = page.locator('[role="menuitem"]:has-text("API Key")')
+                if menu_item.count() > 0 and menu_item.first.is_visible():
+                    menu_item.first.click(force=True)
+                else:
+                    # Fallback: click "API Key" text in menu
+                    page.evaluate("""() => {
+                        const items = document.querySelectorAll('[role="menuitem"], [role="menu"] button, [data-state="open"] button');
+                        for (const item of items) {
+                            if (item.innerText?.trim() === 'API Key') {
+                                item.click();
+                                return;
+                            }
+                        }
+                    }""")
+                time.sleep(5)
+                _dc(page)
 
-            # Try clicking "API Keys" in sidebar
-            if "Not Found" in body or "api key" not in body.lower():
-                api_keys_link = page.locator("text=API Keys")
-                if api_keys_link.count() > 0:
-                    api_keys_link.first.click(force=True)
-                    time.sleep(5)
-                    _dc(page)
-                    body = page.inner_text("body")
-
-            self.log(f"  API keys page body: {body[:200]}")
-
-            # Look for CREATE button
-            create_btn = page.locator("button:has-text('CREATE'), button:has-text('Create')")
-            if create_btn.count() > 0:
-                for i in range(create_btn.count()):
-                    btn = create_btn.nth(i)
+                # Fill name in dialog
+                name_input = page.locator('input[name="name"]')
+                for i in range(name_input.count()):
+                    inp = name_input.nth(i)
                     try:
-                        if btn.is_visible():
-                            btn.click(force=True)
-                            time.sleep(3)
+                        if inp.is_visible():
+                            inp.fill("auto-register")
+                            time.sleep(1)
                             break
                     except Exception:
-                        continue
+                        pass
 
-                # Fill name if there's an input
-                name_input = page.locator('input[name="name"], input[placeholder*="name" i]')
-                if name_input.count() > 0 and name_input.first.is_visible():
-                    name_input.first.fill("auto-register")
-                    time.sleep(1)
+                # Click "Generate Key" button in dialog
+                dialog = page.locator('[role="dialog"]')
+                if dialog.count() > 0:
+                    gen_btn = dialog.locator('button:has-text("Generate"), button[type="submit"]')
+                    if gen_btn.count() > 0 and gen_btn.first.is_visible():
+                        gen_btn.first.click(force=True)
+                    else:
+                        # Fallback: press Enter
+                        page.keyboard.press("Enter")
+                else:
+                    page.keyboard.press("Enter")
+                time.sleep(5)
+                _dc(page)
 
-                # Confirm
-                confirm = page.locator('button[type="submit"], button:has-text("Create"), button:has-text("Confirm")')
-                if confirm.count() > 0:
-                    for i in range(confirm.count()):
-                        btn = confirm.nth(i)
-                        try:
-                            if btn.is_visible():
-                                btn.click(force=True)
-                                time.sleep(5)
-                                break
-                        except Exception:
-                            continue
-
-                # Extract API key
+                # Extract API key from "Copy your API Key" dialog
                 body = page.inner_text("body")
                 key_match = re.search(r'fw_[a-zA-Z0-9_-]{20,}', body)
                 if key_match:
                     api_key = key_match.group(0)
                     self.log(f"  API key created: {api_key[:20]}...")
-            else:
-                # Maybe the key is already visible on the page
-                body = page.inner_text("body")
-                key_match = re.search(r'fw_[a-zA-Z0-9_-]{20,}', body)
-                if key_match:
-                    api_key = key_match.group(0)
-                    self.log(f"  Found existing API key: {api_key[:20]}...")
 
-            # Get account info
+                    # Close the key display dialog
+                    close_btn = dialog.locator('button:has-text("Close"), button:has-text("Done")')
+                    if close_btn.count() > 0 and close_btn.first.is_visible():
+                        close_btn.first.click(force=True)
+                        time.sleep(2)
+
+            # Get account info from cookie
             account_id_result = ""
             for c in ctx.cookies():
                 if c["name"] == "auth_v2_user_context":
@@ -408,7 +402,7 @@ class FireworksRegister:
     def check_api_key_valid(self, api_key: str) -> dict[str, Any]:
         try:
             r = curl_requests.get(
-                f"{FIREWORKS_API}/v1/models",
+                f"{FIREWORKS_API}/inference/v1/models",
                 headers={"authorization": f"Bearer {api_key}", "accept": "application/json"},
                 impersonate="chrome131",
                 timeout=15,
@@ -417,6 +411,10 @@ class FireworksRegister:
                 models = [m.get("id", "") for m in r.json().get("data", []) if m.get("id")]
                 self.log(f"  Valid, {len(models)} models")
                 return {"valid": True, "models": models}
+            # 412 = account suspended (free tier) but key is valid
+            if r.status_code == 412:
+                self.log(f"  Key valid but account suspended (free tier)")
+                return {"valid": True, "models": [], "warning": "Account suspended (free tier)"}
             return {"valid": False, "error": f"HTTP {r.status_code}: {r.text[:200]}"}
         except Exception as e:
             return {"valid": False, "error": str(e)}
