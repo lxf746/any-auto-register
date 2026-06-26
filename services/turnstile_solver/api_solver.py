@@ -822,7 +822,7 @@ class TurnstileAPIServer:
                 try:
                     sitekey_elem = await page.locator('[data-sitekey]').get_attribute('data-sitekey')
                     logger.debug(f"Browser {index}: Found sitekey: {sitekey_elem}")
-                except:
+                except Exception:
                     pass
             
             inject_result = await self._inject_captcha_directly(page, sitekey, action or '', cdata or '', index)

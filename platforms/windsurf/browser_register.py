@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import random
 import re
@@ -31,6 +32,8 @@ from platforms.windsurf.core import (
     parse_subscribe_to_plan_response,
     summarize_account_state,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _proxy_config(proxy: Optional[str]) -> Optional[dict]:
@@ -84,8 +87,8 @@ def _get_turnstile_sitekey(page: Page) -> str:
         )
         if sitekey:
             return str(sitekey).strip()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Suppressed exception in page evaluate: %s", e)
     return WINDSURF_TURNSTILE_SITEKEY
 
 
@@ -162,8 +165,8 @@ def _is_cf_full_block(page: Page) -> bool:
             has_pricing = bool(page.query_selector('button, a[href*="pricing"], [data-testid]'))
             if not has_pricing:
                 return True
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Suppressed exception in page content read: %s", e)
     return False
 
 
@@ -282,8 +285,8 @@ def _click_start_trial(page: Page, log_fn: Callable[[str], None] = print, *, tim
                         locator.click(timeout=5000, force=True)
                         log_fn("Clicked Windsurf pricing page Start Free Trial")
                         return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed exception in element check: %s", e)
         try:
             clicked = page.evaluate(
                 """() => {
@@ -304,8 +307,8 @@ def _click_start_trial(page: Page, log_fn: Callable[[str], None] = print, *, tim
             if clicked:
                 log_fn(f"Clicked Windsurf pricing page button: {clicked}")
                 return True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in page evaluate: %s", e)
         page.wait_for_timeout(1000)
     log_fn(f"Windsurf pricing page Start Free Trial not found, visible buttons: {_visible_text_buttons(page)}")
     return False
@@ -332,8 +335,8 @@ def _click_turnstile_continue(page: Page, log_fn: Callable[[str], None] = print,
                         locator.click(timeout=4000, force=True)
                         log_fn("Clicked Windsurf Turnstile modal Continue")
                         return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed exception in element check: %s", e)
         try:
             clicked = page.evaluate(
                 """() => {
@@ -354,8 +357,8 @@ def _click_turnstile_continue(page: Page, log_fn: Callable[[str], None] = print,
             if clicked:
                 log_fn(f"Clicked Windsurf Turnstile modal button: {clicked}")
                 return True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in page evaluate: %s", e)
         page.wait_for_timeout(800)
     return False
 
@@ -375,8 +378,8 @@ def _wait_cf_full_block_clear(page: Page, timeout: int = 120, log_fn: Callable[[
             for _ in range(3):
                 page.mouse.move(random.randint(100, w["width"] - 100), random.randint(100, w["height"] - 100))
                 time.sleep(random.uniform(0.1, 0.3))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in viewport access: %s", e)
         if not clicked:
             clicked = _click_turnstile_in_iframe(page, log_fn)
             if not clicked:
@@ -685,9 +688,8 @@ class WindsurfBrowserRegister:
                     parsed = parse_post_auth_response(response.body())
                     if parsed.get("session_token"):
                         auth_data = parsed
-            except Exception:
-                pass
-
+            except Exception as e:
+                logger.debug("Suppressed exception in response parsing: %s", e)
         page.on("response", _capture_response)
         self.log("Step3: Filling email verification code and creating account")
         self._fill_otp(page, code)
@@ -707,8 +709,8 @@ class WindsurfBrowserRegister:
             visible_text = ""
             try:
                 visible_text = page.locator("body").inner_text(timeout=3000)[:500]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in locator operation: %s", e)
             raise RuntimeError(f"Windsurf page registration failed to get session_token, current page: {visible_text}")
         auth = auth_data
         session_token = auth["session_token"]
@@ -968,9 +970,8 @@ class WindsurfStripeCheckoutBrowser:
                 extracted_url = _extract_stripe_redirect_url(data)
                 if extracted_url:
                     redirect_url = extracted_url
-            except Exception:
-                pass
-
+            except Exception as e:
+                logger.debug("Suppressed exception in response parsing: %s", e)
         page.on("response", _capture_response)
         try:
             self.log("Step5: Trying to select Alipay and fill billing information")
@@ -1034,8 +1035,8 @@ class WindsurfStripeCheckoutBrowser:
                             final_url = current_url
                             self.log(f"Step7: Current page already shows Alipay scan/authorization content: {final_url[:160]}")
                             break
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed exception in text extraction: %s", e)
                 page.wait_for_timeout(1000)
 
             if not final_url and fallback_url:
@@ -1063,9 +1064,8 @@ class WindsurfStripeCheckoutBrowser:
         finally:
             try:
                 page.remove_listener("response", _capture_response)
-            except Exception:
-                pass
-
+            except Exception as e:
+                logger.debug("Suppressed exception in response parsing: %s", e)
     def _log_checkout_form_state(self, page: Page) -> None:
         try:
             state = page.evaluate(
@@ -1104,9 +1104,8 @@ class WindsurfStripeCheckoutBrowser:
                 f"submitClass={state.get('submitClass') or '-'} "
                 f"submitText={state.get('submitText') or '-'}"
             )
-        except Exception:
-            pass
-
+        except Exception as e:
+            logger.debug("Suppressed exception in page evaluate: %s", e)
     def _fill_checkout_form(
         self,
         page: Page,
@@ -1204,8 +1203,8 @@ class WindsurfStripeCheckoutBrowser:
                     page.wait_for_timeout(1200)
                     if self._is_alipay_selected(page):
                         return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in locator operation: %s", e)
         try:
             page.evaluate("""() => {
                 const input = document.querySelector('input[value="alipay"]');
@@ -1221,8 +1220,8 @@ class WindsurfStripeCheckoutBrowser:
             page.wait_for_timeout(900)
             if self._is_alipay_selected(page):
                 return
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in page evaluate: %s", e)
         pattern = re.compile(r"Alipay", re.I)
         for target in (
             page.get_by_role("radio", name=pattern).first,
@@ -1236,8 +1235,8 @@ class WindsurfStripeCheckoutBrowser:
                     page.wait_for_timeout(800)
                     if self._is_alipay_selected(page):
                         return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in click: %s", e)
         raise RuntimeError(f"Alipay payment method not found or cannot be selected in Stripe Checkout, visible payment methods: {self._visible_payment_methods(page)}")
 
     @staticmethod
@@ -1283,8 +1282,8 @@ class WindsurfStripeCheckoutBrowser:
             if not self._is_alipay_selected(page):
                 try:
                     page.locator('button[data-testid="alipay-accordion-item-button"]').first.click(timeout=1200, force=True)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed exception in locator operation: %s", e)
             page.wait_for_timeout(300)
         raise RuntimeError("Alipay selected but billing information form did not appear")
 
@@ -1324,8 +1323,8 @@ class WindsurfStripeCheckoutBrowser:
                             except Exception:
                                 self.log(f"Step6: Timed out waiting for Stripe submit button to become complete: {self._submit_button_state(page)}")
                         return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in wait: %s", e)
         patterns = (re.compile(r"Start trial|Subscribe|Authorize|Continue|Pay", re.I),)
         for pattern in patterns:
             try:
@@ -1335,8 +1334,8 @@ class WindsurfStripeCheckoutBrowser:
                     if button.is_enabled():
                         self._dom_click(button)
                         return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in element check: %s", e)
         buttons = page.locator("button").all()
         for button in reversed(buttons):
             try:
@@ -1346,8 +1345,8 @@ class WindsurfStripeCheckoutBrowser:
                     if button.is_enabled():
                         self._dom_click(button)
                         return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in element check: %s", e)
         raise RuntimeError("No clickable submit button found in Stripe Checkout")
 
     def _fill_if_empty(
@@ -1373,8 +1372,8 @@ class WindsurfStripeCheckoutBrowser:
                         else:
                             locator.fill(text)
                     return True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in locator operation: %s", e)
         for pattern in patterns:
             try:
                 locator = page.get_by_label(pattern).first
@@ -1387,8 +1386,8 @@ class WindsurfStripeCheckoutBrowser:
                         else:
                             locator.fill(text)
                     return True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in element check: %s", e)
         return False
 
     def _select_country_if_needed(self, page: Page, billing_country: str) -> bool:
@@ -1404,8 +1403,8 @@ class WindsurfStripeCheckoutBrowser:
                         self._select_option_flexible(locator, country)
                         page.wait_for_timeout(700)
                     return True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in locator operation: %s", e)
         for pattern in (re.compile(r"Country|Region|country|region", re.I),):
             try:
                 locator = page.get_by_label(pattern).first
@@ -1418,8 +1417,8 @@ class WindsurfStripeCheckoutBrowser:
                         if not current:
                             locator.fill(country)
                     return True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in element check: %s", e)
         return False
 
     def _check_checkout_boxes(self, page: Page) -> None:
@@ -1428,8 +1427,8 @@ class WindsurfStripeCheckoutBrowser:
             if checkbox.count():
                 checkbox.check(timeout=3000, force=True)
                 page.wait_for_timeout(300)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in locator operation: %s", e)
         patterns = (re.compile(r"Terms|Agree|Authorize|Mandate|Subscribe|terms|agree|authorize|mandate|subscribe", re.I),)
         for pattern in patterns:
             try:
@@ -1443,9 +1442,8 @@ class WindsurfStripeCheckoutBrowser:
                     if not checked:
                         checkbox.click(timeout=3000, force=True)
                         page.wait_for_timeout(300)
-            except Exception:
-                pass
-
+            except Exception as e:
+                logger.debug("Suppressed exception in checkbox: %s", e)
     def _wait_submit_ready(self, page: Page, selector: str) -> bool:
         try:
             page.wait_for_function(
@@ -1460,8 +1458,8 @@ class WindsurfStripeCheckoutBrowser:
                 timeout=10000,
             )
             return True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in wait: %s", e)
         page.wait_for_timeout(1000)
         return False
 
@@ -1481,9 +1479,8 @@ class WindsurfStripeCheckoutBrowser:
                 }""",
                 value,
             )
-        except Exception:
-            pass
-
+        except Exception as e:
+            logger.debug("Suppressed exception in page evaluate: %s", e)
     def _advance_intermediate_alipay_page(self, page: Page) -> bool:
         current_url = str(page.url or "")
         if not any(marker in current_url for marker in ("pm-redirects.stripe.com", "openapi.alipay.com", "render.alipay.com")):
@@ -1503,8 +1500,8 @@ class WindsurfStripeCheckoutBrowser:
                         locator.click(timeout=3000, force=True)
                         self.log("Step6: Clicked Alipay intermediate page continue button")
                         return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed exception in click: %s", e)
         try:
             submitted = page.evaluate(
                 """() => {
@@ -1526,8 +1523,8 @@ class WindsurfStripeCheckoutBrowser:
             if submitted:
                 self.log("Step6: Advanced Alipay intermediate page form")
                 return True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in page evaluate: %s", e)
         return False
 
     @staticmethod
@@ -1538,13 +1535,13 @@ class WindsurfStripeCheckoutBrowser:
         try:
             locator.select_option(value=value)
             return
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in select option: %s", e)
         try:
             locator.select_option(label=value)
             return
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in select option: %s", e)
         selected = locator.evaluate(
             """(el, wanted) => {
                 const normalize = (value) => String(value || '').trim().toLowerCase();
@@ -1616,8 +1613,8 @@ class WindsurfStripeCheckoutBrowser:
             )
             if selected:
                 return True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in page evaluate: %s", e)
         return False
 
     @staticmethod
@@ -1844,8 +1841,8 @@ class WindsurfBrowserPaymentFlow:
             if _click_start_trial(page, self.log, timeout=45):
                 page.wait_for_timeout(3000)
                 self.log(f"Current page after clicking Start Free Trial: {str(page.url or '')[:160]}")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed exception in click: %s", e)
         _handle_turnstile(
             page,
             log_fn=self.log,
@@ -1881,10 +1878,8 @@ class WindsurfBrowserPaymentFlow:
                     button.click(timeout=2000)
                     page.wait_for_timeout(500)
                     return
-            except Exception:
-                pass
-
-
+            except Exception as e:
+                logger.debug("Suppressed exception in element check: %s", e)
 class WindsurfCamoufoxCheckoutFlow(WindsurfBrowserPaymentFlow):
     @staticmethod
     def _add_mouse_event_patch(page: Page) -> None:

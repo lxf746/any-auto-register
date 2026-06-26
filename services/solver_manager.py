@@ -123,8 +123,8 @@ def start():
                 stderr_msg = ""
                 try:
                     stderr_msg = _proc.stderr.read().decode("utf-8", errors="replace")[:500]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Could not read subprocess stderr: %s", e)
                 _consecutive_failures += 1
                 _last_failure_reason = stderr_msg or f"Process exited with code={_proc.returncode}"
                 logger.error("Subprocess exited abnormally with code=%d (consecutive failures %d/%d)", _proc.returncode, _consecutive_failures, _MAX_CONSECUTIVE_FAILURES)
@@ -139,8 +139,8 @@ def start():
                 # Close stderr pipe to avoid buffer full causing subprocess blocking
                 try:
                     _proc.stderr.close()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Could not close subprocess stderr pipe: %s", e)
                 return
         # Startup timeout
         _consecutive_failures += 1
@@ -151,8 +151,8 @@ def start():
                 if select.select([_proc.stderr], [], [], 0)[0]:
                     stderr_msg = _proc.stderr.read(2000).decode("utf-8", errors="replace")
                 _proc.stderr.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Could not read or close subprocess stderr during timeout: %s", e)
         _last_failure_reason = f"Startup timeout {stderr_msg}".strip()
         logger.error("Startup timeout (consecutive failures %d/%d)%s",
                       _consecutive_failures, _MAX_CONSECUTIVE_FAILURES,
@@ -208,8 +208,8 @@ def _kill_by_port(port: int):
                 pid = int(pid_str.strip())
                 if pid > 0 and pid != os.getpid():
                     os.kill(pid, signal.SIGTERM)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Could not kill residual processes on port %d: %s", port, e)
 
 
 def restart():
