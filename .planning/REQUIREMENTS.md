@@ -7,42 +7,42 @@
 
 ### HTTP Session Management
 
-- [ ] **HTTP-01**: ProtocolExecutor — context manager или explicit close() в base_platform.py
-- [ ] **HTTP-02**: cffi_requests.Session в lifecycle.py — один на все итерации
-- [ ] **HTTP-03**: FreemailMailbox — context manager support
-- [ ] **HTTP-04**: GenericHttpMailbox — context manager support
-- [ ] **HTTP-05**: HTTPClient — гарантированное закрытие session
-- [ ] **HTTP-06**: Any2ApiClient — persistent session
-- [ ] **HTTP-07**: SMS providers — persistent sessions
+- [x] **HTTP-01**: ProtocolExecutor — context manager или explicit close() в base_platform.py
+- [x] **HTTP-02**: cffi_requests.Session в lifecycle.py — один на все итерации
+- [x] **HTTP-03**: FreemailMailbox — context manager support
+- [x] **HTTP-04**: GenericHttpMailbox — context manager support
+- [x] **HTTP-05**: HTTPClient — гарантированное закрытие session
+- [x] **HTTP-06**: Any2ApiClient — persistent session
+- [x] **HTTP-07**: SMS providers — persistent sessions
 
 ### Browser Resource Management
 
-- [ ] **BRWS-01**: TempMailWebMailbox — context manager вместо __del__
-- [ ] **BRWS-02**: PlaywrightExecutor — гарантированное закрытие
-- [ ] **BRWS-03**: Browser context в turnstile_solver — корректное закрытие при ошибках
+- [x] **BRWS-01**: TempMailWebMailbox — context manager вместо __del__
+- [x] **BRWS-02**: PlaywrightExecutor — гарантированное закрытие
+- [x] **BRWS-03**: Browser context в turnstile_solver — корректное закрытие при ошибках
 
 ### Memory Management
 
-- [ ] **MEMO-01**: _task_locks — periodic cleanup stale entries
-- [ ] **MEMO-02**: Global state — единый lock hierarchy
+- [x] **MEMO-01**: _task_locks — periodic cleanup stale entries
+- [x] **MEMO-02**: Global state — единый lock hierarchy
 
 ### Thread Safety
 
-- [ ] **THRD-01**: _FERNET lazy init — lock
-- [ ] **THRD-02**: providers/registry.py load_all() — lock
-- [ ] **THRD-03**: core/registry.py _registry — lock
-- [ ] **THRD-04**: solver_manager globals — lock в get_status()
+- [x] **THRD-01**: _FERNET lazy init — lock
+- [x] **THRD-02**: providers/registry.py load_all() — lock
+- [x] **THRD-03**: core/registry.py _registry — lock
+- [x] **THRD-04**: solver_manager globals — lock в get_status()
 
 ### Graceful Shutdown
 
-- [ ] **SHTD-01**: Scheduler.stop() — join thread
-- [ ] **SHTD-02**: LifecycleManager.stop() — join thread
-- [ ] **SHTD-03**: TaskRuntime.stop() — join workers
+- [x] **SHTD-01**: Scheduler.stop() — join thread
+- [x] **SHTD-02**: LifecycleManager.stop() — join thread
+- [x] **SHTD-03**: TaskRuntime.stop() — join workers
 
 ### Minor Issues
 
-- [ ] **MINR-01**: Lock ordering в base_sms.py — документирован и стабилен
-- [ ] **MINR-02**: Subprocess pipe в solver_manager — finally block
+- [x] **MINR-01**: Lock ordering в base_sms.py — документирован и стабилен
+- [x] **MINR-02**: Subprocess pipe в solver_manager — finally block
 
 ## v2 Requirements
 
@@ -70,27 +70,27 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HTTP-01 | Phase 1 | Pending |
-| HTTP-02 | Phase 1 | Pending |
-| HTTP-03 | Phase 1 | Pending |
-| HTTP-04 | Phase 1 | Pending |
-| HTTP-05 | Phase 1 | Pending |
-| HTTP-06 | Phase 1 | Pending |
-| HTTP-07 | Phase 1 | Pending |
-| BRWS-01 | Phase 2 | Pending |
-| BRWS-02 | Phase 2 | Pending |
-| BRWS-03 | Phase 2 | Pending |
-| MEMO-01 | Phase 3 | Pending |
-| MEMO-02 | Phase 3 | Pending |
-| THRD-01 | Phase 3 | Pending |
-| THRD-02 | Phase 3 | Pending |
-| THRD-03 | Phase 3 | Pending |
-| THRD-04 | Phase 3 | Pending |
-| SHTD-01 | Phase 4 | Pending |
-| SHTD-02 | Phase 4 | Pending |
-| SHTD-03 | Phase 4 | Pending |
-| MINR-01 | Phase 4 | Pending |
-| MINR-02 | Phase 4 | Pending |
+| HTTP-01 | Phase 1 | Complete |
+| HTTP-02 | Phase 1 | Complete |
+| HTTP-03 | Phase 1 | Complete |
+| HTTP-04 | Phase 1 | Complete |
+| HTTP-05 | Phase 1 | Complete |
+| HTTP-06 | Phase 1 | Complete |
+| HTTP-07 | Phase 1 | Complete |
+| BRWS-01 | Phase 2 | Complete |
+| BRWS-02 | Phase 2 | Complete |
+| BRWS-03 | Phase 2 | Complete |
+| MEMO-01 | Phase 3 | Complete |
+| MEMO-02 | Phase 3 | Complete |
+| THRD-01 | Phase 3 | Complete |
+| THRD-02 | Phase 3 | Complete |
+| THRD-03 | Phase 3 | Complete |
+| THRD-04 | Phase 3 | Complete |
+| SHTD-01 | Phase 4 | Complete |
+| SHTD-02 | Phase 4 | Complete |
+| SHTD-03 | Phase 4 | Complete |
+| MINR-01 | Phase 4 | Complete |
+| MINR-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 21 total
