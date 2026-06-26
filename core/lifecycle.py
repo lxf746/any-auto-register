@@ -12,22 +12,14 @@ from sqlmodel import Session, select
 from core.account_graph import load_account_graphs, patch_account_graph
 from core.base_platform import AccountStatus, RegisterConfig
 from core.db import AccountModel, AccountOverviewModel, engine
+from core.datetime_utils import _utcnow, _utcnow_iso, _utcnow_ts
 from core.platform_accounts import build_platform_account
 from core.registry import get
 
 logger = logging.getLogger(__name__)
 
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _utcnow_iso() -> str:
-    return _utcnow().isoformat().replace("+00:00", "Z")
-
-
-def _utcnow_ts() -> int:
-    return int(_utcnow().timestamp())
+# Initial delay before first lifecycle check (seconds)
+LIFECYCLE_STARTUP_DELAY = 30
 
 
 # ---------------------------------------------------------------------------
@@ -489,7 +481,7 @@ class LifecycleManager:
 
     def _loop(self):
         # Wait a bit before first run to let the app fully initialize
-        time.sleep(30)
+        time.sleep(LIFECYCLE_STARTUP_DELAY)
         while self._running:
             now = time.time()
             try:
@@ -498,7 +490,7 @@ class LifecycleManager:
 
                 # Validity check
                 if now - self._last_check >= self.check_interval:
-                    print("[LifecycleManager] starting account validity check...")
+                    logger.info("Starting account validity check...")
                     check_accounts_validity()
                     self._last_check = now
 

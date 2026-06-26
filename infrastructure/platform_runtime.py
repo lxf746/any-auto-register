@@ -7,6 +7,7 @@ from sqlmodel import Session
 
 from core.base_platform import RegisterConfig
 from core.account_graph import patch_account_graph
+from core.datetime_utils import _utcnow_iso
 from core.db import AccountModel, engine
 from core.platform_accounts import build_platform_account
 from core.registry import get, list_platforms, load_all
@@ -54,10 +55,6 @@ CASHIER_URL_ACTION_IDS = {
     "generate_link",
     "generate_link_browser",
 }
-
-
-def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _extract_action_url(data: dict[str, Any]) -> str:

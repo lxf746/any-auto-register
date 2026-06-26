@@ -1,6 +1,22 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
+
+
+def _utcnow() -> datetime:
+    """Return current UTC datetime."""
+    return datetime.now(timezone.utc)
+
+
+def _utcnow_iso() -> str:
+    """Return current UTC datetime as ISO string."""
+    return _utcnow().isoformat().replace("+00:00", "Z")
+
+
+def _utcnow_ts() -> int:
+    """Return current UTC timestamp as integer."""
+    return int(time.time())
 
 
 def ensure_utc_datetime(value: datetime | str | None) -> datetime | None:

@@ -11,6 +11,7 @@ Registration flow:
 Note: Trae uses the ByteDance Passport system, API requests carry X-Bogus/X-Gnarly signature headers,
 browser mode auto-generates these headers, no extra handling needed.
 """
+import logging
 import random
 import string
 import time
@@ -18,6 +19,8 @@ from typing import Callable, Optional
 from urllib.parse import urlparse
 
 from camoufox.sync_api import Camoufox
+
+logger = logging.getLogger(__name__)
 
 TRAE_URL = "https://www.trae.ai"
 TRAE_PASSPORT_DOMAIN = "ug-normal.trae.ai"
@@ -56,8 +59,8 @@ def _click_element(page, *selectors, timeout: int = 10) -> bool:
                 if el and el.is_visible():
                     el.click()
                     return True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed exception in element check: %s", e)
         time.sleep(0.5)
     return False
 
@@ -146,9 +149,8 @@ def _get_trae_cloudide_token(page, log_fn=print) -> tuple:
         try:
             cookies = {c["name"]: c["value"] for c in page.context.cookies()}
             user_id = cookies.get("user_id", cookies.get("userId", ""))
-        except Exception:
-            pass
-
+        except Exception as e:
+            logger.debug("Suppressed exception in cookie access: %s", e)
     # Ultimate fallback: extract id from JWT payload
     if not user_id and token:
         try:
@@ -157,9 +159,8 @@ def _get_trae_cloudide_token(page, log_fn=print) -> tuple:
             payload += "==" * (4 - len(payload) % 4)
             data = _json.loads(base64.urlsafe_b64decode(payload))
             user_id = str(data.get("data", {}).get("id", ""))
-        except Exception:
-            pass
-
+        except Exception as e:
+            logger.debug("Suppressed exception in JWT decode: %s", e)
     return token, user_id, region
 
 
@@ -220,8 +221,8 @@ class TraeBrowserRegister:
                         if el and el.is_visible():
                             email_el = el
                             break
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Suppressed exception in element check: %s", e)
                 if email_el:
                     break
                 time.sleep(0.5)
@@ -247,8 +248,8 @@ class TraeBrowserRegister:
                         send_clicked = True
                         self.log("Clicked Send Code")
                         break
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed exception in locator operation: %s", e)
                 # Fallback: JS traverse to find element with exact Send Code text
                 if not send_clicked:
                     try:
@@ -265,8 +266,8 @@ class TraeBrowserRegister:
                         """)
                         send_clicked = True
                         self.log("Clicked Send Code (JS)")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Suppressed exception in page evaluate: %s", e)
                 time.sleep(1)
 
             if not send_clicked:
@@ -296,8 +297,8 @@ class TraeBrowserRegister:
                         if el and el.is_visible():
                             otp_el = el
                             break
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Suppressed exception in element check: %s", e)
                 if otp_el:
                     break
                 time.sleep(1)
@@ -328,9 +329,8 @@ class TraeBrowserRegister:
                         el.fill(password)
                         time.sleep(0.3)
                         break
-                except Exception:
-                    pass
-
+                except Exception as e:
+                    logger.debug("Suppressed exception in element check: %s", e)
             # 6. Click "Sign Up"
             self.log("Submitting registration...")
             signup_clicked = False
@@ -343,8 +343,8 @@ class TraeBrowserRegister:
                         signup_clicked = True
                         self.log("Clicked Sign Up")
                         break
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed exception in locator operation: %s", e)
                 if not signup_clicked:
                     try:
                         page.evaluate("""
@@ -361,8 +361,8 @@ class TraeBrowserRegister:
                         """)
                         signup_clicked = True
                         self.log("Clicked Sign Up (JS)")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Suppressed exception in page evaluate: %s", e)
                 time.sleep(0.5)
 
             if not signup_clicked:

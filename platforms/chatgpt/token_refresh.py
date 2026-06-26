@@ -17,11 +17,9 @@ from curl_cffi import requests as cffi_requests
 # from ..database import crud  # removed: external dep
 # from ..database.models import Account  # removed: external dep
 
+from core.datetime_utils import _utcnow
+
 logger = logging.getLogger(__name__)
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 @dataclass

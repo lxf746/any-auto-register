@@ -3,8 +3,11 @@
 Set the environment variable ``APP_PASSWORD`` (or config key ``app_password``)
 to enable password protection.  When set, every API request must carry either:
 
-  - Header ``Authorization: Bearer <password>``
-  - Cookie ``_auth=<password>``
+  - Header ``Authorization: Bearer <session_token>``
+  - Cookie ``_auth=<session_token>``
+
+Session tokens are generated on login via ``api.auth.create_session`` and
+validated against the in-memory session store.
 
 The health / ready endpoints are always public so that Docker health-checks
 work without credentials.
@@ -36,13 +39,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not path.startswith("/api"):
             return await call_next(request)
 
-        # Check Authorization header
+        # Check Authorization header for session token
         auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Bearer ") and auth_header[7:] == password:
-            return await call_next(request)
+        if auth_header.startswith("Bearer "):
+            from api.auth import validate_session
+            token = auth_header[7:]
+            if validate_session(token):
+                return await call_next(request)
 
-        # Check cookie
-        if request.cookies.get("_auth") == password:
-            return await call_next(request)
+        # Check cookie for session token
+        cookie_token = request.cookies.get("_auth")
+        if cookie_token:
+            from api.auth import validate_session
+            if validate_session(cookie_token):
+                return await call_next(request)
 
         return Response(content='{"detail":"Unauthorized"}', status_code=401, media_type="application/json")

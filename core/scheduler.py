@@ -1,19 +1,22 @@
 """Scheduled task scheduler - account validity checks, trial expiry reminders"""
 from datetime import datetime, timezone
+import logging
 
 from sqlmodel import Session, select
 
 from .account_graph import load_account_graphs, patch_account_graph
 from .base_platform import AccountStatus, RegisterConfig
 from .db import engine, AccountModel
+from core.datetime_utils import _utcnow_iso
 from .platform_accounts import build_platform_account
 from .registry import get, load_all
 import threading
 import time
 
+logger = logging.getLogger(__name__)
 
-def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+# Scheduler poll interval (1 hour)
+POLL_INTERVAL_SECONDS = 3600
 
 
 class Scheduler:
@@ -27,7 +30,7 @@ class Scheduler:
         self._running = True
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
-        print("[Scheduler] Started")
+        logger.info("Started")
 
     def stop(self):
         self._running = False
@@ -37,9 +40,9 @@ class Scheduler:
             try:
                 self.check_trial_expiry()
             except Exception as e:
-                print(f"[Scheduler] Error: {e}")
+                logger.error("Error: %s", e)
             # Check every hour
-            time.sleep(3600)
+            time.sleep(POLL_INTERVAL_SECONDS)
 
     def check_trial_expiry(self):
         """Check trial expiry accounts and update status"""
@@ -60,7 +63,7 @@ class Scheduler:
                     updated += 1
             s.commit()
             if updated:
-                print(f"[Scheduler] {updated} trial accounts expired")
+                logger.info("%d trial accounts expired", updated)
 
     def check_accounts_valid(self, platform: str = None, limit: int = 50):
         """Batch check account validity"""

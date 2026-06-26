@@ -1,4 +1,5 @@
 """Turnstile Solver process management - auto-started on backend startup"""
+import logging
 import subprocess
 import sys
 import os
@@ -6,6 +7,8 @@ import time
 import threading
 import signal
 import requests
+
+logger = logging.getLogger(__name__)
 
 SOLVER_PORT = 8889
 SOLVER_URL = f"http://localhost:{SOLVER_PORT}"
@@ -47,26 +50,26 @@ def _ensure_camoufox_browser() -> bool:
     try:
         from camoufox.pkgman import installed_verstr, CamoufoxNotInstalled
     except Exception as e:
-        print(f"[Solver] camoufox library import failed: {e}")
+        logger.error("camoufox library import failed: %s", e)
         return False
 
     try:
         ver = installed_verstr()
-        print(f"[Solver] Camoufox browser ready (v{ver})")
+        logger.info("Camoufox browser ready (v%s)", ver)
         return True
     except CamoufoxNotInstalled:
         pass
     except Exception as e:
-        print(f"[Solver] Camoufox browser detection abnormal, still trying to install: {e}")
+        logger.warning("Camoufox browser detection abnormal, still trying to install: %s", e)
 
-    print("[Solver] Camoufox browser not installed, starting download (about 100MB, please wait)...")
+    logger.info("Camoufox browser not installed, starting download (about 100MB, please wait)...")
     try:
         from camoufox.pkgman import CamoufoxFetcher
         CamoufoxFetcher().install()
-        print("[Solver] Camoufox browser download completed")
+        logger.info("Camoufox browser download completed")
         return True
     except Exception as e:
-        print(f"[Solver] Camoufox browser download failed: {e}")
+        logger.error("Camoufox browser download failed: %s", e)
         return False
 
 
@@ -74,21 +77,21 @@ def start():
     global _proc, _consecutive_failures, _last_failure_reason
     with _lock:
         if is_running():
-            print("[Solver] Already running")
+            logger.info("Already running")
             _consecutive_failures = 0
             _last_failure_reason = ""
             return
 
         # Too many consecutive failures, refusing to retry (manual restart will reset counter)
         if _consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
-            print(f"[Solver] {_consecutive_failures} consecutive startup failures, stopping retry. Please troubleshoot and restart manually.")
+            logger.warning("%d consecutive startup failures, stopping retry. Please troubleshoot and restart manually.", _consecutive_failures)
             return
 
         # Ensure Camoufox browser binary is available before starting Solver subprocess
         if not _ensure_camoufox_browser():
             _consecutive_failures += 1
             _last_failure_reason = "Camoufox browser unavailable"
-            print("[Solver] Skipping Solver startup because Camoufox browser is unavailable")
+            logger.warning("Skipping Solver startup because Camoufox browser is unavailable")
             return
 
         # After PyInstaller packaging, sys.executable points to the backend executable,
@@ -120,24 +123,24 @@ def start():
                 stderr_msg = ""
                 try:
                     stderr_msg = _proc.stderr.read().decode("utf-8", errors="replace")[:500]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Could not read subprocess stderr: %s", e)
                 _consecutive_failures += 1
                 _last_failure_reason = stderr_msg or f"Process exited with code={_proc.returncode}"
-                print(f"[Solver] Subprocess exited abnormally with code={_proc.returncode} (consecutive failures {_consecutive_failures}/{_MAX_CONSECUTIVE_FAILURES})")
+                logger.error("Subprocess exited abnormally with code=%d (consecutive failures %d/%d)", _proc.returncode, _consecutive_failures, _MAX_CONSECUTIVE_FAILURES)
                 if stderr_msg:
-                    print(f"[Solver] stderr: {stderr_msg}")
+                    logger.error("stderr: %s", stderr_msg)
                 _proc = None
                 return
             if is_running():
-                print(f"[Solver] Started PID={_proc.pid}")
+                logger.info("Started PID=%d", _proc.pid)
                 _consecutive_failures = 0
                 _last_failure_reason = ""
                 # Close stderr pipe to avoid buffer full causing subprocess blocking
                 try:
                     _proc.stderr.close()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Could not close subprocess stderr pipe: %s", e)
                 return
         # Startup timeout
         _consecutive_failures += 1
@@ -148,11 +151,12 @@ def start():
                 if select.select([_proc.stderr], [], [], 0)[0]:
                     stderr_msg = _proc.stderr.read(2000).decode("utf-8", errors="replace")
                 _proc.stderr.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Could not read or close subprocess stderr during timeout: %s", e)
         _last_failure_reason = f"Startup timeout {stderr_msg}".strip()
-        print(f"[Solver] Startup timeout (consecutive failures {_consecutive_failures}/{_MAX_CONSECUTIVE_FAILURES})"
-              f"{' stderr: ' + stderr_msg if stderr_msg else ''}")
+        logger.error("Startup timeout (consecutive failures %d/%d)%s",
+                      _consecutive_failures, _MAX_CONSECUTIVE_FAILURES,
+                      ' stderr: ' + stderr_msg if stderr_msg else '')
 
 
 def stop():
@@ -166,7 +170,7 @@ def stop():
             except subprocess.TimeoutExpired:
                 _proc.kill()
                 _proc.wait(timeout=3)
-            print("[Solver] Subprocess stopped")
+            logger.info("Subprocess stopped")
         _proc = None
 
         # 2. Even if _proc is None (Docker / external launch), try to find and kill residual processes by port
@@ -177,9 +181,9 @@ def stop():
                 if not is_running():
                     break
             if is_running():
-                print("[Solver] Warning: port still occupied after stopping")
+                logger.warning("Warning: port still occupied after stopping")
             else:
-                print("[Solver] Residual processes cleaned up")
+                logger.info("Residual processes cleaned up")
 
 
 def _kill_by_port(port: int):
@@ -204,8 +208,8 @@ def _kill_by_port(port: int):
                 pid = int(pid_str.strip())
                 if pid > 0 and pid != os.getpid():
                     os.kill(pid, signal.SIGTERM)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Could not kill residual processes on port %d: %s", port, e)
 
 
 def restart():

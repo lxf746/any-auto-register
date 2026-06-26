@@ -1,16 +1,96 @@
 """Database models - SQLite via SQLModel"""
+import base64
+import hashlib
 import json
+import logging
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+logger = logging.getLogger(__name__)
+
 from sqlalchemy import UniqueConstraint, inspect
 from sqlmodel import Field, SQLModel, Session, create_engine, select
 
+from core.datetime_utils import _utcnow
 
-def _utcnow():
-    return datetime.now(timezone.utc)
+
+# ---------------------------------------------------------------------------
+# Password encryption at rest
+# ---------------------------------------------------------------------------
+
+_FERNET = None
+
+
+def _get_fernet():
+    """Lazy-init Fernet cipher from ACCOUNT_ENCRYPTION_KEY env var."""
+    global _FERNET
+    if _FERNET is not None:
+        return _FERNET
+    from cryptography.fernet import Fernet
+
+    raw_key = os.getenv("ACCOUNT_ENCRYPTION_KEY", "")
+    if not raw_key:
+        # Derive a deterministic key from a passphrase (not truly secure for
+        # production, but better than plaintext; set ACCOUNT_ENCRYPTION_KEY
+        # in production).
+        raw_key = hashlib.pbkdf2_hmac(
+            "sha256",
+            b"any-auto-register-default-key",
+            b"any-auto-register-salt",
+            100_000,
+        )
+        key = base64.urlsafe_b64encode(raw_key)
+    else:
+        key = base64.urlsafe_b64encode(
+            hashlib.pbkdf2_hmac("sha256", raw_key.encode(), b"any-auto-register-salt", 100_000)
+        )
+    _FERNET = Fernet(key)
+    return _FERNET
+
+
+def encrypt_password(plaintext: str) -> str:
+    """Encrypt a password for storage. Returns base64-encoded ciphertext."""
+    if not plaintext:
+        return plaintext
+    f = _get_fernet()
+    return f.encrypt(plaintext.encode()).decode()
+
+
+def decrypt_password(ciphertext: str) -> str:
+    """Decrypt a stored password. Handles both encrypted and legacy plaintext."""
+    if not ciphertext:
+        return ciphertext
+    f = _get_fernet()
+    try:
+        return f.decrypt(ciphertext.encode()).decode()
+    except Exception:
+        # Legacy plaintext — return as-is
+        return ciphertext
+
+
+# ---------------------------------------------------------------------------
+# SQL injection prevention for _ensure_column
+# ---------------------------------------------------------------------------
+
+_VALID_TABLES = frozenset({
+    "accounts",
+    "account_overviews",
+    "account_credentials",
+    "provider_accounts",
+    "provider_resources",
+    "provider_definitions",
+    "provider_settings",
+    "platform_capability_overrides",
+    "task_logs",
+    "tasks",
+    "task_events",
+    "proxies",
+})
+
+_VALID_IDENTIFIER_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
 def _default_database_url() -> str:
@@ -300,6 +380,28 @@ class ProxyModel(SQLModel, table=True):
     last_checked: Optional[datetime] = None
 
 
+class SchemaVersionModel(SQLModel, table=True):
+    __tablename__ = "schema_version"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    version: str = Field(unique=True, index=True)
+    applied_at: datetime = Field(default_factory=_utcnow)
+
+
+def _migration_applied(session: Session, version: str) -> bool:
+    """Check if a migration has already been applied."""
+    existing = session.exec(
+        select(SchemaVersionModel).where(SchemaVersionModel.version == version)
+    ).first()
+    return existing is not None
+
+
+def _mark_migration_applied(session: Session, version: str) -> None:
+    """Record that a migration has been applied."""
+    session.add(SchemaVersionModel(version=version))
+    session.commit()
+
+
 def save_account(account) -> 'AccountModel':
     """Persist base_platform.Account to database (update if same platform and email)"""
     from core.account_graph import sync_platform_account_graph
@@ -311,7 +413,7 @@ def save_account(account) -> 'AccountModel':
             .where(AccountModel.email == account.email)
         ).first()
         if existing:
-            existing.password = account.password
+            existing.password = encrypt_password(account.password)
             existing.user_id = account.user_id or ""
             existing.updated_at = _utcnow()
             session.add(existing)
@@ -323,7 +425,7 @@ def save_account(account) -> 'AccountModel':
         m = AccountModel(
             platform=account.platform,
             email=account.email,
-            password=account.password,
+            password=encrypt_password(account.password),
             user_id=account.user_id or "",
         )
         session.add(m)
@@ -361,8 +463,16 @@ def _accounts_columns() -> set[str]:
 
 
 def _migrate_legacy_accounts_schema() -> None:
+    """Migrate legacy accounts table schema. Runs only once (tracked via schema_version)."""
+    with Session(engine) as session:
+        if _migration_applied(session, "legacy_accounts_schema_v1"):
+            return
+
     columns = _accounts_columns()
     if not columns or not any(column in columns for column in LEGACY_ACCOUNT_COLUMNS):
+        # No legacy columns — mark as applied to skip future checks
+        with Session(engine) as session:
+            _mark_migration_applied(session, "legacy_accounts_schema_v1")
         return
 
     from core.account_graph import sync_legacy_account_graph
@@ -426,6 +536,9 @@ def _migrate_legacy_accounts_schema() -> None:
         connection.exec_driver_sql("CREATE INDEX ix_accounts_email ON accounts (email)")
         connection.exec_driver_sql("PRAGMA foreign_keys=ON")
 
+    with Session(engine) as session:
+        _mark_migration_applied(session, "legacy_accounts_schema_v1")
+
 
 def init_db():
     SQLModel.metadata.create_all(engine)
@@ -446,7 +559,17 @@ def init_db():
 
 
 def _ensure_column(table: str, column: str, col_type: str):
-    """Safely add a column to an existing table (SQLite does not support IF NOT EXISTS ADD COLUMN)."""
+    """Safely add a column to an existing table (SQLite does not support IF NOT EXISTS ADD COLUMN).
+
+    Validates table and column names against an allowlist to prevent SQL injection.
+    """
+    if table not in _VALID_TABLES:
+        raise ValueError(f"Invalid table name: {table!r}")
+    if not _VALID_IDENTIFIER_RE.match(column):
+        raise ValueError(f"Invalid column name: {column!r}")
+    if not _VALID_IDENTIFIER_RE.match(col_type.split()[0]):
+        raise ValueError(f"Invalid column type: {col_type!r}")
+
     inspector = inspect(engine)
     tables = set(inspector.get_table_names())
     if table not in tables:
@@ -456,7 +579,7 @@ def _ensure_column(table: str, column: str, col_type: str):
         return
     with engine.begin() as conn:
         conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
-    print(f"[DB] Added column {table}.{column}")
+    logger.info("Added column %s.%s", table, column)
 
 
 def _cleanup_empty_provider_settings():
@@ -519,10 +642,12 @@ _LEGACY_AUTH_MODE_MAP: dict[str, str] = {
 def _migrate_legacy_provider_keys():
     """Migrate legacy provider_key and auth_mode to new naming.
 
-    Migrate both provider_settings and provider_definitions tables.
-    If the new key already exists, delete the old record (to avoid unique constraint conflicts).
-    After migration, also fix auth_mode values to match valid values in the new definition.
+    Runs only once (tracked via schema_version).
     """
+    with Session(engine) as session:
+        if _migration_applied(session, "legacy_provider_keys_v1"):
+            return
+
     with Session(engine) as session:
         migrated = 0
 
@@ -568,7 +693,7 @@ def _migrate_legacy_provider_keys():
 
         if migrated:
             session.commit()
-            print(f"[DB] Migrated {migrated} legacy provider keys")
+            logger.info("Migrated %d legacy provider keys", migrated)
 
         # 2. Fix auth_mode values
         fixed = 0
@@ -602,7 +727,9 @@ def _migrate_legacy_provider_keys():
 
         if fixed:
             session.commit()
-            print(f"[DB] Fixed {fixed} legacy auth_mode entries")
+            logger.info("Fixed %d legacy auth_mode entries", fixed)
+
+        _mark_migration_applied(session, "legacy_provider_keys_v1")
 
 
 def _cleanup_non_real_providers():

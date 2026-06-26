@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from sqlmodel import Session, select
 
+from core.datetime_utils import _utcnow
 from core.db import PlatformCapabilityOverrideModel, engine
 from core.registry import list_platforms
 from domain.platform_caps import PlatformCapabilitiesUpdate
@@ -11,10 +10,6 @@ from domain.platform_caps import PlatformCapabilitiesUpdate
 
 class PlatformCapabilitiesRepository:
     ALLOWED_KEYS = {"supported_executors", "supported_identity_modes", "supported_oauth_providers", "capabilities"}
-
-    @staticmethod
-    def _utcnow() -> datetime:
-        return datetime.now(timezone.utc)
 
     def list_platforms(self) -> list[dict]:
         return list_platforms()
@@ -34,9 +29,9 @@ class PlatformCapabilitiesRepository:
             ).first()
             if not item:
                 item = PlatformCapabilityOverrideModel(platform_name=name)
-                item.created_at = self._utcnow()
+                item.created_at = _utcnow()
             item.set_capabilities(safe)
-            item.updated_at = self._utcnow()
+            item.updated_at = _utcnow()
             session.add(item)
             session.commit()
         return {"ok": True}

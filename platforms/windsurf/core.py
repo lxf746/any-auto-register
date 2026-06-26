@@ -10,11 +10,12 @@ protobuf wire encoding/decoding needed for current automation.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.parse import quote
 
 from curl_cffi import requests as curl_requests
+
+from core.datetime_utils import _utcnow_iso
 
 
 WINDSURF_BASE = "https://windsurf.com"
@@ -36,10 +37,6 @@ def _as_int(value: Any) -> int:
         return int(value or 0)
     except Exception:
         return 0
-
-
-def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _encode_varint(value: int) -> bytes:

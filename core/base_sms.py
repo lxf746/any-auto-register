@@ -15,6 +15,9 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# Delay between SMS status polling retries (seconds)
+SMS_POLL_RETRY_DELAY = 3
+
 
 @dataclass
 class SmsActivation:
@@ -159,15 +162,15 @@ class SmsActivateProvider(BaseSmsProvider):
             if result.startswith("STATUS_OK:"):
                 return result.split(":")[1]
             if result == "STATUS_WAIT_CODE":
-                time.sleep(3)
+                time.sleep(SMS_POLL_RETRY_DELAY)
                 continue
             if result == "STATUS_WAIT_RETRY":
                 self._request("setStatus", id=activation_id, status="6")
-                time.sleep(3)
+                time.sleep(SMS_POLL_RETRY_DELAY)
                 continue
             if result == "STATUS_CANCEL":
                 return ""
-            time.sleep(3)
+            time.sleep(SMS_POLL_RETRY_DELAY)
 
         self.cancel(activation_id)
         return ""
