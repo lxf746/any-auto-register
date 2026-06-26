@@ -65,10 +65,10 @@
 | REGY-02 | Phase 2 | Complete |
 | REGY-03 | Phase 2 | Complete |
 | REGY-04 | Phase 2 | Complete |
-| CONF-01 | Phase 3 | Pending |
-| CONF-02 | Phase 3 | Pending |
-| CONF-03 | Phase 3 | Pending |
-| CONF-04 | Phase 3 | Pending |
+| CONF-01 | Phase 3 | Complete |
+| CONF-02 | Phase 3 | Complete |
+| CONF-03 | Phase 3 | Complete |
+| CONF-04 | Phase 3 | Complete |
 | REIL-01 | Phase 4 | Pending |
 | REIL-02 | Phase 4 | Pending |
 | REIL-03 | Phase 4 | Pending |

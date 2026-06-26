@@ -21,9 +21,14 @@ class TempMailWebMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'TempMailWebMailbox':
-        return cls(
+        from core.mailbox.config import TempMailWebConfig
+        cfg = TempMailWebConfig(
             base_url=config.get("tempmail_web_base_url", ""),
             proxy=config.get("proxy"),
+        )
+        return cls(
+            base_url=cfg.base_url,
+            proxy=cfg.proxy,
         )
 
     def __init__(self, base_url: str = "", proxy: str = None):

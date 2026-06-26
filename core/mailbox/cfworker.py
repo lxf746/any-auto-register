@@ -17,12 +17,20 @@ class CFWorkerMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'CFWorkerMailbox':
-        return cls(
+        from core.mailbox.config import CFWorkerConfig
+        cfg = CFWorkerConfig(
             api_url=config.get("cfworker_api_url", ""),
             admin_token=config.get("cfworker_admin_token", ""),
             domain=config.get("cfworker_domain", ""),
             fingerprint=config.get("cfworker_fingerprint", ""),
             proxy=config.get("proxy"),
+        )
+        return cls(
+            api_url=cfg.api_url,
+            admin_token=cfg.admin_token,
+            domain=cfg.domain,
+            fingerprint=cfg.fingerprint,
+            proxy=cfg.proxy,
         )
 
     def __init__(self, api_url: str, admin_token: str = "", domain: str = "",

@@ -2,6 +2,21 @@
 from core.mailbox.models import MailboxAccount
 from core.mailbox.base import BaseMailbox, FallbackMailbox
 from core.mailbox.utils import extract_verification_link, normalize_api_base_url
+from core.mailbox.config import (
+    MailboxConfig,
+    LaoudoConfig,
+    AitreConfig,
+    TempMailLolConfig,
+    TempMailWebConfig,
+    DuckMailConfig,
+    CFWorkerConfig,
+    MoeMailConfig,
+    FreemailConfig,
+    TestmailConfig,
+    DDGEmailConfig,
+    MailTmConfig,
+    TempyEmailConfig,
+)
 from core.mailbox.laoudo import LaoudoMailbox
 from core.mailbox.aitre import AitreMailbox
 from core.mailbox.tempmail_lol import TempMailLolMailbox
@@ -19,6 +34,19 @@ __all__ = [
     "FallbackMailbox",
     "extract_verification_link",
     "normalize_api_base_url",
+    "MailboxConfig",
+    "LaoudoConfig",
+    "AitreConfig",
+    "TempMailLolConfig",
+    "TempMailWebConfig",
+    "DuckMailConfig",
+    "CFWorkerConfig",
+    "MoeMailConfig",
+    "FreemailConfig",
+    "TestmailConfig",
+    "DDGEmailConfig",
+    "MailTmConfig",
+    "TempyEmailConfig",
     "LaoudoMailbox",
     "AitreMailbox",
     "TempMailLolMailbox",

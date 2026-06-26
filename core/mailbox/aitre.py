@@ -15,9 +15,14 @@ class AitreMailbox(BaseMailbox):
     """mail.aitre.cc temporary mailbox"""
     @classmethod
     def from_config(cls, config: dict) -> 'AitreMailbox':
-        return cls(
+        from core.mailbox.config import AitreConfig
+        cfg = AitreConfig(
             email=config.get("aitre_email", ""),
             api_url=config.get("aitre_api_url", ""),
+        )
+        return cls(
+            email=cfg.email,
+            api_url=cfg.api_url,
         )
 
     def __init__(self, email: str, api_url: str = ""):

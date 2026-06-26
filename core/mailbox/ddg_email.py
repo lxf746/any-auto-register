@@ -32,12 +32,20 @@ class DDGEmailMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'DDGEmailMailbox':
-        return cls(
+        from core.mailbox.config import DDGEmailConfig
+        cfg = DDGEmailConfig(
             bearer=config.get("ddg_bearer", ""),
             imap_host=config.get("ddg_imap_host", ""),
             imap_user=config.get("ddg_imap_user", ""),
             imap_pass=config.get("ddg_imap_pass", ""),
             proxy=config.get("proxy"),
+        )
+        return cls(
+            bearer=cfg.bearer,
+            imap_host=cfg.imap_host,
+            imap_user=cfg.imap_user,
+            imap_pass=cfg.imap_pass,
+            proxy=cfg.proxy,
         )
 
     def __init__(self, bearer: str = "", imap_host: str = "",

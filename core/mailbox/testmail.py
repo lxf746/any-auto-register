@@ -16,12 +16,20 @@ class TestmailMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'TestmailMailbox':
-        return cls(
+        from core.mailbox.config import TestmailConfig
+        cfg = TestmailConfig(
             api_url=config.get("testmail_api_url", ""),
             api_key=config.get("testmail_api_key", ""),
             namespace=config.get("testmail_namespace", ""),
             tag_prefix=config.get("testmail_tag_prefix", ""),
             proxy=config.get("proxy"),
+        )
+        return cls(
+            api_url=cfg.api_url,
+            api_key=cfg.api_key,
+            namespace=cfg.namespace,
+            tag_prefix=cfg.tag_prefix,
+            proxy=cfg.proxy,
         )
 
     def __init__(

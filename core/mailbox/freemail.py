@@ -21,12 +21,20 @@ class FreemailMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'FreemailMailbox':
-        return cls(
+        from core.mailbox.config import FreemailConfig
+        cfg = FreemailConfig(
             api_url=config.get("freemail_api_url", ""),
             admin_token=config.get("freemail_admin_token", ""),
             username=config.get("freemail_username", ""),
             password=config.get("freemail_password", ""),
             proxy=config.get("proxy"),
+        )
+        return cls(
+            api_url=cfg.api_url,
+            admin_token=cfg.admin_token,
+            username=cfg.username,
+            password=cfg.password,
+            proxy=cfg.proxy,
         )
 
     def __init__(self, api_url: str, admin_token: str = "",

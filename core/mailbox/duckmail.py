@@ -15,11 +15,18 @@ class DuckMailMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'DuckMailMailbox':
-        return cls(
+        from core.mailbox.config import DuckMailConfig
+        cfg = DuckMailConfig(
             api_url=config.get("duckmail_api_url", ""),
             provider_url=config.get("duckmail_provider_url", ""),
             bearer=config.get("duckmail_bearer", ""),
             proxy=config.get("proxy"),
+        )
+        return cls(
+            api_url=cfg.api_url,
+            provider_url=cfg.provider_url,
+            bearer=cfg.bearer,
+            proxy=cfg.proxy,
         )
 
     def __init__(self, api_url: str = "",

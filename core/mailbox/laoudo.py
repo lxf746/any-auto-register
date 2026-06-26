@@ -15,10 +15,17 @@ class LaoudoMailbox(BaseMailbox):
     """laoudo.com mailbox service"""
     @classmethod
     def from_config(cls, config: dict) -> 'LaoudoMailbox':
-        return cls(
+        from core.mailbox.config import LaoudoConfig
+        cfg = LaoudoConfig(
             auth_token=config.get("laoudo_auth", ""),
             email=config.get("laoudo_email", ""),
             account_id=config.get("laoudo_account_id", ""),
+        )
+        return cls(
+            auth_token=cfg.auth_token,
+            email=cfg.email,
+            account_id=cfg.account_id,
+            api_url=cfg.api_url,
         )
 
     def __init__(self, auth_token: str, email: str, account_id: str, api_url: str = ""):

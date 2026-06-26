@@ -21,12 +21,20 @@ class MoeMailMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'MoeMailMailbox':
-        return cls(
+        from core.mailbox.config import MoeMailConfig
+        cfg = MoeMailConfig(
             api_url=config.get("moemail_api_url"),
             username=config.get("moemail_username", ""),
             password=config.get("moemail_password", ""),
             session_token=config.get("moemail_session_token", ""),
             proxy=config.get("proxy"),
+        )
+        return cls(
+            api_url=cfg.api_url,
+            username=cfg.username,
+            password=cfg.password,
+            session_token=cfg.session_token,
+            proxy=cfg.proxy,
         )
 
     def __init__(

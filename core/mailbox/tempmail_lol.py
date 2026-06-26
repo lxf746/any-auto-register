@@ -19,9 +19,14 @@ class TempMailLolMailbox(BaseMailbox):
 
     @classmethod
     def from_config(cls, config: dict) -> 'TempMailLolMailbox':
-        return cls(
-            proxy=config.get("proxy"),
+        from core.mailbox.config import TempMailLolConfig
+        cfg = TempMailLolConfig(
             api_url=config.get("tempmail_lol_api_url", ""),
+            proxy=config.get("proxy"),
+        )
+        return cls(
+            api_url=cfg.api_url,
+            proxy=cfg.proxy,
         )
 
     def __init__(self, proxy: str = None, api_url: str = ""):
