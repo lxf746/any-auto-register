@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class BaseMailbox(ABC):
+    @classmethod
+    @abstractmethod
+    def from_config(cls, config: dict) -> "BaseMailbox":
+        """Create a mailbox instance from config dict."""
+        ...
+
     @abstractmethod
     def get_email(self) -> MailboxAccount:
         """Get an available mailbox"""

@@ -1,7 +1,9 @@
 """Identity provider abstraction."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Optional
+
+from core.mailbox.models import MailboxAccount
 
 
 IDENTITY_PROVIDER_ALIASES = {
@@ -49,7 +51,7 @@ def normalize_oauth_provider(value: Optional[str]) -> str:
 class IdentityMaterial:
     identity_provider: str = "mailbox"
     email: str = ""
-    mailbox_account: Any = None
+    mailbox_account: MailboxAccount | None = None
     before_ids: set = field(default_factory=set)
     oauth_provider: str = ""
     chrome_user_data_dir: str = ""

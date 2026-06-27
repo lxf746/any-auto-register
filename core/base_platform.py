@@ -1,4 +1,7 @@
 """Base class for platform plugins"""
+from __future__ import annotations
+
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
@@ -8,6 +11,9 @@ import string
 import time
 
 from core.registration import BrowserRegistrationFlow, ProtocolMailboxFlow, ProtocolOAuthFlow, RegistrationContext, RegistrationResult
+from core.base_executor import BaseExecutor
+from core.base_captcha import BaseCaptcha
+from core.base_identity import BaseIdentityProvider, IdentityMaterial
 
 
 class AccountStatus(str, Enum):
@@ -74,7 +80,7 @@ class BasePlatform(ABC):
                 f"currently supported: {self.supported_executors}"
             )
 
-    def set_logger(self, logger):
+    def set_logger(self, logger: logging.Logger) -> None:
         self._log_fn = logger or print
 
     def log(self, message: str):
@@ -90,16 +96,16 @@ class BasePlatform(ABC):
     def _should_require_identity_email(self) -> bool:
         return self._get_identity_provider_name() != "oauth_browser"
 
-    def _browser_registration_label(self, identity) -> str:
+    def _browser_registration_label(self, identity: IdentityMaterial) -> str:
         return getattr(identity, "email", "") or "(oauth)"
 
-    def build_browser_registration_adapter(self):
+    def build_browser_registration_adapter(self) -> object | None:
         return None
 
-    def build_protocol_mailbox_adapter(self):
+    def build_protocol_mailbox_adapter(self) -> object | None:
         return None
 
-    def build_protocol_oauth_adapter(self):
+    def build_protocol_oauth_adapter(self) -> object | None:
         return None
 
     def _account_from_registration_result(self, result: RegistrationResult) -> Account:
@@ -313,7 +319,7 @@ class BasePlatform(ABC):
         """Query account quota (optional implementation)"""
         return {}
 
-    def _make_executor(self):
+    def _make_executor(self) -> BaseExecutor:
         """Create executor based on config"""
         from .executors.protocol import ProtocolExecutor
         t = self.config.executor_type
@@ -327,7 +333,7 @@ class BasePlatform(ABC):
             return PlaywrightExecutor(proxy=self.config.proxy, headless=False)
         raise ValueError(f"Unknown executor type: {t}")
 
-    def _make_captcha(self, **kwargs):
+    def _make_captcha(self, **kwargs: object) -> BaseCaptcha:
         """Create captcha solver based on config"""
         from .base_captcha import create_captcha_solver
 
@@ -433,7 +439,7 @@ class BasePlatform(ABC):
         from .base_identity import normalize_identity_provider
         return normalize_identity_provider(self.config.extra.get("identity_provider", "mailbox"))
 
-    def _get_identity_provider(self):
+    def _get_identity_provider(self) -> BaseIdentityProvider:
         from .base_identity import create_identity_provider
 
         mode = self._get_identity_provider_name()
@@ -448,7 +454,7 @@ class BasePlatform(ABC):
             extra=self.config.extra,
         )
 
-    def _resolve_identity(self, email: str = None, *, require_email: bool = True):
+    def _resolve_identity(self, email: str = None, *, require_email: bool = True) -> IdentityMaterial:
         identity = self._get_identity_provider().resolve(email)
         self._last_identity = identity
         if require_email and not identity.email:
@@ -458,7 +464,7 @@ class BasePlatform(ABC):
             )
         return identity
 
-    def _build_identity_snapshot(self, identity) -> dict:
+    def _build_identity_snapshot(self, identity: IdentityMaterial) -> dict:
         snapshot = {
             "identity_provider": getattr(identity, "identity_provider", "") or "",
             "resolved_email": getattr(identity, "email", "") or "",

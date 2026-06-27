@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+from core.base_captcha import BaseCaptcha
+from core.base_executor import BaseExecutor
+from core.base_identity import IdentityMaterial
+
+if TYPE_CHECKING:
+    from core.base_platform import AccountStatus, BasePlatform, RegisterConfig
 
 
 @dataclass(slots=True)
@@ -18,9 +25,9 @@ class RegistrationCapability:
 class RegistrationContext:
     platform_name: str
     platform_display_name: str
-    platform: Any
-    identity: Any
-    config: Any
+    platform: BasePlatform
+    identity: IdentityMaterial
+    config: RegisterConfig
     email: str | None
     password: str | None
     log_fn: Callable[[str], None]
@@ -47,8 +54,8 @@ class RegistrationArtifacts:
     verification_link_callback: Callable[[], str] | None = None
     phone_callback: Callable[[], str] | None = None
     phone_cleanup: Callable[[], None] | None = None
-    captcha_solver: Any = None
-    executor: Any = None
+    captcha_solver: BaseCaptcha | None = None
+    executor: BaseExecutor | None = None
     raw_result: Any = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -60,6 +67,6 @@ class RegistrationResult:
     user_id: str = ""
     region: str = ""
     token: str = ""
-    status: Any = None
+    status: AccountStatus | None = None
     trial_end_time: int = 0
     extra: dict[str, Any] = field(default_factory=dict)
