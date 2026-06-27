@@ -485,6 +485,9 @@ class LifecycleManager:
         self._running = False
         if self._thread:
             self._thread.join(timeout=5)
+        # Cleanly close all pooled connections on shutdown
+        from core.db import engine as _db_engine
+        _db_engine.dispose()
 
     def _loop(self):
         # Wait a bit before first run to let the app fully initialize

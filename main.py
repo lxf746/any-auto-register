@@ -81,6 +81,9 @@ async def lifespan(app: FastAPI):
     _task_runtime.stop()
     from services.solver_manager import stop
     stop()
+    # Dispose DB pool — idempotent, safe even if lifecycle_manager already disposed it
+    from core.db import engine as _engine
+    _engine.dispose()
 
 
 app = FastAPI(title="Account Manager", version="2.0.0", lifespan=lifespan)
