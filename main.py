@@ -29,7 +29,6 @@ if sys.stderr is not None and getattr(sys.stderr, "encoding", "").lower() not in
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# static/ and old SPA removed — frontend-new/ served separately
 
 from api.v2.router import router as v2_router
 from core.auth import AuthMiddleware

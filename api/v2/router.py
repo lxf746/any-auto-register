@@ -58,7 +58,7 @@ def auth_login_v2(body: LoginRequest, request: Request):
     if not password:
         return ApiResponse(ok=True, data={"token": ""})
 
-    # Rate limiting (reuse v1 logic)
+    # Rate limiting
     from api.v2.auth import _check_rate_limit
 
     client_ip = request.client.host if request.client else "unknown"

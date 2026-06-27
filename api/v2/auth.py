@@ -1,7 +1,4 @@
-"""Auth utilities for v2 API — session management and rate limiting.
-
-Moved from api/auth.py to decouple v2 from v1 modules.
-"""
+"""Auth utilities for v2 API — session management and rate limiting."""
 from __future__ import annotations
 
 import secrets
