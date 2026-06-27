@@ -1,4 +1,4 @@
-"""v2 API router — auth, platforms, and stats endpoints."""
+"""v2 API router — auth, platforms, stats, and WebSocket endpoints."""
 from __future__ import annotations
 
 import hmac
@@ -9,8 +9,10 @@ from pydantic import BaseModel
 
 from api.auth import create_session
 from api.v2.response import ApiResponse
+from api.v2.ws import router as ws_router
 
 router = APIRouter(tags=["v2"])
+router.include_router(ws_router)
 
 
 # ---------------------------------------------------------------------------

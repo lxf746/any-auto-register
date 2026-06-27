@@ -5,10 +5,11 @@ import Link from "next/link";
 import { statsApi, platformsApi } from "@/lib/api-client";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PlatformCard } from "@/components/dashboard/platform-card";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConnectionStatus } from "@/components/ui/connection-status";
 import { BarChart3, Users, CheckCircle, Activity, Plus, List } from "lucide-react";
+import { useTaskUpdates } from "@/hooks/use-websocket";
 
 interface Stats {
   total_registrations: number;
@@ -28,6 +29,14 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [loading, setLoading] = useState(true);
+  const { messages: taskUpdates } = useTaskUpdates();
+
+  // Refresh stats when task updates arrive
+  useEffect(() => {
+    if (taskUpdates.length > 0) {
+      statsApi.overview().then(setStats).catch(console.error);
+    }
+  }, [taskUpdates]);
 
   useEffect(() => {
     async function load() {
@@ -68,19 +77,22 @@ export default function DashboardPage() {
             Overview of your registration activity.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/register">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Register Account
-            </Button>
-          </Link>
-          <Link href="/accounts">
-            <Button variant="outline">
-              <List className="mr-2 h-4 w-4" />
-              View Accounts
-            </Button>
-          </Link>
+        <div className="flex items-center gap-4">
+          <ConnectionStatus />
+          <div className="flex gap-2">
+            <Link href="/register">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Register Account
+              </Button>
+            </Link>
+            <Link href="/accounts">
+              <Button variant="outline">
+                <List className="mr-2 h-4 w-4" />
+                View Accounts
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { FilterSelect } from "@/components/ui/filter-select";
-import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
+import { Badge } from "@/components/ui/badge";
+import { useTaskUpdates } from "@/hooks/use-websocket";
 
 interface Task {
   id: string;
@@ -39,6 +40,16 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const { messages: taskUpdates } = useTaskUpdates();
+
+  // Refresh tasks when updates arrive
+  useEffect(() => {
+    if (taskUpdates.length > 0) {
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      api.get<Task[]>(`/tasks?${params}`).then(setTasks).catch(console.error);
+    }
+  }, [taskUpdates, statusFilter]);
 
   useEffect(() => {
     async function load() {
