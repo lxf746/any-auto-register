@@ -8,6 +8,7 @@ import threading
 import time
 
 from application.tasks import claim_next_runnable_task, execute_task, mark_incomplete_tasks_interrupted
+from core.db.engine import resource_monitor, get_resource_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,10 @@ class TaskRuntime:
                     if state.platform:
                         running_platform_counts[state.platform] = running_platform_counts.get(state.platform, 0) + 1
                     busy_account_keys.update(state.account_keys)
+            # Apply resource-aware throttling (min 1 slot to prevent deadlock)
+            throttle = resource_monitor.get_throttle_factor()
+            if throttle < 1.0:
+                available_slots = max(1, int(available_slots * throttle))
             # Collect claimable tasks into a batch for priority sorting
             claimable_tasks: list[dict] = []
             while available_slots > len(claimable_tasks) and self._running:
@@ -114,7 +119,7 @@ class TaskRuntime:
         self._reap_workers()
 
     def get_runtime_stats(self) -> dict:
-        """Return current runtime statistics including running count and per-priority breakdown."""
+        """Return current runtime statistics including running count, per-priority breakdown, and resource metrics."""
         with self._lock:
             running_count = len(self._workers)
             per_platform_counts: dict[str, int] = {}
@@ -124,12 +129,14 @@ class TaskRuntime:
                     per_platform_counts[state.platform] = per_platform_counts.get(state.platform, 0) + 1
                 per_priority_counts[state.priority] = per_priority_counts.get(state.priority, 0) + 1
         uptime = time.monotonic() - self._started_at if self._started_at else 0.0
+        resource_metrics = get_resource_metrics()
         return {
             "running_count": running_count,
             "max_parallel_tasks": self.max_parallel_tasks,
             "per_platform_counts": per_platform_counts,
             "per_priority_counts": per_priority_counts,
             "uptime": uptime,
+            **resource_metrics,
         }
 
     def _run_task(self, task_id: str) -> None:

@@ -21,6 +21,66 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Resource monitoring
+# ---------------------------------------------------------------------------
+
+
+class ResourceMonitor:
+    """Track system CPU and memory usage for dynamic concurrency adjustment."""
+
+    def __init__(self, *, cpu_threshold: float = 80.0, memory_threshold: float = 85.0):
+        self.cpu_threshold = cpu_threshold
+        self.memory_threshold = memory_threshold
+
+    def get_usage(self) -> dict:
+        """Return current CPU % and memory usage %."""
+        try:
+            import psutil
+            return {
+                "cpu_percent": psutil.cpu_percent(interval=0.1),
+                "memory_percent": psutil.virtual_memory().percent,
+            }
+        except ImportError:
+            return {"cpu_percent": 0.0, "memory_percent": 0.0}
+
+    def should_throttle(self) -> bool:
+        usage = self.get_usage()
+        return usage["cpu_percent"] > self.cpu_threshold or usage["memory_percent"] > self.memory_threshold
+
+    def get_throttle_factor(self) -> float:
+        """Return 0.0-1.0 factor: 1.0 = no throttle, 0.0 = full throttle."""
+        usage = self.get_usage()
+        cpu_factor = max(0.0, 1.0 - max(0, usage["cpu_percent"] - self.cpu_threshold) / (100 - self.cpu_threshold))
+        mem_factor = max(0.0, 1.0 - max(0, usage["memory_percent"] - self.memory_threshold) / (100 - self.memory_threshold))
+        return min(cpu_factor, mem_factor)
+
+
+resource_monitor = ResourceMonitor()
+
+
+def get_resource_metrics() -> dict:
+    """Return combined resource and pool metrics for monitoring."""
+    usage = resource_monitor.get_usage()
+    pool_status = {}
+    try:
+        status = engine.pool.status()
+        pool_status = {
+            "checkedin": getattr(status, "checkedin", 0),
+            "checkedout": getattr(status, "checkedout", 0),
+            "overflow": getattr(status, "overflow", 0),
+        }
+    except Exception:
+        pool_status = {"checkedin": 0, "checkedout": 0, "overflow": 0}
+    return {
+        "cpu_percent": usage["cpu_percent"],
+        "memory_percent": usage["memory_percent"],
+        "throttle": resource_monitor.should_throttle(),
+        "throttle_factor": resource_monitor.get_throttle_factor(),
+        **pool_status,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Auto-detection helpers
 # ---------------------------------------------------------------------------
 
