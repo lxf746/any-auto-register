@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterator
 import os
 
+from sqlalchemy.pool import QueuePool
 from sqlmodel import Session, SQLModel, create_engine
 
 
@@ -20,7 +21,12 @@ def _default_database_url() -> str:
 DATABASE_URL = os.getenv("PORTAL_DATABASE_URL", _default_database_url())
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+    poolclass=QueuePool,
+    pool_size=20,
+    max_overflow=10,
+    pool_recycle=3600,
+    pool_pre_ping=True,
+    **({"connect_args": {"check_same_thread": False}} if DATABASE_URL.startswith("sqlite") else {}),
 )
 
 

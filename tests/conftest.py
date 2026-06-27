@@ -34,17 +34,15 @@ from sqlmodel import SQLModel, create_engine
 
 # Patch the engine before the app is created
 from core import db as _db_module
+from core.db.engine import _create_sync_engine
 
 if _is_test_pg():
-    _db_module.engine = create_engine(
+    _db_module.engine = _create_sync_engine(
         os.environ["ACCOUNT_MANAGER_DATABASE_URL"],
-        echo=False,
     )
 else:
-    _db_module.engine = create_engine(
+    _db_module.engine = _create_sync_engine(
         f"sqlite:///{_TEST_DB_PATH}",
-        echo=False,
-        connect_args={"check_same_thread": False},
     )
 
 

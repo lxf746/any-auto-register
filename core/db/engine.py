@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from sqlalchemy import inspect
+from sqlalchemy.pool import QueuePool
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from core.datetime_utils import _utcnow
@@ -47,10 +48,22 @@ def _create_sync_engine(url: str):
 
     PostgreSQL URLs using the ``asyncpg`` dialect are normalised to
     ``psycopg2`` so that the sync ``Session`` wrapper works correctly.
+
+    Connection pooling is configured with production defaults:
+    QueuePool with pool_size=20, max_overflow=10, pool_recycle=3600s,
+    pool_pre_ping enabled to detect stale connections.
     """
     if url.startswith("postgresql+asyncpg://"):
         url = url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
-    return create_engine(url)
+
+    return create_engine(
+        url,
+        poolclass=QueuePool,
+        pool_size=20,
+        max_overflow=10,
+        pool_recycle=3600,
+        pool_pre_ping=True,
+    )
 
 
 def _create_async_engine(url: str):
