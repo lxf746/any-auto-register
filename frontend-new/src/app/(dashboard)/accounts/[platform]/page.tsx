@@ -35,10 +35,10 @@ export default function PlatformAccountsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await api.get<Account[]>(
+        const result = await api.get<{ total: number; page: number; items: Account[] }>(
           `/accounts?platform=${platform}`
         );
-        setAccounts(data);
+        setAccounts(result.items || []);
       } catch (err) {
         console.error("Failed to load accounts:", err);
       } finally {

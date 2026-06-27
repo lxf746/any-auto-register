@@ -122,3 +122,26 @@ def stats_overview_v2():
             "account_distribution": account_distribution,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Accounts (v2 wrapper)
+# ---------------------------------------------------------------------------
+
+from api.accounts import service  # noqa: E402
+from domain.accounts import AccountQuery  # noqa: E402
+
+
+@router.get("/accounts")
+def list_accounts_v2(
+    platform: str = "",
+    status: str = "",
+    email: str = "",
+    page: int = 1,
+    page_size: int = 20,
+):
+    """List accounts with v2 envelope."""
+    result = service.list_accounts(
+        AccountQuery(platform=platform, status=status, email=email, page=page, page_size=page_size)
+    )
+    return ApiResponse(ok=True, data=result)

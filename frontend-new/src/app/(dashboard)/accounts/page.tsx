@@ -46,8 +46,10 @@ export default function AccountsPage() {
       try {
         const params = new URLSearchParams();
         if (statusFilter !== "all") params.set("status", statusFilter);
-        const data = await api.get<Account[]>(`/accounts?${params}`);
-        setAccounts(data);
+        const result = await api.get<{ total: number; page: number; items: Account[] }>(
+          `/accounts?${params}`
+        );
+        setAccounts(result.items || []);
       } catch (err) {
         console.error("Failed to load accounts:", err);
       } finally {
