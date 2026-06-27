@@ -22,13 +22,13 @@
 
 ### Missing v2 Endpoints
 
-- [ ] **EP-01**: Account CRUD (create, update, delete, get by ID)
-- [ ] **EP-02**: Account exports (CSV, JSON, sub2api, cpa, kiro-go, any2api)
-- [ ] **EP-03**: Account imports
-- [ ] **EP-04**: Account checks (check-all, check-one)
-- [ ] **EP-05**: Actions (list, capabilities, execute)
-- [ ] **EP-06**: Config (get, get options, update)
-- [ ] **EP-07**: Health/ready/pools/rate-limits
+- [x] **EP-01**: Account CRUD (create, update, delete, get by ID)
+- [x] **EP-02**: Account exports (CSV, JSON, sub2api, cpa, kiro-go, any2api)
+- [x] **EP-03**: Account imports
+- [x] **EP-04**: Account checks (check-all, check-one)
+- [x] **EP-05**: Actions (list, capabilities, execute)
+- [x] **EP-06**: Config (get, get options, update)
+- [x] **EP-07**: Health/ready/pools/rate-limits
 - [ ] **EP-08**: Lifecycle (check, refresh, warn, status)
 - [ ] **EP-09**: Platform capabilities (update, reset)
 - [ ] **EP-10**: Provider definitions (CRUD, drivers)
@@ -77,13 +77,13 @@
 | CO-03 | Phase 2: v2 Consolidation | Complete |
 | CO-04 | Phase 2: v2 Consolidation | Complete |
 | CO-05 | Phase 2: v2 Consolidation | Complete |
-| EP-01 | Phase 3: Account Endpoints | Pending |
-| EP-02 | Phase 3: Account Endpoints | Pending |
-| EP-03 | Phase 3: Account Endpoints | Pending |
-| EP-04 | Phase 3: Account Endpoints | Pending |
-| EP-05 | Phase 4: Core Endpoints | Pending |
-| EP-06 | Phase 4: Core Endpoints | Pending |
-| EP-07 | Phase 4: Core Endpoints | Pending |
+| EP-01 | Phase 3: Account Endpoints | Complete |
+| EP-02 | Phase 3: Account Endpoints | Complete |
+| EP-03 | Phase 3: Account Endpoints | Complete |
+| EP-04 | Phase 3: Account Endpoints | Complete |
+| EP-05 | Phase 4: Core Endpoints | Complete |
+| EP-06 | Phase 4: Core Endpoints | Complete |
+| EP-07 | Phase 4: Core Endpoints | Complete |
 | EP-08 | Phase 4: Core Endpoints | Pending |
 | EP-15 | Phase 4: Core Endpoints | Pending |
 | EP-16 | Phase 4: Core Endpoints | Pending |

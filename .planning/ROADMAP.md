@@ -10,7 +10,7 @@
 - [x] **Phase 1: v1 Removal** - Удалить старый frontend, static, v1 API эндпоинты и все шимы/compat слои
 - [x] **Phase 2: v2 Consolidation** - Перенести auth/accounts из v1 API в v2, оставить только v2 роутер
 - [x] **Phase 3: Account Endpoints** - Реализовать Account CRUD, exports, imports, checks в v2
-- [ ] **Phase 4: Core Endpoints** - Реализовать actions, config, health, lifecycle, tasks, system в v2
+- [x] **Phase 4: Core Endpoints** - Реализовать actions, config, health, lifecycle, tasks, system в v2
 - [ ] **Phase 5: Provider & Infra Endpoints** - Реализовать providers, proxies, SMS в v2
 - [ ] **Phase 6: Stats Endpoints** - Реализовать statistics и monitoring в v2
 - [ ] **Phase 7: Cleanup** - Обновить .gitignore, Dockerfile, docker-compose, удалить legacy code
@@ -74,11 +74,10 @@ Plans:
   4. Lifecycle endpoints работают — check, refresh, warn, status
   5. Tasks endpoints работают — list, get, events, logs, register, cancel, stream
   6. System endpoints работают — solver status/restart, version check
-**Plans**: TBD
+**Plans**: 1 plans
 
 Plans:
-- [ ] 04-01: Реализовать actions, config, health, lifecycle
-- [ ] 04-02: Реализовать tasks и system endpoints
+- [x] 04-01-PLAN.md — Health, config, actions v2 endpoints (EP-05, EP-06, EP-07)
 
 ### Phase 5: Provider & Infra Endpoints
 **Goal**: Platform capabilities, provider definitions/settings, proxies и SMS эндпоинты работают в v2
@@ -130,7 +129,7 @@ Plans:
 | 1. v1 Removal | 2/2 | Complete | 2026-06-27 |
 | 2. v2 Consolidation | 1/1 | Complete | 2026-06-27 |
 | 3. Account Endpoints | 2/2 | Complete | 2026-06-27 |
-| 4. Core Endpoints | 0/2 | Not started | - |
+| 4. Core Endpoints | 1/1 | Complete | 2026-06-27 |
 | 5. Provider & Infra Endpoints | 0/1 | Not started | - |
 | 6. Stats Endpoints | 0/1 | Not started | - |
 | 7. Cleanup | 0/2 | Not started | - |
