@@ -7,30 +7,30 @@
 
 ### Split Monoliths
 
-- [ ] **SPLIT-01**: base_sms.py (1304 lines) → base.py, sms_activate.py, herosms.py, smsbower.py, cache.py, controller.py, factory.py
-- [ ] **SPLIT-02**: chatgpt/browser_register.py (3908 lines) → selectors.py, state_machine.py, otp_flow.py, phone_challenge.py, consent_flow.py, about_you_flow.py, proxy_config.py, main class
-- [ ] **SPLIT-03**: db.py (771 lines) → models.py, encryption.py, migrations.py, engine.py
-- [ ] **SPLIT-04**: application/tasks.py (954 lines) → task_runner.py, task_scheduler.py, task_repository.py
-- [ ] **SPLIT-05**: core/account_graph.py (1056 lines) → credentials.py, graph_ops.py, migration.py, overview.py
+- [x] **SPLIT-01**: base_sms.py (1304 lines) → 7 modules
+- [x] **SPLIT-02**: chatgpt/browser_register.py (3908 lines) → 12 modules
+- [x] **SPLIT-03**: db.py (771 lines) → 4 modules
+- [x] **SPLIT-04**: tasks.py (954 lines) → 3 modules
+- [x] **SPLIT-05**: account_graph.py (1056 lines) → 5 modules
 
 ### Extract Patterns
 
-- [ ] **PATT-01**: ManagedSession mixin для HTTP session lifecycle (8+ файлов)
-- [ ] **PATT-02**: BasePollingMailbox с template methods для polling (13 провайдеров)
-- [ ] **PATT-03**: Retry/backoff utility (5+ файлов)
-- [ ] **PATT-04**: make_provider_resource() factory (13+ провайдеров)
+- [x] **PATT-01**: ManagedSession mixin
+- [x] **PATT-02**: BasePollingMailbox
+- [x] **PATT-03**: Retry/backoff utility
+- [x] **PATT-04**: make_provider_resource() factory
 
 ### Merge Duplicates
 
-- [ ] **MERG-01**: Consolidate core/mailbox/ vs providers/mailbox/ — единый canonical location
-- [ ] **MERG-02**: Убрать дублирующие провайдеры из core/mailbox/ если есть в providers/mailbox/
+- [x] **MERG-01**: Consolidate core/mailbox/ vs providers/mailbox/
+- [x] **MERG-02**: Убрать дублирующие провайдеры
 
 ### Type Safety
 
-- [ ] **TYPE-01**: Type hints для BasePlatform методов (15+ методов)
-- [ ] **TYPE-02**: Replace Any в RegistrationContext на конкретные типы
-- [ ] **TYPE-03**: Replace Any в IdentityMaterial на MailboxAccount | None
-- [ ] **TYPE-04**: Add from_config к BaseMailbox ABC
+- [x] **TYPE-01**: Type hints для BasePlatform
+- [x] **TYPE-02**: Replace Any в RegistrationContext
+- [x] **TYPE-03**: Replace Any в IdentityMaterial
+- [x] **TYPE-04**: Add from_config к BaseMailbox ABC
 
 ## v2 Requirements
 
