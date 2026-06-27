@@ -1,15 +1,20 @@
-"""v2 Account endpoints — CRUD, stats, and import."""
+"""v2 Account endpoints — CRUD, stats, import, export, and checks."""
 from __future__ import annotations
 
+import io
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from api.v2.response import ApiResponse
+from application.account_checks import AccountChecksService
+from application.account_exports import AccountExportsService, ExportArtifact
 from application.accounts import AccountsService
 from domain.accounts import (
     AccountCreateCommand,
+    AccountExportSelection,
     AccountImportLine,
     AccountQuery,
     AccountUpdateCommand,
@@ -18,6 +23,8 @@ from domain.accounts import (
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 _service = AccountsService()
+_exports_service = AccountExportsService()
+_checks_service = AccountChecksService()
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +85,122 @@ def account_stats():
 def import_accounts(body: AccountImportRequest):
     """Import accounts from text lines."""
     result = _service.import_accounts(body.platform, body.lines)
+    return ApiResponse(ok=True, data=result)
+
+
+# ---------------------------------------------------------------------------
+# Export request model
+# ---------------------------------------------------------------------------
+
+
+class AccountExportRequest(BaseModel):
+    platform: str = ""
+    ids: list[int] = []
+    select_all: bool = False
+    status_filter: str = ""
+    search_filter: str = ""
+
+
+def _stream_artifact(artifact: ExportArtifact) -> StreamingResponse:
+    """Convert an ExportArtifact to a StreamingResponse."""
+    if isinstance(artifact.content, io.BytesIO):
+        def iter_bytes():
+            yield artifact.content.read()
+        content_iter = iter_bytes()
+    elif isinstance(artifact.content, bytes):
+        def iter_bytes():
+            yield artifact.content
+        content_iter = iter_bytes()
+    else:
+        def iter_str():
+            yield artifact.content.encode("utf-8")
+        content_iter = iter_str()
+
+    headers = {"Content-Disposition": f'attachment; filename="{artifact.filename}"'}
+    return StreamingResponse(content_iter, media_type=artifact.media_type, headers=headers)
+
+
+def _to_selection(body: AccountExportRequest) -> AccountExportSelection:
+    return AccountExportSelection(
+        platform=body.platform,
+        ids=body.ids,
+        select_all=body.select_all,
+        status_filter=body.status_filter,
+        search_filter=body.search_filter,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Export endpoints (defined BEFORE /{account_id} to avoid route shadowing)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/export/csv")
+def export_csv(body: AccountExportRequest):
+    """Export accounts as CSV file."""
+    selection = _to_selection(body)
+    artifact = _exports_service.export_chatgpt_csv(selection)
+    return _stream_artifact(artifact)
+
+
+@router.post("/export/json")
+def export_json(body: AccountExportRequest):
+    """Export accounts as JSON file."""
+    selection = _to_selection(body)
+    artifact = _exports_service.export_chatgpt_json(selection)
+    return _stream_artifact(artifact)
+
+
+@router.post("/export/sub2api")
+def export_sub2api(body: AccountExportRequest):
+    """Export accounts as Sub2API format."""
+    selection = _to_selection(body)
+    artifact = _exports_service.export_chatgpt_sub2api(selection)
+    return _stream_artifact(artifact)
+
+
+@router.post("/export/cpa")
+def export_cpa(body: AccountExportRequest):
+    """Export accounts as CPA token format."""
+    selection = _to_selection(body)
+    artifact = _exports_service.export_chatgpt_cpa(selection)
+    return _stream_artifact(artifact)
+
+
+@router.post("/export/kiro-go")
+def export_kiro_go(body: AccountExportRequest):
+    """Export Kiro accounts as Kiro-Go config."""
+    selection = _to_selection(body)
+    artifact = _exports_service.export_kiro_go(selection)
+    return _stream_artifact(artifact)
+
+
+@router.post("/export/any2api")
+def export_any2api(body: AccountExportRequest):
+    """Export accounts as Any2API admin config."""
+    selection = _to_selection(body)
+    artifact = _exports_service.export_any2api(selection)
+    return _stream_artifact(artifact)
+
+
+# ---------------------------------------------------------------------------
+# Check endpoints (defined BEFORE /{account_id} to avoid route shadowing)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/check-all")
+def check_all(platform: str = ""):
+    """Trigger async check for all accounts."""
+    result = _checks_service.check_all_async(platform)
+    return ApiResponse(ok=True, data=result)
+
+
+@router.post("/check-one/{account_id}")
+def check_one(account_id: int):
+    """Trigger async check for one account."""
+    result = _checks_service.check_one_async(account_id)
+    if result is None:
+        raise HTTPException(404, "Account not found")
     return ApiResponse(ok=True, data=result)
 
 
