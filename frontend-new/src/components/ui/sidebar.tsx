@@ -10,6 +10,7 @@ import {
   History,
   Settings,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/accounts", label: "Accounts", icon: Users },
   { href: "/register", label: "Register", icon: UserPlus },
   { href: "/history", label: "History", icon: History },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
