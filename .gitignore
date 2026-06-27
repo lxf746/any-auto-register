@@ -26,7 +26,7 @@ accounts.txt
 *_accounts.txt
 account.txt
 
-# old frontend removed — frontend-new/ uses its own .gitignore
+# frontend-new/ has its own .gitignore
 
 # PyInstaller
 backend.spec
