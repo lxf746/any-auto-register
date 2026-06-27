@@ -3,52 +3,50 @@
 **Defined:** 2026-06-27
 **Core Value:** Автоматическая регистрация аккаунтов должна работать надёжно и безопасно
 
-## v1.7 Requirements
+## v2.0 Requirements
 
-### Frontend Core
+### v1 Removal
 
-- [ ] **FE-01**: Next.js 14+ project setup with TypeScript, Tailwind CSS, Shadcn/ui
-- [ ] **FE-02**: Authentication — JWT login/register pages with form validation
-- [ ] **FE-03**: Dashboard — main overview page with platform cards and quick actions
-- [ ] **FE-04**: Task Management — create, view, cancel registration tasks
-- [ ] **FE-05**: Account List — view all registered accounts with search/filter
+- [ ] **RM-01**: Удалить frontend/ (Vite+React) — заменён на frontend-new/
+- [ ] **RM-02**: Удалить static/ — build output старого фронтенда
+- [ ] **RM-03**: Удалить v1 API эндпоинты (api/auth.py, api/accounts.py, и т.д.)
+- [ ] **RM-04**: Удалить все шимы и compat слои между v1 и v2
 
-### Analytics Dashboard
+### v2 Consolidation
 
-- [ ] **AN-01**: Registration stats — success/failure rates, timeline charts
-- [ ] **AN-02**: Platform breakdown — per-platform registration metrics
-- [ ] **AN-03**: Performance metrics — avg registration time, error rates
-- [ ] **AN-04**: Export — download stats as CSV/JSON
+- [ ] **CO-01**: Перенести auth functions (create_session, validate_session, _check_rate_limit, _sessions) из api/auth.py в api/v2/
+- [ ] **CO-02**: Перенести AccountsService из api/accounts.py в api/v2/ или shared module
+- [ ] **CO-03**: Обновить main.py — оставить только v2 роутер
+- [ ] **CO-04**: Обновить core/auth.py — убрать v1 public prefixes
+- [ ] **CO-05**: Обновить frontend-new/src/lib/api.ts — убрать v1 response format fallback
 
-### Real-time Updates
+### Missing v2 Endpoints
 
-- [ ] **RT-01**: WebSocket connection — establish WS for live task updates
-- [ ] **RT-02**: Task status streaming — real-time progress without polling
-- [ ] **RT-03**: Connection management — reconnect on disconnect, heartbeat
+- [ ] **EP-01**: Account CRUD (create, update, delete, get by ID)
+- [ ] **EP-02**: Account exports (CSV, JSON, sub2api, cpa, kiro-go, any2api)
+- [ ] **EP-03**: Account imports
+- [ ] **EP-04**: Account checks (check-all, check-one)
+- [ ] **EP-05**: Actions (list, capabilities, execute)
+- [ ] **EP-06**: Config (get, get options, update)
+- [ ] **EP-07**: Health/ready/pools/rate-limits
+- [ ] **EP-08**: Lifecycle (check, refresh, warn, status)
+- [ ] **EP-09**: Platform capabilities (update, reset)
+- [ ] **EP-10**: Provider definitions (CRUD, drivers)
+- [ ] **EP-11**: Provider settings (CRUD, test)
+- [ ] **EP-12**: Proxies (CRUD, bulk, toggle, check, scan)
+- [ ] **EP-13**: SMS (HeroSMS, SmsBower endpoints)
+- [ ] **EP-14**: Stats (by-platform, by-day, by-proxy, errors)
+- [ ] **EP-15**: Tasks (list, get, events, logs, register, cancel, stream)
+- [ ] **EP-16**: System (solver status/restart, version check)
 
-### Settings Management
+### Cleanup
 
-- [ ] **SM-01**: Mailbox providers — enable/disable/configure providers
-- [ ] **SM-02**: SMS providers — manage SMS verification providers
-- [ ] **SM-03**: Captcha providers — configure captcha solving services
-- [ ] **SM-04**: Proxy settings — manage proxy list and rotation
-- [ ] **SM-05**: Platform config — per-platform rate limits and settings
+- [ ] **CL-01**: Обновить .gitignore — убрать frontend/node_modules, frontend/dist
+- [ ] **CL-02**: Обновить Dockerfile — убрать reference на frontend/
+- [ ] **CL-03**: Обновить docker-compose.yml если нужно
+- [ ] **CL-04**: Удалить legacy code и deprecated functions
 
-### Logs & Debug
-
-- [ ] **LD-01**: Task logs — view detailed logs per registration task
-- [ ] **LD-02**: Error viewer — filter and search errors with stack traces
-- [ ] **LD-03**: Debug mode — step-by-step registration flow visualization
-
-### Backend API v2
-
-- [ ] **API-01**: API versioning — /api/v2/ prefix for new endpoints
-- [ ] **API-02**: Response envelope —统一 {ok, data, error} format
-- [ ] **API-03**: OpenAPI spec — auto-generated from FastAPI routes
-- [ ] **API-04**: TypeScript gen — openapi-typescript for type-safe API calls
-- [ ] **API-05**: WebSocket endpoint — /api/v2/ws for real-time updates
-
-## v2 Requirements
+## v3 Requirements
 
 ### Advanced Features
 
@@ -70,35 +68,39 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FE-01 | Phase 1 | Pending |
-| FE-02 | Phase 1 | Pending |
-| FE-03 | Phase 2 | Pending |
-| FE-04 | Phase 2 | Pending |
-| FE-05 | Phase 2 | Pending |
-| AN-01 | Phase 3 | Pending |
-| AN-02 | Phase 3 | Pending |
-| AN-03 | Phase 3 | Pending |
-| AN-04 | Phase 3 | Pending |
-| RT-01 | Phase 4 | Pending |
-| RT-02 | Phase 4 | Pending |
-| RT-03 | Phase 4 | Pending |
-| SM-01 | Phase 5 | Pending |
-| SM-02 | Phase 5 | Pending |
-| SM-03 | Phase 5 | Pending |
-| SM-04 | Phase 5 | Pending |
-| SM-05 | Phase 5 | Pending |
-| LD-01 | Phase 6 | Pending |
-| LD-02 | Phase 6 | Pending |
-| LD-03 | Phase 6 | Pending |
-| API-01 | Phase 1 | Pending |
-| API-02 | Phase 1 | Pending |
-| API-03 | Phase 1 | Pending |
-| API-04 | Phase 1 | Pending |
-| API-05 | Phase 4 | Pending |
+| RM-01 | Phase 1 | Pending |
+| RM-02 | Phase 1 | Pending |
+| RM-03 | Phase 1 | Pending |
+| RM-04 | Phase 1 | Pending |
+| CO-01 | Phase 2 | Pending |
+| CO-02 | Phase 2 | Pending |
+| CO-03 | Phase 2 | Pending |
+| CO-04 | Phase 2 | Pending |
+| CO-05 | Phase 2 | Pending |
+| EP-01 | Phase 3 | Pending |
+| EP-02 | Phase 3 | Pending |
+| EP-03 | Phase 3 | Pending |
+| EP-04 | Phase 3 | Pending |
+| EP-05 | Phase 4 | Pending |
+| EP-06 | Phase 4 | Pending |
+| EP-07 | Phase 4 | Pending |
+| EP-08 | Phase 4 | Pending |
+| EP-09 | Phase 5 | Pending |
+| EP-10 | Phase 5 | Pending |
+| EP-11 | Phase 5 | Pending |
+| EP-12 | Phase 5 | Pending |
+| EP-13 | Phase 6 | Pending |
+| EP-14 | Phase 6 | Pending |
+| EP-15 | Phase 6 | Pending |
+| EP-16 | Phase 6 | Pending |
+| CL-01 | Phase 7 | Pending |
+| CL-02 | Phase 7 | Pending |
+| CL-03 | Phase 7 | Pending |
+| CL-04 | Phase 7 | Pending |
 
 **Coverage:**
-- v1.7 requirements: 25 total
-- Mapped to phases: 25
+- v2.0 requirements: 28 total
+- Mapped to phases: 28
 - Unmapped: 0 ✓
 
 ---
