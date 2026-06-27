@@ -1,4 +1,8 @@
-"""ChatGPT Browser Registration Flow (Camoufox)。"""
+"""ChatGPT Browser Registration Flow (Camoufox)."""
+
+# Backward compatibility: re-export from the new registration package
+from platforms.chatgpt.registration import ChatGPTBrowserRegister  # noqa: F401
+
 import base64
 import json
 import random

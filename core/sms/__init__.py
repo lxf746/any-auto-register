@@ -1,8 +1,7 @@
-"""Backward compatibility — all classes moved to core.sms."""
-from __future__ import annotations
+"""SMS verification providers package.
 
-import time as time  # re-export for tests that do `sms_module.time.time()`
-
+Re-exports everything for backward compatibility with ``core.base_sms``.
+"""
 from core.sms.base import SmsActivation, SmsProvider, BaseSmsProvider
 from core.sms.sms_activate import (
     SmsActivateProvider,
@@ -28,14 +27,20 @@ from core.sms.controller import PhoneCallbackController, create_phone_callbacks
 from core.sms.factory import create_sms_provider
 
 __all__ = [
+    # base
     "SmsActivation",
     "SmsProvider",
     "BaseSmsProvider",
+    # sms_activate
     "SmsActivateProvider",
-    "HeroSmsProvider",
-    "SmsBowerProvider",
     "SMS_ACTIVATE_SERVICES",
     "SMS_ACTIVATE_COUNTRIES",
+    # herosms
+    "HeroSmsProvider",
+    "is_herosms_phone_cache_alive",
+    # smsbower
+    "SmsBowerProvider",
+    # cache
     "HERO_SMS_DEFAULT_SERVICE",
     "HERO_SMS_DEFAULT_COUNTRY",
     "HERO_SMS_PHONE_LIFETIME",
@@ -47,8 +52,9 @@ __all__ = [
     "_HERO_SMS_CACHE",
     "_HERO_SMS_CACHE_LOCK",
     "_HERO_SMS_VERIFY_LOCK",
-    "is_herosms_phone_cache_alive",
+    # controller
     "PhoneCallbackController",
     "create_phone_callbacks",
+    # factory
     "create_sms_provider",
 ]
