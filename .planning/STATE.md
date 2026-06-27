@@ -2,10 +2,10 @@
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-06-27 — Milestone v1.6 Scaling & Performance started
+Phase: 01-http-sessions
+Plan: 02 (complete)
+Status: Executing
+Last activity: 2026-06-27 — Completed 01-02: Dual-Database Engine
 
 ## Milestone
 
@@ -17,9 +17,9 @@ Goal: Подготовить систему к production нагрузке — P
 
 | Metric | Value |
 |--------|-------|
-| Current phase | — |
-| Plans complete | 0/0 |
-| Tasks complete | 0/0 |
+| Current phase | 01-http-sessions |
+| Plans complete | 1/3 |
+| Tasks complete | 2/2 (01-02) |
 
 ## Context
 
@@ -29,6 +29,8 @@ Goal: Подготовить систему к production нагрузке — P
 - Connection pooling для БД и HTTP
 - Параллельная регистрация
 - Rate limiting для провайдеров
+- Engine auto-detection: URL prefix → PostgreSQL or SQLite (01-02)
+- Sync engine normalizes asyncpg → psycopg2 for backward compat (01-02)
 
 ### Blockers
 
