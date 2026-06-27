@@ -7,12 +7,14 @@ import os
 from fastapi import APIRouter, Header, Request
 from pydantic import BaseModel
 
+from api.v2.accounts import router as accounts_router
 from api.v2.auth import create_session
 from api.v2.response import ApiResponse
 from api.v2.ws import router as ws_router
 
 router = APIRouter(tags=["v2"])
 router.include_router(ws_router)
+router.include_router(accounts_router)
 
 
 # ---------------------------------------------------------------------------

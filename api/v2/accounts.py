@@ -63,6 +63,25 @@ class AccountImportRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Stats & Import (defined BEFORE /{account_id} to avoid route shadowing)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/stats")
+def account_stats():
+    """Return account statistics."""
+    result = _service.get_stats()
+    return ApiResponse(ok=True, data=result)
+
+
+@router.post("/import")
+def import_accounts(body: AccountImportRequest):
+    """Import accounts from text lines."""
+    result = _service.import_accounts(body.platform, body.lines)
+    return ApiResponse(ok=True, data=result)
+
+
+# ---------------------------------------------------------------------------
 # CRUD endpoints
 # ---------------------------------------------------------------------------
 
@@ -126,28 +145,6 @@ def update_account(account_id: int, body: AccountUpdateRequest):
 def delete_account(account_id: int):
     """Delete an account."""
     result = _service.delete_account(account_id)
+    if not result.get("ok"):
+        raise HTTPException(404, "Account not found")
     return ApiResponse(ok=True, data={"ok": True})
-
-
-# ---------------------------------------------------------------------------
-# Stats
-# ---------------------------------------------------------------------------
-
-
-@router.get("/stats")
-def account_stats():
-    """Return account statistics."""
-    result = _service.get_stats()
-    return ApiResponse(ok=True, data=result)
-
-
-# ---------------------------------------------------------------------------
-# Import
-# ---------------------------------------------------------------------------
-
-
-@router.post("/import")
-def import_accounts(body: AccountImportRequest):
-    """Import accounts from text lines."""
-    result = _service.import_accounts(body.platform, body.lines)
-    return ApiResponse(ok=True, data=result)
