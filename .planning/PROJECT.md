@@ -8,15 +8,9 @@
 
 Автоматическая регистрация аккаунтов должна работать надёжно и безопасно — аккаунты создаются, данные защищены, система не подвержена компрометации.
 
-## Current Milestone: v1.6 Scaling & Performance
+## Current Milestone: v1.7 — TBD
 
-**Goal:** Подготовить систему к production нагрузке — PostgreSQL, connection pooling, параллельная регистрация, rate limiting
-
-**Target features:**
-- PostgreSQL вместо SQLite
-- Connection pooling для БД и HTTP
-- Параллельная регистрация на多个 платформах
-- Rate limiting для провайдеров
+**Goal:** TBD — определить после анализа потребностей
 
 ## Requirements
 
@@ -35,29 +29,29 @@
 - ✓ Enterprise Email Provider Abstractions — v1.3
 - ✓ Memory Leaks & Thread Safety — v1.4
 - ✓ Enterprise Cleanup — v1.5
+- ✓ PostgreSQL вместо SQLite — v1.6
+- ✓ Connection pooling для БД и HTTP — v1.6
+- ✓ Параллельная регистрация — v1.6
+- ✓ Rate limiting для провайдеров — v1.6
 
 ### Active
 
-- [ ] PostgreSQL вместо SQLite
-- [ ] Connection pooling для БД
-- [ ] Connection pooling для HTTP
-- [ ] Параллельная регистрация
-- [ ] Rate limiting для провайдеров
+- (TBD after new milestone planning)
 
 ### Out of Scope
 
-- Рефакторинг монолитных файлов (кроме затронутых в этом milestone) — отдельный milestone
+- Рефакторинг монолитных файлов — отдельный milestone
 - Добавление тестов — отдельный milestone
-- Масштабирование (PostgreSQL, connection pooling) — отдельный milestone
 - Новые платформы — отдельный milestone
+- Горизонтальное масштабирование — отдельный milestone
 
 ## Context
 
-Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v1.2 (Electron removal), v1.3 (Enterprise Email Provider Abstractions), v1.4 (Memory Leaks & Thread Safety), v1.5 (Enterprise Cleanup). Кодовая база стабильна, приведена к enterprise-стандарту. SQLite работает для development, но нужна production-ready БД с connection pooling.
+Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v1.2 (Electron removal), v1.3 (Enterprise Email Provider Abstractions), v1.4 (Memory Leaks & Thread Safety), v1.5 (Enterprise Cleanup), v1.6 (Scaling & Performance). 73 файла изменено, +7803/-725 строк. PostgreSQL с connection pooling, параллельная регистрация, rate limiting — всё готово для production нагрузки.
 
 ## Constraints
 
-- **Tech Stack**: Python 3.12, FastAPI, SQLite, SQLAlchemy
+- **Tech Stack**: Python 3.12, FastAPI, PostgreSQL (SQLite for dev), SQLAlchemy
 - **Customer Portal**: Остаётся как отдельное приложение
 
 ## Key Decisions
@@ -72,7 +66,11 @@ Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v
 | Full refactor for memory/thread | Переписать проблемные модули с правильными паттернами | ✓ Good |
 | Clean break API | Меняем публичный API если нужно, без шимов | ✓ Good |
 | Enterprise cleanup | Разделить монолиты, выделить паттерны, добавить типизацию | ✓ Good |
-| PostgreSQL + pooling | Production-ready БД с connection pooling | — Pending |
+| PostgreSQL + pooling | Production-ready БД с connection pooling | ✓ Good |
+| Sync-first PostgreSQL | asyncpg→psycopg2 normalization, 94 Session call sites unchanged | ✓ Good |
+| BrowserPool factory | create_browser_pool() + интеграция в 3 платформы | ✓ Good |
+| Rate limit preflight | check_platform_limit() в entry point каждой flow | ✓ Good |
+| retry_with_backoff | Exponential backoff + jitter в HTTPClient | ✓ Good |
 
 ## Evolution
 
@@ -92,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-27 after v1.6 milestone start*
+*Last updated: 2026-06-27 after v1.6 milestone complete*

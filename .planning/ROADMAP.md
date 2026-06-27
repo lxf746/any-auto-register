@@ -1,92 +1,41 @@
-# Roadmap: v1.6 Scaling & Performance
+# Roadmap: Any Auto Register
 
-**Created:** 2026-06-27
-**Phases:** 4
-**Requirements:** 17 mapped
+## Milestones
 
-## Phase 1: PostgreSQL Migration
+- ✅ **v1.0 Security Hardening** — shipped
+- ✅ **v1.1 Tech Debt & Code Quality** — shipped
+- ✅ **v1.2 Remove Electron** — shipped
+- ✅ **v1.3 Enterprise Email Provider Abstractions** — shipped
+- ✅ **v1.4 Memory Leaks & Thread Safety** — shipped
+- ✅ **v1.5 Enterprise Cleanup** — shipped
+- ✅ **v1.6 Scaling & Performance** — shipped 2026-06-27
+- 📋 **v1.7** — TBD (next milestone)
 
-**Goal:** Перейти с SQLite на PostgreSQL для production
+## Phases
 
-**Requirements:**
-- PG-01: PostgreSQL driver integration
-- PG-02: SQLAlchemy dialect
-- PG-03: Migration scripts
-- PG-04: Connection string configuration
-- PG-05: Fallback to SQLite
+<details>
+<summary>✅ v1.6 Scaling & Performance (5 phases) — SHIPPED 2026-06-27</summary>
 
-**Success Criteria:**
-1. PostgreSQL работает как основная БД
-2. SQLite остаётся для development
-3. Миграция данных корректна
-4. Все тесты проходят
+- [x] Phase 1: PostgreSQL Migration (2/2 plans)
+- [x] Phase 2: Connection Pooling (2/2 plans)
+- [x] Phase 3: Concurrent Registration (2/2 plans)
+- [x] Phase 4: Rate Limiting (2/2 plans)
+- [x] Phase 5: Gap Closure (2/2 plans)
 
-**Plans:** 2 plans
-- [x] 01-01-PLAN.md — Dependencies & Alembic setup (asyncpg, psycopg2, alembic, initial migration)
-- [x] 01-02-PLAN.md — Engine refactoring & dual-database support (auto-detection, tests, docker-compose)
+</details>
 
----
+## Backlog
 
-## Phase 2: Connection Pooling
+- **SCAL-01**: Horizontal scaling (multiple workers)
+- **SCAL-02**: Distributed task queue (Celery/RQ)
+- **SCAL-03**: Redis for caching and rate limiting
 
-**Goal:** Оптимизировать использование соединений
+## Progress
 
-**Requirements:**
-- POOL-01: Database connection pooling
-- POOL-02: HTTP session pooling
-- POOL-03: Browser instance pooling
-- POOL-04: Pool monitoring
-
-**Success Criteria:**
-1. Connection pooling работает для БД
-2. HTTP сессии переиспользуются
-3. Browser contexts пулятся
-4. Мониторинг пулов доступен
-
-**Plans:** 2 plans
-- [x] 02-01-PLAN.md — Database connection pooling (QueuePool config, pool_pre_ping, engine.dispose)
-- [x] 02-02-PLAN.md — HTTP + browser pooling + monitoring (ManagedSession mixin, BrowserPool, pool metrics)
-
----
-
-## Phase 3: Concurrent Registration
-
-**Goal:** Параллельная регистрация на多个 платформах
-
-**Requirements:**
-- CONC-01: Parallel task execution
-- CONC-02: Worker pool
-- CONC-03: Task prioritization
-- CONC-04: Resource-aware limits
-
-**Success Criteria:**
-1. Параллельная регистрация работает
-2. Worker pool управляет потоками
-3. Приоритеты задач работают
-4. Лимиты ресурсов соблюдаются
-
-**Plans:** 2 plans
-- [ ] 03-01-PLAN.md — Priority model & priority-based claiming (TaskModel.priority, claim ordering, serialization)
-- [ ] 03-02-PLAN.md — Enhanced TaskRuntime with priority queue & resource monitoring (heapq dispatch, ResourceMonitor, dynamic throttling)
-
----
-
-## Phase 4: Rate Limiting
-
-**Goal:** Контроль скорости запросов к провайдерам
-
-**Requirements:**
-- RATE-01: Per-platform rate limits
-- RATE-02: Per-provider rate limits
-- RATE-03: Adaptive rate limiting
-- RATE-04: Rate limit metrics
-
-**Success Criteria:**
-1. Rate limits работают для платформ
-2. Rate limits работают для провайдеров
-3. Адаптивный backoff работает
-4. Метрики rate limits доступны
-
-**Plans:** 2 plans
-- [ ] 04-01-PLAN.md — Core rate limiting classes + exponential backoff (PlatformRateLimiter, ProviderRateLimiter, RateLimitMetrics, retry enhancement)
-- [ ] 04-02-PLAN.md — Rate limit metrics API endpoint (/api/rate-limits, HealthRuntime integration)
+| Phase | Milestone | Plans | Status | Completed |
+|-------|-----------|-------|--------|-----------|
+| 1. PostgreSQL Migration | v1.6 | 2/2 | Complete | 2026-06-27 |
+| 2. Connection Pooling | v1.6 | 2/2 | Complete | 2026-06-27 |
+| 3. Concurrent Registration | v1.6 | 2/2 | Complete | 2026-06-27 |
+| 4. Rate Limiting | v1.6 | 2/2 | Complete | 2026-06-27 |
+| 5. Gap Closure | v1.6 | 2/2 | Complete | 2026-06-27 |
