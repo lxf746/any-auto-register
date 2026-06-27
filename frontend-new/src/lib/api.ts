@@ -54,8 +54,7 @@ async function request<T>(
     return json.data as T;
   }
 
-  // Handle v1 format: return raw response
-  return json as T;
+  throw new ApiError("Invalid API response format: expected v2 envelope", res.status);
 }
 
 export const api = {
