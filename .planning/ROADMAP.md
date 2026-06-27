@@ -22,7 +22,7 @@
 4. Все тесты проходят
 
 **Plans:** 2 plans
-- [ ] 01-01-PLAN.md — Dependencies & Alembic setup (asyncpg, psycopg2, alembic, initial migration)
+- [x] 01-01-PLAN.md — Dependencies & Alembic setup (asyncpg, psycopg2, alembic, initial migration)
 - [x] 01-02-PLAN.md — Engine refactoring & dual-database support (auto-detection, tests, docker-compose)
 
 ---

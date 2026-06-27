@@ -3,9 +3,9 @@
 ## Current Position
 
 Phase: 01-http-sessions
-Plan: 02 (complete)
+Plan: 01 (complete)
 Status: Executing
-Last activity: 2026-06-27 — Completed 01-02: Dual-Database Engine
+Last activity: 2026-06-27 — Completed 01-01: Dependencies & Alembic Setup
 
 ## Milestone
 
@@ -18,8 +18,8 @@ Goal: Подготовить систему к production нагрузке — P
 | Metric | Value |
 |--------|-------|
 | Current phase | 01-http-sessions |
-| Plans complete | 1/3 |
-| Tasks complete | 2/2 (01-02) |
+| Plans complete | 2/3 |
+| Tasks complete | 2/2 (01-01) |
 
 ## Context
 
@@ -31,6 +31,8 @@ Goal: Подготовить систему к production нагрузке — P
 - Rate limiting для провайдеров
 - Engine auto-detection: URL prefix → PostgreSQL or SQLite (01-02)
 - Sync engine normalizes asyncpg → psycopg2 for backward compat (01-02)
+- Alembic env var pattern: ACCOUNT_MANAGER_DATABASE_URL with SQLite fallback (01-01)
+- Initial migration covers all 13 SQLModel tables (01-01)
 
 ### Blockers
 
