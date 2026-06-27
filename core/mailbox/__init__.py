@@ -37,6 +37,8 @@ from core.mailbox.moemail import MoeMailMailbox
 from core.mailbox.freemail import FreemailMailbox
 from core.mailbox.testmail import TestmailMailbox
 from core.mailbox.ddg_email import DDGEmailMailbox
+from core.mailbox.mailtm import MailTmMailbox
+from core.mailbox.tempyemail import TempyMailbox
 
 __all__ = [
     "MailboxAccount",
@@ -76,4 +78,6 @@ __all__ = [
     "FreemailMailbox",
     "TestmailMailbox",
     "DDGEmailMailbox",
+    "MailTmMailbox",
+    "TempyMailbox",
 ]

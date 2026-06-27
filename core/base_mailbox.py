@@ -19,10 +19,12 @@ from core.mailbox.moemail import MoeMailMailbox
 from core.mailbox.freemail import FreemailMailbox
 from core.mailbox.testmail import TestmailMailbox
 from core.mailbox.ddg_email import DDGEmailMailbox
+from core.mailbox.mailtm import MailTmMailbox
+from core.mailbox.tempyemail import TempyMailbox
 
 # Re-export default URLs
 from core.mailbox.laoudo import DEFAULT_LAOUDO_API_URL
 from core.mailbox.aitre import DEFAULT_AITRE_API_URL
 from core.mailbox.tempmail_lol import DEFAULT_TEMPMAIL_LOL_API_URL
 from core.mailbox.tempmail_web import DEFAULT_TEMPMAIL_WEB_BASE_URL
-from core.mailbox.tempmail_lol import DEFAULT_MAILTM_API_URL
+from core.mailbox.mailtm import DEFAULT_MAILTM_API_URL
