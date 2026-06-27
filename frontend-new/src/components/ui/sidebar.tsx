@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   BarChart3,
+  ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/register", label: "Register", icon: UserPlus },
   { href: "/history", label: "History", icon: History },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/logs", label: "Logs", icon: ScrollText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
