@@ -10,6 +10,8 @@ export function ConnectionStatus() {
 
   useEffect(() => {
     const client = getWebSocketClient();
+    // Check initial state
+    setConnected(client.isConnected());
     if (client.onConnectionChange) {
       client.onConnectionChange(setConnected);
     }
