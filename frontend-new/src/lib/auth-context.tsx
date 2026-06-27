@@ -10,6 +10,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import { authApi } from "@/lib/api-client";
 import { getToken, removeToken, setToken } from "@/lib/auth";
+import { getWebSocketClient } from "@/lib/websocket";
 
 interface AuthState {
   /** Whether auth check has completed */
@@ -52,9 +53,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!data.required) {
           // No password required → always authenticated
           setAuthenticated(true);
+          // Connect WebSocket (no auth needed)
+          const ws = getWebSocketClient();
+          ws.connect("");
         } else {
           // Password required → check if we have a token
-          setAuthenticated(getToken() !== null);
+          const token = getToken();
+          setAuthenticated(token !== null);
+          // Connect WebSocket with token if available
+          if (token) {
+            const ws = getWebSocketClient();
+            ws.connect(token);
+          }
         }
       } catch {
         // Backend unreachable or error → assume no auth required
@@ -76,6 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await authApi.login(password);
       setToken(data.token);
       setAuthenticated(true);
+      // Connect WebSocket with new token
+      const ws = getWebSocketClient();
+      ws.connect(data.token);
     },
     []
   );
