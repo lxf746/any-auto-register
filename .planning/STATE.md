@@ -2,16 +2,16 @@
 
 ## Current Position
 
-Phase: 4 complete (Shutdown & Minor)
-Plan: 04-PLAN.md
-Status: All 4 phases complete — milestone v1.4 complete
-Last activity: 2026-06-26 — Phase 4 Shutdown & Minor complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-27 — Milestone v1.5 Enterprise Cleanup started
 
 ## Milestone
 
-**v1.4 Memory Leaks & Thread Safety**
+**v1.5 Enterprise Cleanup**
 
-Goal: Исправить все утечки памяти и проблемы потокобезопасности, переписать проблемные модули с правильными паттернами
+Goal: Привести кодовую базу к enterprise-стандарту — разделить монолиты, выделить общие паттерны, убрать дублирование, добавить типизацию
 
 ## Progress
 
@@ -25,8 +25,10 @@ Goal: Исправить все утечки памяти и проблемы п
 
 ### Decisions
 
-- Full refactor — переписать проблемные модули с правильными паттернами
-- Clean break — меняем публичный API если нужно, без шимов и бэквард компата
+- Разделить монолитные файлы на модули
+- Выделить общие паттерны в отдельные модули
+- Объединить дублирующие директории
+- Добавить типизацию
 
 ### Blockers
 
