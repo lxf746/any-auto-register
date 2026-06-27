@@ -6,6 +6,10 @@ from core.db.encryption import (
 )
 from core.db.engine import (
     DATABASE_URL,
+    _create_async_engine,
+    _create_sync_engine,
+    _ensure_column,
+    _is_postgresql,
     engine,
     get_session,
     init_db,
@@ -15,7 +19,6 @@ from core.db.migrations import (
     LEGACY_ACCOUNT_COLUMNS,
     _cleanup_empty_provider_settings,
     _cleanup_non_real_providers,
-    _ensure_column,
     _migrate_legacy_accounts_schema,
     _migrate_legacy_provider_keys,
 )
@@ -42,6 +45,9 @@ __all__ = [
     "decrypt_password",
     "encrypt_password",
     # engine
+    "_create_async_engine",
+    "_create_sync_engine",
+    "_is_postgresql",
     "DATABASE_URL",
     "engine",
     "get_session",

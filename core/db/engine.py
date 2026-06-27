@@ -19,13 +19,48 @@ from core.db.models import (
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Auto-detection helpers
+# ---------------------------------------------------------------------------
+
+
+def _is_postgresql(url: str) -> bool:
+    """Return True if *url* targets a PostgreSQL database."""
+    return url.startswith("postgresql+asyncpg://") or url.startswith("postgresql://")
+
+
 def _default_database_url() -> str:
     database_path = Path(__file__).resolve().parent.parent.parent / "account_manager.db"
     return f"sqlite:///{database_path}"
 
 
 DATABASE_URL = os.getenv("ACCOUNT_MANAGER_DATABASE_URL", _default_database_url())
-engine = create_engine(DATABASE_URL)
+
+
+# ---------------------------------------------------------------------------
+# Engine factories
+# ---------------------------------------------------------------------------
+
+
+def _create_sync_engine(url: str):
+    """Create a synchronous engine.
+
+    PostgreSQL URLs using the ``asyncpg`` dialect are normalised to
+    ``psycopg2`` so that the sync ``Session`` wrapper works correctly.
+    """
+    if url.startswith("postgresql+asyncpg://"):
+        url = url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+    return create_engine(url)
+
+
+def _create_async_engine(url: str):
+    """Create an asynchronous engine (PostgreSQL only via asyncpg)."""
+    from sqlalchemy.ext.asyncio import create_async_engine as _make_async
+
+    return _make_async(url)
+
+
+engine = _create_sync_engine(DATABASE_URL)
 
 
 # ---------------------------------------------------------------------------
