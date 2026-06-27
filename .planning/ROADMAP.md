@@ -21,6 +21,10 @@
 3. Миграция данных корректна
 4. Все тесты проходят
 
+**Plans:** 2 plans
+- [ ] 01-01-PLAN.md — Dependencies & Alembic setup (asyncpg, psycopg2, alembic, initial migration)
+- [ ] 01-02-PLAN.md — Engine refactoring & dual-database support (auto-detection, tests, docker-compose)
+
 ---
 
 ## Phase 2: Connection Pooling
