@@ -8,7 +8,7 @@
 ## Phases
 
 - [x] **Phase 1: v1 Removal** - Удалить старый frontend, static, v1 API эндпоинты и все шимы/compat слои
-- [ ] **Phase 2: v2 Consolidation** - Перенести auth/accounts из v1 API в v2, оставить только v2 роутер
+- [x] **Phase 2: v2 Consolidation** - Перенести auth/accounts из v1 API в v2, оставить только v2 роутер
 - [ ] **Phase 3: Account Endpoints** - Реализовать Account CRUD, exports, imports, checks в v2
 - [ ] **Phase 4: Core Endpoints** - Реализовать actions, config, health, lifecycle, tasks, system в v2
 - [ ] **Phase 5: Provider & Infra Endpoints** - Реализовать providers, proxies, SMS в v2
@@ -46,7 +46,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — Remove v1 public prefix from core/auth.py and v1 fallback from api.ts
+- [x] 02-01-PLAN.md — Remove v1 public prefix from core/auth.py and v1 fallback from api.ts
 
 ### Phase 3: Account Endpoints
 **Goal**: Полный набор Account CRUD, export, import, check эндпоинтов работает в v2
@@ -128,7 +128,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. v1 Removal | 2/2 | Complete | 2026-06-27 |
-| 2. v2 Consolidation | 0/1 | Not started | - |
+| 2. v2 Consolidation | 1/1 | Complete | 2026-06-27 |
 | 3. Account Endpoints | 0/2 | Not started | - |
 | 4. Core Endpoints | 0/2 | Not started | - |
 | 5. Provider & Infra Endpoints | 0/1 | Not started | - |

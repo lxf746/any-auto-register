@@ -14,11 +14,11 @@
 
 ### v2 Consolidation
 
-- [ ] **CO-01**: Перенести auth functions (create_session, validate_session, _check_rate_limit, _sessions) из api/auth.py в api/v2/
-- [ ] **CO-02**: Перенести AccountsService из api/accounts.py в api/v2/ или shared module
-- [ ] **CO-03**: Обновить main.py — оставить только v2 роутер
-- [ ] **CO-04**: Обновить core/auth.py — убрать v1 public prefixes
-- [ ] **CO-05**: Обновить frontend-new/src/lib/api.ts — убрать v1 response format fallback
+- [x] **CO-01**: Перенести auth functions (create_session, validate_session, _check_rate_limit, _sessions) из api/auth.py в api/v2/
+- [x] **CO-02**: Перенести AccountsService из api/accounts.py в api/v2/ или shared module
+- [x] **CO-03**: Обновить main.py — оставить только v2 роутер
+- [x] **CO-04**: Обновить core/auth.py — убрать v1 public prefixes
+- [x] **CO-05**: Обновить frontend-new/src/lib/api.ts — убрать v1 response format fallback
 
 ### Missing v2 Endpoints
 
@@ -72,11 +72,11 @@
 | RM-02 | Phase 1: v1 Removal | Complete |
 | RM-03 | Phase 1: v1 Removal | Complete |
 | RM-04 | Phase 1: v1 Removal | Complete |
-| CO-01 | Phase 2: v2 Consolidation | Pending |
-| CO-02 | Phase 2: v2 Consolidation | Pending |
-| CO-03 | Phase 2: v2 Consolidation | Pending |
-| CO-04 | Phase 2: v2 Consolidation | Pending |
-| CO-05 | Phase 2: v2 Consolidation | Pending |
+| CO-01 | Phase 2: v2 Consolidation | Complete |
+| CO-02 | Phase 2: v2 Consolidation | Complete |
+| CO-03 | Phase 2: v2 Consolidation | Complete |
+| CO-04 | Phase 2: v2 Consolidation | Complete |
+| CO-05 | Phase 2: v2 Consolidation | Complete |
 | EP-01 | Phase 3: Account Endpoints | Pending |
 | EP-02 | Phase 3: Account Endpoints | Pending |
 | EP-03 | Phase 3: Account Endpoints | Pending |
