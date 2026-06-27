@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from core.base_mailbox import BaseMailbox
+from core.mailbox.base import BaseMailbox
 from core.base_platform import Account, AccountStatus, BasePlatform, RegisterConfig
 from core.registration import BrowserRegistrationAdapter, OtpSpec, ProtocolMailboxAdapter, RegistrationResult
 from core.registration.helpers import resolve_timeout

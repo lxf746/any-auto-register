@@ -1,6 +1,6 @@
 """Cerebras Cloud platform plugin"""
 from core.base_platform import BasePlatform, Account, AccountStatus, RegisterConfig
-from core.base_mailbox import BaseMailbox
+from core.mailbox.base import BaseMailbox
 from core.registration import OtpSpec, ProtocolMailboxAdapter, RegistrationResult
 from core.registry import register
 

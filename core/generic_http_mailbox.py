@@ -16,7 +16,9 @@ from urllib.parse import urlencode
 
 import requests
 
-from core.base_mailbox import BaseMailbox, MailboxAccount, _extract_verification_link
+from core.mailbox.base import BaseMailbox
+from core.mailbox.models import MailboxAccount
+from core.mailbox.utils import extract_verification_link as _extract_verification_link
 from core.tls import mark_session_insecure, suppress_insecure_request_warning
 
 

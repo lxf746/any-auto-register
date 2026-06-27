@@ -24,7 +24,9 @@ from pathlib import Path
 
 import requests
 
-from core.base_mailbox import BaseMailbox, MailboxAccount, _extract_verification_link
+from core.mailbox.base import BaseMailbox
+from core.mailbox.models import MailboxAccount
+from core.mailbox.utils import extract_verification_link as _extract_verification_link
 
 
 GRAPH_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"

@@ -202,7 +202,7 @@ def _auto_upload_cpa(task_logger: TaskLogger, account) -> None:
 
 def _build_platform_instance(platform_name: str, payload: dict[str, Any], logger: TaskLogger, resolved_proxy: str | None = None, shared_mailbox=None):
     from core.base_identity import normalize_identity_provider
-    from core.base_mailbox import create_mailbox
+    from core.mailbox.registry import create_mailbox
 
     executor_type = str(payload.get("executor_type", "protocol") or "protocol")
     captcha_solver = str(payload.get("captcha_solver", "auto") or "auto")
@@ -378,7 +378,7 @@ def _execute_register_task(payload: dict[str, Any], logger: TaskLogger) -> None:
     shared_mailbox = None
     try:
         from core.base_identity import normalize_identity_provider
-        from core.base_mailbox import create_mailbox
+        from core.mailbox.registry import create_mailbox
 
         identity_provider = normalize_identity_provider(
             extra.get("identity_provider") or extra.get("identity_mode") or "mailbox"

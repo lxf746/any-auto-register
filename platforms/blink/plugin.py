@@ -1,5 +1,5 @@
 """blink.new platform plugin"""
-from core.base_mailbox import BaseMailbox
+from core.mailbox.base import BaseMailbox
 from core.base_platform import Account, AccountStatus, BasePlatform, RegisterConfig
 from core.registration import LinkSpec, ProtocolMailboxAdapter, RegistrationResult
 from core.registry import register

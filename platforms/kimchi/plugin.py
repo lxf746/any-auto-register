@@ -6,7 +6,7 @@ Auth model: Auth0 email/password registration with email verification.
   - After verification: authorization code → tokens → API key
   - API keys via Cast.ai backend API
 """
-from core.base_mailbox import BaseMailbox
+from core.mailbox.base import BaseMailbox
 from core.base_platform import Account, AccountStatus, BasePlatform, RegisterConfig
 from core.registration import LinkSpec, ProtocolMailboxAdapter, RegistrationResult
 from core.registry import register
