@@ -206,3 +206,30 @@ class TestHttpClientMetricsIntegration:
         with open("core/http_client.py") as f:
             content = f.read()
         assert "rate_limit_metrics.record_usage" in content
+
+
+# ---------------------------------------------------------------------------
+# Task 1 (05-02): Dead code removal from task_scheduler.py
+# ---------------------------------------------------------------------------
+
+class TestSchedulerDeadCodeRemoved:
+    def test_claim_next_runnable_task_removed(self):
+        from application.tasks import task_scheduler
+        assert not hasattr(task_scheduler, "claim_next_runnable_task")
+
+    def test_mark_incomplete_tasks_interrupted_removed(self):
+        from application.tasks import task_scheduler
+        assert not hasattr(task_scheduler, "mark_incomplete_tasks_interrupted")
+
+    def test_request_cancel_removed(self):
+        from application.tasks import task_scheduler
+        assert not hasattr(task_scheduler, "request_cancel")
+
+    def test_request_cancel_mutation_removed(self):
+        from application.tasks import task_scheduler
+        assert not hasattr(task_scheduler, "_request_cancel_mutation")
+
+    def test_schedule_retry_still_exists(self):
+        from application.tasks import task_scheduler
+        assert hasattr(task_scheduler, "schedule_retry")
+        assert callable(task_scheduler.schedule_retry)
