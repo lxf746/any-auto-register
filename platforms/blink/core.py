@@ -18,6 +18,8 @@ from typing import Any, Callable
 
 from curl_cffi import requests as curl_requests
 
+from core.mixins.managed_session import ManagedSession
+
 BLINK_BASE = "https://blink.new"
 FIREBASE_API_KEY = "test"
 FIREBASE_SIGNIN_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key={FIREBASE_API_KEY}"
@@ -191,13 +193,17 @@ def extract_blink_account_context(account: Any) -> dict[str, str]:
     }
 
 
-class BlinkRegister:
+class BlinkRegister(ManagedSession):
     def __init__(self, proxy: str | None = None):
-        self.s = curl_requests.Session()
-        self.s.impersonate = "chrome131"
-        if proxy:
-            self.s.proxies = {"http": proxy, "https": proxy}
-        self.s.headers.update(
+        self._proxy = proxy
+        self._log: Callable[[str], None] = print
+
+    def _create_session(self):
+        s = curl_requests.Session()
+        s.impersonate = "chrome131"
+        if self._proxy:
+            s.proxies = {"http": self._proxy, "https": self._proxy}
+        s.headers.update(
             {
                 "user-agent": UA,
                 "accept-language": "zh-CN,zh;q=0.9",
@@ -206,7 +212,11 @@ class BlinkRegister:
                 "sec-ch-ua-platform": '"macOS"',
             }
         )
-        self._log: Callable[[str], None] = print
+        return s
+
+    @property
+    def s(self):
+        return self._get_session()
 
     def log(self, msg: str) -> None:
         self._log(msg)

@@ -16,6 +16,7 @@ from urllib.parse import quote
 from curl_cffi import requests as curl_requests
 
 from core.datetime_utils import _utcnow_iso
+from core.mixins.managed_session import ManagedSession
 
 
 WINDSURF_BASE = "https://windsurf.com"
@@ -395,13 +396,17 @@ def extract_windsurf_account_context(account: Any) -> dict[str, str]:
     }
 
 
-class WindsurfClient:
+class WindsurfClient(ManagedSession):
     def __init__(self, *, proxy: str | None = None, log_fn: Callable[[str], None] = print):
-        self.s = curl_requests.Session()
-        self.s.impersonate = "chrome131"
-        if proxy:
-            self.s.proxies = {"http": proxy, "https": proxy}
-        self.s.headers.update({
+        self._proxy = proxy
+        self.log = log_fn
+
+    def _create_session(self):
+        s = curl_requests.Session()
+        s.impersonate = "chrome131"
+        if self._proxy:
+            s.proxies = {"http": self._proxy, "https": self._proxy}
+        s.headers.update({
             "user-agent": UA,
             "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
             "sec-ch-ua": '"Google Chrome";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
@@ -409,7 +414,11 @@ class WindsurfClient:
             "sec-ch-ua-platform": '"macOS"',
             "dnt": "1",
         })
-        self.log = log_fn
+        return s
+
+    @property
+    def s(self):
+        return self._get_session()
 
     def _json_post(self, path: str, payload: dict[str, Any], *, referer: str = "/account/register") -> dict[str, Any]:
         response = self.s.post(

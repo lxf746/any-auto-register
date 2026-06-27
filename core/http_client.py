@@ -13,6 +13,8 @@ import logging
 from curl_cffi import requests as cffi_requests
 from curl_cffi.requests import Session, Response
 
+from core.mixins.managed_session import ManagedSession
+
 
 
 
@@ -36,7 +38,7 @@ class HTTPClientError(Exception):
     pass
 
 
-class HTTPClient:
+class HTTPClient(ManagedSession):
     """
     HTTP client wrapper
     Supports proxy, retry, error handling, and session management
@@ -58,7 +60,16 @@ class HTTPClient:
         """
         self.proxy_url = proxy_url
         self.config = config or RequestConfig()
-        self._session = session
+        self._injected_session = session
+
+    def _create_session(self) -> Session:
+        """Create a new curl_cffi Session with configured proxy and settings."""
+        return Session(
+            proxies=self.proxies,
+            impersonate=self.config.impersonate,
+            verify=self.config.verify_ssl,
+            timeout=self.config.timeout
+        )
 
     @property
     def proxies(self) -> Optional[Dict[str, str]]:
@@ -72,15 +83,10 @@ class HTTPClient:
 
     @property
     def session(self) -> Session:
-        """Get session object (singleton)"""
-        if self._session is None:
-            self._session = Session(
-                proxies=self.proxies,
-                impersonate=self.config.impersonate,
-                verify=self.config.verify_ssl,
-                timeout=self.config.timeout
-            )
-        return self._session
+        """Get session object (singleton via ManagedSession)."""
+        if self._injected_session is not None:
+            return self._injected_session
+        return self._get_session()
 
     def request(
         self,
@@ -217,9 +223,13 @@ class HTTPClient:
 
     def close(self):
         """Close session"""
-        if self._session:
-            self._session.close()
-            self._session = None
+        if self._injected_session:
+            try:
+                self._injected_session.close()
+            except Exception:
+                pass
+            self._injected_session = None
+        ManagedSession.close(self)
 
     def __enter__(self):
         return self

@@ -19,6 +19,8 @@ from urllib.parse import urlencode, urlparse, parse_qs
 from curl_cffi import requests as curl_requests
 import requests as std_requests
 
+from core.mixins.managed_session import ManagedSession
+
 # ─── Config ───────────────────────────────────────────────────────────────────
 
 AUTH_BASE           = "https://auth.openblocklabs.com"
@@ -88,18 +90,26 @@ def _make_signals() -> str:
 
 
 # ─── Register ────────────────────────────────────────────────────────────────
-class OpenBlockLabsRegister:
+class OpenBlockLabsRegister(ManagedSession):
     def __init__(self, proxy: str = None):
-        self.s = curl_requests.Session()
-        self.s.impersonate = "chrome131"
-        if proxy:
-            self.s.proxies = {"http": proxy, "https": proxy}
-        self.s.headers.update({
+        self._proxy = proxy
+        self.authorization_session_id = None
+        self._action_id = None
+
+    def _create_session(self):
+        s = curl_requests.Session()
+        s.impersonate = "chrome131"
+        if self._proxy:
+            s.proxies = {"http": self._proxy, "https": self._proxy}
+        s.headers.update({
             "user-agent": UA,
             "accept-language": "zh-CN,zh;q=0.9",
         })
-        self.authorization_session_id = None
-        self._action_id = None
+        return s
+
+    @property
+    def s(self):
+        return self._get_session()
 
     def log(self, msg):
         print(f"[REG] {msg}")
