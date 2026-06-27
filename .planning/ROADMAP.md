@@ -7,7 +7,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: v1 Removal** - Удалить старый frontend, static, v1 API эндпоинты и все шимы/compat слои
+- [x] **Phase 1: v1 Removal** - Удалить старый frontend, static, v1 API эндпоинты и все шимы/compat слои
 - [ ] **Phase 2: v2 Consolidation** - Перенести auth/accounts из v1 API в v2, оставить только v2 роутер
 - [ ] **Phase 3: Account Endpoints** - Реализовать Account CRUD, exports, imports, checks в v2
 - [ ] **Phase 4: Core Endpoints** - Реализовать actions, config, health, lifecycle, tasks, system в v2
@@ -30,8 +30,8 @@
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Удалить frontend/ и static/, очистить main.py от static serving
-- [ ] 01-02-PLAN.md — Перенести auth в v2, удалить все v1 API файлы, очистить main.py
+- [x] 01-01-PLAN.md — Удалить frontend/ и static/, очистить main.py от static serving
+- [x] 01-02-PLAN.md — Перенести auth в v2, удалить все v1 API файлы, очистить main.py
 
 ### Phase 2: v2 Consolidation
 **Goal**: Auth functions и AccountsService перенесены в v2, main.py использует только v2 роутер
@@ -127,7 +127,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. v1 Removal | 0/2 | Not started | - |
+| 1. v1 Removal | 2/2 | Complete | 2026-06-27 |
 | 2. v2 Consolidation | 0/1 | Not started | - |
 | 3. Account Endpoints | 0/2 | Not started | - |
 | 4. Core Endpoints | 0/2 | Not started | - |

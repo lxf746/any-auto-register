@@ -7,10 +7,10 @@
 
 ### v1 Removal
 
-- [ ] **RM-01**: Удалить frontend/ (Vite+React) — заменён на frontend-new/
-- [ ] **RM-02**: Удалить static/ — build output старого фронтенда
-- [ ] **RM-03**: Удалить v1 API эндпоинты (api/auth.py, api/accounts.py, и т.д.)
-- [ ] **RM-04**: Удалить все шимы и compat слои между v1 и v2
+- [x] **RM-01**: Удалить frontend/ (Vite+React) — заменён на frontend-new/
+- [x] **RM-02**: Удалить static/ — build output старого фронтенда
+- [x] **RM-03**: Удалить v1 API эндпоинты (api/auth.py, api/accounts.py, и т.д.)
+- [x] **RM-04**: Удалить все шимы и compat слои между v1 и v2
 
 ### v2 Consolidation
 
@@ -68,10 +68,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RM-01 | Phase 1: v1 Removal | Pending |
-| RM-02 | Phase 1: v1 Removal | Pending |
-| RM-03 | Phase 1: v1 Removal | Pending |
-| RM-04 | Phase 1: v1 Removal | Pending |
+| RM-01 | Phase 1: v1 Removal | Complete |
+| RM-02 | Phase 1: v1 Removal | Complete |
+| RM-03 | Phase 1: v1 Removal | Complete |
+| RM-04 | Phase 1: v1 Removal | Complete |
 | CO-01 | Phase 2: v2 Consolidation | Pending |
 | CO-02 | Phase 2: v2 Consolidation | Pending |
 | CO-03 | Phase 2: v2 Consolidation | Pending |

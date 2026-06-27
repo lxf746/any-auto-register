@@ -1,12 +1,12 @@
 ---
 gsd_state_version: '1.0'
-status: planning
+status: executing
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 10
-  completed_plans: 0
-  percent: 0
+  completed_plans: 2
+  percent: 20
 ---
 
 # Project State
@@ -16,33 +16,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-27)
 
 **Core value:** Автоматическая регистрация аккаунтов должна работать надёжно и безопасно
-**Current focus:** Phase 1: v1 Removal
+**Current focus:** Phase 1: v1 Removal (COMPLETED)
 
 ## Current Position
 
 Phase: 1 of 7 (v1 Removal)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-06-27 — Roadmap created for v2.0 Unified Enterprise Version
+Plan: 2 of 2 in current phase (COMPLETED)
+Status: Phase complete — ready for Phase 2
+Last activity: 2026-06-27 — Phase 1 v1 Removal completed
 
-Progress: ░░░░░░░░░░ 0%
+Progress: ██░░░░░░░░ 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 2
+- Average duration: 2.5m
+- Total execution time: 5 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 1. v1 Removal | 2 | 5m | 2.5m |
 
 **Recent Trend:**
-- Last 5 plans: -
-- Trend: -
+- Last 5 plans: 01-01 (2m), 01-02 (3m)
+- Trend: Consistent execution
 
 *Updated after each plan completion*
 
@@ -55,6 +55,8 @@ Recent decisions affecting current work:
 
 - v2.0: Remove v1, v2 becomes the only version (no duals/shims/compat)
 - Single codebase: frontend-new/ replaces frontend/, api/v2/ replaces api/ v1
+- Auth functions moved to api/v2/auth.py to decouple v2 from v1 modules
+- AccountsService instantiated directly in v2 router to avoid v1 dependency
 
 ### Pending Todos
 
@@ -75,5 +77,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-06-27
-Stopped at: Roadmap created for v2.0
+Stopped at: Phase 1 v1 Removal completed
 Resume file: None
