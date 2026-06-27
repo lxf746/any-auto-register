@@ -173,6 +173,7 @@ def init_db():
 
     _migrate_legacy_accounts_schema()
     _ensure_column("provider_definitions", "category", "TEXT DEFAULT ''")
+    _ensure_column("tasks", "priority", "TEXT DEFAULT 'normal'")
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:

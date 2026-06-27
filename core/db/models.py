@@ -253,6 +253,13 @@ class TaskLog(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
 
 
+# ---------------------------------------------------------------------------
+# Priority levels for task scheduling
+# ---------------------------------------------------------------------------
+
+PRIORITY_LEVELS = frozenset({"high", "normal", "low"})
+
+
 class TaskModel(SQLModel, table=True):
     __tablename__ = "tasks"
 
@@ -260,6 +267,7 @@ class TaskModel(SQLModel, table=True):
     type: str = Field(index=True)
     platform: str = Field(default="", index=True)
     status: str = Field(default="pending", index=True)
+    priority: str = Field(default="normal", index=True)
     payload_json: str = "{}"
     result_json: str = "{}"
     progress_current: int = 0
