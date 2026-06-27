@@ -30,11 +30,12 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install patchright/playwright browsers (used by Solver)
+# Skip playwright download — system chromium from apt is used instead
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN playwright install --with-deps chromium
+# RUN playwright install --with-deps chromium
 
 # Install camoufox browser (used by Solver's camoufox mode)
-RUN python -m camoufox fetch
+# RUN python -m camoufox fetch
 
 # Copy backend code
 ARG APP_VERSION=dev
