@@ -35,7 +35,7 @@
 - [ ] **EP-11**: Provider settings (CRUD, test)
 - [ ] **EP-12**: Proxies (CRUD, bulk, toggle, check, scan)
 - [ ] **EP-13**: SMS (HeroSMS, SmsBower endpoints)
-- [ ] **EP-14**: Stats (by-platform, by-day, by-proxy, errors)
+- [x] **EP-14**: Stats (by-platform, by-day, by-proxy, errors)
 - [ ] **EP-15**: Tasks (list, get, events, logs, register, cancel, stream)
 - [ ] **EP-16**: System (solver status/restart, version check)
 
@@ -92,13 +92,14 @@
 | EP-11 | Phase 5: Provider & Infra Endpoints | Pending |
 | EP-12 | Phase 5: Provider & Infra Endpoints | Pending |
 | EP-13 | Phase 5: Provider & Infra Endpoints | Pending |
-| EP-14 | Phase 6: Stats Endpoints | Pending |
+| EP-14 | Phase 6: Stats Endpoints | Complete |
 | CL-01 | Phase 7: Cleanup | Pending |
 | CL-02 | Phase 7: Cleanup | Pending |
 | CL-03 | Phase 7: Cleanup | Pending |
 | CL-04 | Phase 7: Cleanup | Pending |
 
 **Coverage:**
+
 - v2.0 requirements: 28 total
 - Mapped to phases: 28/28 ✓
 - Unmapped: 0 ✓
