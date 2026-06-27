@@ -52,10 +52,14 @@ class FireworksPlatform(BasePlatform):
             )
 
         def _run_worker(worker, ctx, artifacts):
+            mailbox_token = ""
+            if ctx.identity.mailbox_account:
+                mailbox_token = ctx.identity.mailbox_account.account_id or ""
             return worker.run(
                 email=ctx.identity.email,
-                password=ctx.identity.password or "",
+                password=ctx.password or "",
                 link_callback=artifacts.verification_link_callback,
+                mailbox_token=mailbox_token,
             )
 
         return ProtocolMailboxAdapter(

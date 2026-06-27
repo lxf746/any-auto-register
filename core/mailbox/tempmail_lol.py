@@ -39,7 +39,7 @@ class TempMailLolMailbox(BaseMailbox):
         r = requests.post(f"{self.api}/inbox/create",
             json={},
             proxies=self.proxy, timeout=15)
-        if r.status_code != 200:
+        if r.status_code not in (200, 201):
             error_text = r.text[:300]
             try:
                 error_detail = r.json()

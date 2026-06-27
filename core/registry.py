@@ -9,7 +9,7 @@ from .db import PlatformCapabilityOverrideModel, engine
 from core.datetime_utils import _utcnow
 
 _registry: Dict[str, Type[BasePlatform]] = {}
-_registry_lock = threading.Lock()
+_registry_lock = threading.RLock()
 _loaded = False
 
 _CAPABILITY_KEYS = ("supported_executors", "supported_identity_modes", "supported_oauth_providers", "capabilities")

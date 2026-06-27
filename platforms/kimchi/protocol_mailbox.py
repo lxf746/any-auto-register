@@ -26,6 +26,7 @@ class KimchiProtocolMailboxWorker:
         link_callback: Callable[[], str] | None = None,
         api_key_name: str = "auto-register",
         headless: bool = True,
+        mailbox_token: str = "",
     ) -> dict:
         if not email or not password:
             raise RuntimeError("kimchi.dev registration requires email + password")
@@ -35,6 +36,7 @@ class KimchiProtocolMailboxWorker:
             password,
             api_key_name=api_key_name,
             verify_link_callback=link_callback,
+            mailbox_token=mailbox_token,
             headless=headless,
         )
 
