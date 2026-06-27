@@ -22,3 +22,9 @@ def ready():
 def pools():
     """Dedicated pool metrics endpoint for monitoring."""
     return service.pool_status()
+
+
+@router.get("/rate-limits")
+def rate_limits():
+    """Rate limit metrics for monitoring."""
+    return service.rate_limit_status()
