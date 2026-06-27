@@ -43,7 +43,7 @@ COPY . .
 # Inject version number
 RUN echo "__version__ = \"${APP_VERSION}\"" > core/version.py
 # Remove .venv and frontend source code
-RUN rm -rf .venv frontend frontend-new
+RUN rm -rf .venv frontend-new
 
 # Copy frontend build artifacts
 COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend-standalone
