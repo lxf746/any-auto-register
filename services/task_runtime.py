@@ -1,6 +1,7 @@
 """Persistent task runtime for single-process execution."""
 from __future__ import annotations
 
+import heapq
 from dataclasses import dataclass, field
 import logging
 import threading
@@ -16,6 +17,7 @@ class TaskWorkerState:
     thread: threading.Thread
     platform: str = ""
     account_keys: set[str] = field(default_factory=set)
+    priority: str = "normal"
 
 
 class TaskRuntime:
@@ -27,12 +29,14 @@ class TaskRuntime:
         self._dispatcher: threading.Thread | None = None
         self._workers: dict[str, TaskWorkerState] = {}
         self._lock = threading.Lock()
+        self._started_at: float = 0.0
 
     def start(self) -> None:
         with self._lock:
             if self._running:
                 return
             self._running = True
+            self._started_at = time.monotonic()
             mark_incomplete_tasks_interrupted()
             self._dispatcher = threading.Thread(target=self._loop, daemon=True, name="task-runtime")
             self._dispatcher.start()
@@ -54,6 +58,12 @@ class TaskRuntime:
         # Polling loop wakes quickly already; this method exists as an explicit runtime hook.
         return
 
+    @staticmethod
+    def _pending_task_sort_key(task_info: dict) -> tuple[int, str]:
+        """Sort key for priority-based dispatch: high(0) > normal(1) > low(2), then FIFO by id."""
+        priority_order = {"high": 0, "normal": 1, "low": 2}
+        return (priority_order.get(task_info.get("priority", "normal"), 1), task_info.get("id", ""))
+
     def _loop(self) -> None:
         while self._running:
             self._reap_workers()
@@ -65,7 +75,9 @@ class TaskRuntime:
                     if state.platform:
                         running_platform_counts[state.platform] = running_platform_counts.get(state.platform, 0) + 1
                     busy_account_keys.update(state.account_keys)
-            while available_slots > 0 and self._running:
+            # Collect claimable tasks into a batch for priority sorting
+            claimable_tasks: list[dict] = []
+            while available_slots > len(claimable_tasks) and self._running:
                 task_info = claim_next_runnable_task(
                     running_platform_counts=running_platform_counts,
                     busy_account_keys=busy_account_keys,
@@ -73,6 +85,16 @@ class TaskRuntime:
                 )
                 if not task_info:
                     break
+                claimable_tasks.append(task_info)
+                # Update tracking for next claim
+                platform = str(task_info.get("platform", "") or "")
+                if platform:
+                    running_platform_counts[platform] = running_platform_counts.get(platform, 0) + 1
+                busy_account_keys.update(set(task_info.get("account_keys") or []))
+            # Sort collected tasks by priority (high first)
+            claimable_tasks.sort(key=TaskRuntime._pending_task_sort_key)
+            # Dispatch in sorted order
+            for task_info in claimable_tasks:
                 task_id = task_info["id"]
                 worker = threading.Thread(
                     target=self._run_task,
@@ -85,14 +107,30 @@ class TaskRuntime:
                         thread=worker,
                         platform=str(task_info.get("platform", "") or ""),
                         account_keys=set(task_info.get("account_keys") or []),
+                        priority=task_info.get("priority", "normal"),
                     )
-                    if task_info.get("platform"):
-                        running_platform_counts[str(task_info["platform"])] = running_platform_counts.get(str(task_info["platform"]), 0) + 1
-                    busy_account_keys.update(set(task_info.get("account_keys") or []))
                 worker.start()
-                available_slots -= 1
             time.sleep(self.poll_interval)
         self._reap_workers()
+
+    def get_runtime_stats(self) -> dict:
+        """Return current runtime statistics including running count and per-priority breakdown."""
+        with self._lock:
+            running_count = len(self._workers)
+            per_platform_counts: dict[str, int] = {}
+            per_priority_counts: dict[str, int] = {}
+            for state in self._workers.values():
+                if state.platform:
+                    per_platform_counts[state.platform] = per_platform_counts.get(state.platform, 0) + 1
+                per_priority_counts[state.priority] = per_priority_counts.get(state.priority, 0) + 1
+        uptime = time.monotonic() - self._started_at if self._started_at else 0.0
+        return {
+            "running_count": running_count,
+            "max_parallel_tasks": self.max_parallel_tasks,
+            "per_platform_counts": per_platform_counts,
+            "per_priority_counts": per_priority_counts,
+            "uptime": uptime,
+        }
 
     def _run_task(self, task_id: str) -> None:
         try:

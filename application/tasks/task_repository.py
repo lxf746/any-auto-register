@@ -292,7 +292,7 @@ def claim_next_runnable_task(
             task.updated_at = _utcnow()
             session.add(task)
             session.commit()
-            return {"id": task.id, "platform": platform, "account_keys": account_keys}
+            return {"id": task.id, "platform": platform, "account_keys": account_keys, "priority": task.priority}
     return None
 
 
