@@ -19,6 +19,11 @@ pyotp>=2.9.0
 # Encryption for password-at-rest
 cryptography>=42.0.0
 
+# PostgreSQL support
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
+alembic>=1.13.0
+
 # Testing
 pytest>=8.0.0
 httpx>=0.27.0
