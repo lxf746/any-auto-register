@@ -86,3 +86,7 @@
 2. Rate limits работают для провайдеров
 3. Адаптивный backoff работает
 4. Метрики rate limits доступны
+
+**Plans:** 2 plans
+- [ ] 04-01-PLAN.md — Core rate limiting classes + exponential backoff (PlatformRateLimiter, ProviderRateLimiter, RateLimitMetrics, retry enhancement)
+- [ ] 04-02-PLAN.md — Rate limit metrics API endpoint (/api/rate-limits, HealthRuntime integration)
