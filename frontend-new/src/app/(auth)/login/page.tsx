@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Link from "next/link";
 import { authApi } from "@/lib/api-client";
 import { setToken } from "@/lib/auth";
 import { toast } from "sonner";
@@ -72,6 +73,13 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign in"}
             </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-primary hover:underline">
+                Create one
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>

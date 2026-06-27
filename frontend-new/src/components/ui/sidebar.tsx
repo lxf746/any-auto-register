@@ -16,10 +16,10 @@ import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/accounts", label: "Accounts", icon: Users },
-  { href: "/dashboard/register", label: "Register", icon: UserPlus },
-  { href: "/dashboard/history", label: "History", icon: History },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/accounts", label: "Accounts", icon: Users },
+  { href: "/register", label: "Register", icon: UserPlus },
+  { href: "/history", label: "History", icon: History },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {

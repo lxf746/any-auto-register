@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { statsApi, platformsApi } from "@/lib/api-client";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BarChart3, Users, CheckCircle, Activity } from "lucide-react";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { PlatformCard } from "@/components/dashboard/platform-card";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart3, Users, CheckCircle, Activity, Plus, List } from "lucide-react";
 
 interface Stats {
   total_registrations: number;
@@ -46,6 +45,10 @@ export default function DashboardPage() {
       }
     }
     load();
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -58,66 +61,52 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">
-          Overview of your registration activity.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">
+            Overview of your registration activity.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/register">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Register Account
+            </Button>
+          </Link>
+          <Link href="/accounts">
+            <Button variant="outline">
+              <List className="mr-2 h-4 w-4" />
+              View Accounts
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Registrations
-            </CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.total_registrations ?? 0}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.success_rate ?? 0}%
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Accounts
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.total_accounts ?? 0}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Platforms
-            </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{platforms.length}</div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total Registrations"
+          value={stats?.total_registrations ?? 0}
+          icon={<BarChart3 className="h-4 w-4" />}
+        />
+        <StatCard
+          title="Success Rate"
+          value={`${stats?.success_rate ?? 0}%`}
+          icon={<CheckCircle className="h-4 w-4" />}
+          description={`${stats?.success ?? 0} succeeded, ${stats?.failed ?? 0} failed`}
+        />
+        <StatCard
+          title="Total Accounts"
+          value={stats?.total_accounts ?? 0}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <StatCard
+          title="Active Platforms"
+          value={platforms.length}
+          icon={<Activity className="h-4 w-4" />}
+        />
       </div>
 
       {/* Platform Grid */}
@@ -128,23 +117,35 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {platforms.map((platform) => (
-              <Card key={platform.name}>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {platform.name}
-                    <Badge variant="secondary">Active</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Registration platform
-                  </p>
-                </CardContent>
-              </Card>
+              <PlatformCard
+                key={platform.name}
+                name={platform.name}
+                accountCount={
+                  stats?.account_distribution?.[platform.name] ?? 0
+                }
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-4">
+          <Link href="/register">
+            <Button variant="outline">New Registration</Button>
+          </Link>
+          <Link href="/history">
+            <Button variant="outline">View History</Button>
+          </Link>
+          <Link href="/settings">
+            <Button variant="outline">Settings</Button>
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }
