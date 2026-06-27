@@ -29,8 +29,7 @@ if sys.stderr is not None and getattr(sys.stderr, "encoding", "").lower() not in
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+# static/ and old SPA removed — frontend-new/ served separately
 
 from api.account_checks import router as account_checks_router
 from api.accounts import router as accounts_router
@@ -125,13 +124,7 @@ app.include_router(system_router, prefix="/api")
 app.include_router(v2_router, prefix="/api/v2")
 
 
-_static_dir = os.path.join(os.path.dirname(__file__), "static")
-if os.path.isdir(_static_dir):
-    app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    def spa_fallback(full_path: str):
-        return FileResponse(os.path.join(_static_dir, "index.html"))
 
 
 if __name__ == "__main__":

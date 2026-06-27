@@ -26,9 +26,7 @@ accounts.txt
 *_accounts.txt
 account.txt
 
-# 前端
-frontend/node_modules/
-frontend/dist/
+# old frontend removed — frontend-new/ uses its own .gitignore
 
 # PyInstaller
 backend.spec
