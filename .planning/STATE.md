@@ -2,10 +2,10 @@
 
 ## Current Position
 
-Phase: All phases complete
-Plan: —
-Status: Milestone lifecycle
-Last activity: 2026-06-27 — All 4 phases complete, starting milestone lifecycle
+Phase: 05-gap-closure
+Plan: 01
+Status: Executing
+Last activity: 2026-06-27 — Phase 5 Plan 01 complete (Gap Closure: BrowserPool + rate limiting)
 
 ## Milestone
 
@@ -17,9 +17,9 @@ Goal: Подготовить систему к production нагрузке — P
 
 | Metric | Value |
 |--------|-------|
-| Current phase | All complete |
-| Plans complete | 8/8 (Phase 1: 2, Phase 2: 2, Phase 3: 2, Phase 4: 2) |
-| Tasks complete | 19/19 (Phase 1: 4, Phase 2: 5, Phase 3: 4, Phase 4: 4) |
+| Current phase | 05-gap-closure |
+| Plans complete | 9/10 (Phase 1: 2, Phase 2: 2, Phase 3: 2, Phase 4: 2, Phase 5: 1) |
+| Tasks complete | 21/23 (Phase 1: 4, Phase 2: 5, Phase 3: 4, Phase 4: 4, Phase 5: 2) |
 
 ## Context
 
@@ -39,6 +39,9 @@ Goal: Подготовить систему к production нагрузке — P
 - BrowserPool reusable asyncio.Queue pattern with max_size, acquire/release/close (02-02)
 - Pool metrics (DB, HTTP, browser) available via /api/pools and readiness endpoint (02-02)
 - Rate limit metrics available via /api/rate-limits endpoint (04-02)
+- Used create_browser_pool() factory for discoverable entry-point (05-01)
+- Wrapped sync Camoufox/Playwright code with asyncio.new_event_loop() for pool operations (05-01)
+- Metrics recording is fire-and-forget with exception suppression (05-01)
 
 ### Blockers
 
@@ -46,4 +49,4 @@ Goal: Подготовить систему к production нагрузке — P
 
 ### Todos
 
-- Нет
+- Н�ет
