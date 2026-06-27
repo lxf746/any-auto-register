@@ -8,17 +8,16 @@
 
 Автоматическая регистрация аккаунтов должна работать надёжно и безопасно — аккаунты создаются, данные защищены, система не подвержена компрометации.
 
-## Current Milestone: v1.7 Frontend Rewrite + API Modernization
+## Current Milestone: v2.0 Unified Enterprise Version
 
-**Goal:** Полный rewrite фронтенда на Next.js + обновление backend API
+**Goal:** Удалить v1, v2 становится единственной версией (v1). Один чистый кодбез без дуалов/шимов/компата.
 
 **Target features:**
-- Next.js 14+ с TypeScript, Tailwind CSS, Shadcn/ui
-- Analytics Dashboard — статистика, графики, метрики регистраций
-- Real-time Updates — WebSocket вместо polling для статуса задач
-- Settings Management — UI для управления прокси, провайдерами, настройками
-- Logs & Debug — просмотр логов, ошибок, отладка registration flow
-- Backend API v2 — versioning, response envelope, OpenAPI → TypeScript gen
+- Удалить старый frontend/ (Vite+React)
+- Удалить v1 API эндпоинты (оставить только v2)
+- Удалить все шимы и compat слои
+- v2 код становится v1 (единственная версия)
+- Enterprise: чистый, единый кодбез
 
 ## Requirements
 
@@ -44,12 +43,10 @@
 
 ### Active
 
-- [ ] Next.js frontend с TypeScript, Tailwind, Shadcn
-- [ ] Analytics Dashboard
-- [ ] Real-time Updates (WebSocket)
-- [ ] Settings Management UI
-- [ ] Logs & Debug界面
-- [ ] Backend API v2 (versioning, envelope, OpenAPI gen)
+- [ ] Удалить старый frontend/ (Vite+React)
+- [ ] Удалить v1 API эндпоинты
+- [ ] Удалить все шимы и compat слои
+- [ ] v2 код становится v1 (единственная версия)
 
 ### Out of Scope
 
@@ -61,12 +58,15 @@
 
 ## Context
 
-Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v1.2 (Electron removal), v1.3 (Enterprise Email Provider Abstractions), v1.4 (Memory Leaks & Thread Safety), v1.5 (Enterprise Cleanup), v1.6 (Scaling & Performance). 73 файла изменено, +7803/-725 строк. PostgreSQL с connection pooling, параллельная регистрация, rate limiting — всё готово для production нагрузки.
+Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v1.2 (Electron removal), v1.3 (Enterprise Email Provider Abstractions), v1.4 (Memory Leaks & Thread Safety), v1.5 (Enterprise Cleanup), v1.6 (Scaling & Performance), v1.7 (Frontend Rewrite + API Modernization). 73 файла изменено, +7803/-725 строк. PostgreSQL с connection pooling, параллельная регистрация, rate limiting — всё готово для production нагрузки. Next.js фронтенд, API v2, WebSocket, Analytics, Settings, Logs — всё реализовано в v1.7.
+
+Сейчас существуют параллельно v1 и v2 системы. v2.0 — это объединение: удаление v1, v2 становится единственной версией (v1).
 
 ## Constraints
 
 - **Tech Stack**: Python 3.12, FastAPI, PostgreSQL (SQLite for dev), SQLAlchemy
 - **Customer Portal**: Остаётся как отдельное приложение
+- **Single Version**: v2 становится v1, никаких дуалов/шимов/компата
 
 ## Key Decisions
 
@@ -85,6 +85,7 @@ Brownfield проект. Выполнены v1.0 (Security), v1.1 (Tech Debt), v
 | BrowserPool factory | create_browser_pool() + интеграция в 3 платформы | ✓ Good |
 | Rate limit preflight | check_platform_limit() в entry point каждой flow | ✓ Good |
 | retry_with_backoff | Exponential backoff + jitter в HTTPClient | ✓ Good |
+| Remove v1, v2 becomes v1 | Единая версия без дуалов/шимов/компата | ✓ Good |
 
 ## Evolution
 
@@ -104,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-27 after v1.7 milestone start*
+*Last updated: 2026-06-27 after v2.0 milestone start*
