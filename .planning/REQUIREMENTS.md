@@ -3,80 +3,79 @@
 **Defined:** 2026-06-27
 **Core Value:** Автоматическая регистрация аккаунтов должна работать надёжно и безопасно
 
-## v1.5 Requirements
+## v1.6 Requirements
 
-### Split Monoliths
+### PostgreSQL Migration
 
-- [x] **SPLIT-01**: base_sms.py (1304 lines) → 7 modules
-- [x] **SPLIT-02**: chatgpt/browser_register.py (3908 lines) → 12 modules
-- [x] **SPLIT-03**: db.py (771 lines) → 4 modules
-- [x] **SPLIT-04**: tasks.py (954 lines) → 3 modules
-- [x] **SPLIT-05**: account_graph.py (1056 lines) → 5 modules
+- [ ] **PG-01**: PostgreSQL driver (asyncpg/psycopg2) integration
+- [ ] **PG-02**: SQLAlchemy dialect for PostgreSQL
+- [ ] **PG-03**: Database migration scripts (SQLite → PostgreSQL)
+- [ ] **PG-04**: Connection string configuration (env vars)
+- [ ] **PG-05**: Fallback to SQLite for development
 
-### Extract Patterns
+### Connection Pooling
 
-- [x] **PATT-01**: ManagedSession mixin
-- [x] **PATT-02**: BasePollingMailbox
-- [x] **PATT-03**: Retry/backoff utility
-- [x] **PATT-04**: make_provider_resource() factory
+- [ ] **POOL-01**: Database connection pooling (SQLAlchemy pool)
+- [ ] **POOL-02**: HTTP session pooling (aiohttp/requests adapter)
+- [ ] **POOL-03**: Browser instance pooling (Playwright contexts)
+- [ ] **POOL-04**: Pool monitoring and metrics
 
-### Merge Duplicates
+### Concurrent Registration
 
-- [x] **MERG-01**: Consolidate core/mailbox/ vs providers/mailbox/
-- [x] **MERG-02**: Убрать дублирующие провайдеры
+- [ ] **CONC-01**: Parallel task execution across platforms
+- [ ] **CONC-02**: Worker pool for concurrent registrations
+- [ ] **CONC-03**: Task prioritization and scheduling
+- [ ] **CONC-04**: Resource-aware concurrency limits
 
-### Type Safety
+### Rate Limiting
 
-- [x] **TYPE-01**: Type hints для BasePlatform
-- [x] **TYPE-02**: Replace Any в RegistrationContext
-- [x] **TYPE-03**: Replace Any в IdentityMaterial
-- [x] **TYPE-04**: Add from_config к BaseMailbox ABC
+- [ ] **RATE-01**: Per-platform rate limits
+- [ ] **RATE-02**: Per-provider rate limits (SMS, email, captcha)
+- [ ] **RATE-03**: Adaptive rate limiting (backoff on errors)
+- [ ] **RATE-04**: Rate limit metrics and monitoring
 
 ## v2 Requirements
 
-### Testing
-
-- **TEST-01**: Unit tests для core модулей
-- **TEST-02**: Integration tests для mailbox providers
-- **TEST-03**: Stress tests для concurrent registration
-
 ### Scaling
 
-- **SCAL-01**: PostgreSQL support
-- **SCAL-02**: Connection pooling
+- **SCAL-01**: Horizontal scaling (multiple workers)
+- **SCAL-02**: Distributed task queue (Celery/RQ)
+- **SCAL-03**: Redis for caching and rate limiting
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
 | Новые платформы | Отдельный milestone |
-| Масштабирование (PostgreSQL) | Отдельный milestone |
-| Добавление тестов | Отдельный milestone |
-| Мониторинг и метрики | Отдельный milestone |
+| Тесты | Отдельный milestone |
+| Мониторинг | Отдельный milestone |
+| Kubernetes/Docker | Инфраструктурный milestone |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SPLIT-01 | Phase 1 | Pending |
-| SPLIT-02 | Phase 1 | Pending |
-| SPLIT-03 | Phase 1 | Pending |
-| SPLIT-04 | Phase 1 | Pending |
-| SPLIT-05 | Phase 1 | Pending |
-| PATT-01 | Phase 2 | Pending |
-| PATT-02 | Phase 2 | Pending |
-| PATT-03 | Phase 2 | Pending |
-| PATT-04 | Phase 2 | Pending |
-| MERG-01 | Phase 3 | Pending |
-| MERG-02 | Phase 3 | Pending |
-| TYPE-01 | Phase 4 | Pending |
-| TYPE-02 | Phase 4 | Pending |
-| TYPE-03 | Phase 4 | Pending |
-| TYPE-04 | Phase 4 | Pending |
+| PG-01 | Phase 1 | Pending |
+| PG-02 | Phase 1 | Pending |
+| PG-03 | Phase 1 | Pending |
+| PG-04 | Phase 1 | Pending |
+| PG-05 | Phase 1 | Pending |
+| POOL-01 | Phase 2 | Pending |
+| POOL-02 | Phase 2 | Pending |
+| POOL-03 | Phase 2 | Pending |
+| POOL-04 | Phase 2 | Pending |
+| CONC-01 | Phase 3 | Pending |
+| CONC-02 | Phase 3 | Pending |
+| CONC-03 | Phase 3 | Pending |
+| CONC-04 | Phase 3 | Pending |
+| RATE-01 | Phase 4 | Pending |
+| RATE-02 | Phase 4 | Pending |
+| RATE-03 | Phase 4 | Pending |
+| RATE-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1.5 requirements: 15 total
-- Mapped to phases: 15
+- v1.6 requirements: 17 total
+- Mapped to phases: 17
 - Unmapped: 0 ✓
 
 ---

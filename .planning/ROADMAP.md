@@ -1,74 +1,76 @@
-# Roadmap: v1.5 Enterprise Cleanup
+# Roadmap: v1.6 Scaling & Performance
 
 **Created:** 2026-06-27
 **Phases:** 4
-**Requirements:** 15 mapped
+**Requirements:** 17 mapped
 
-## Phase 1: Split Monoliths
+## Phase 1: PostgreSQL Migration
 
-**Goal:** Разделить монолитные файлы на модули с单一 ответственностью
+**Goal:** Перейти с SQLite на PostgreSQL для production
 
 **Requirements:**
-- SPLIT-01: base_sms.py → 7 модулей
-- SPLIT-02: chatgpt/browser_register.py → 8 модулей
-- SPLIT-03: db.py → 4 модуля
-- SPLIT-04: tasks.py → 3 модуля
-- SPLIT-05: account_graph.py → 4 модуля
+- PG-01: PostgreSQL driver integration
+- PG-02: SQLAlchemy dialect
+- PG-03: Migration scripts
+- PG-04: Connection string configuration
+- PG-05: Fallback to SQLite
 
 **Success Criteria:**
-1. Каждый файл < 300 строк
-2. Импорты не изменились (публичный API сохранён)
-3. Все модули парсятся без ошибок
-4. Тесты проходят (если есть)
+1. PostgreSQL работает как основная БД
+2. SQLite остаётся для development
+3. Миграция данных корректна
+4. Все тесты проходят
 
 ---
 
-## Phase 2: Extract Patterns
+## Phase 2: Connection Pooling
 
-**Goal:** Выделить общие паттерны в переиспользуемые модули
+**Goal:** Оптимизировать использование соединений
 
 **Requirements:**
-- PATT-01: ManagedSession mixin
-- PATT-02: BasePollingMailbox
-- PATT-03: Retry/backoff utility
-- PATT-04: make_provider_resource() factory
+- POOL-01: Database connection pooling
+- POOL-02: HTTP session pooling
+- POOL-03: Browser instance pooling
+- POOL-04: Pool monitoring
 
 **Success Criteria:**
-1. ManagedSession используется в 8+ файлах
-2. BasePollingMailbox используется в 13 провайдерах
-3. Retry utility используется в 5+ файлах
-4. Дублирование кода сокращено на 400+ строк
+1. Connection pooling работает для БД
+2. HTTP сессии переиспользуются
+3. Browser contexts пулятся
+4. Мониторинг пулов доступен
 
 ---
 
-## Phase 3: Merge Duplicates
+## Phase 3: Concurrent Registration
 
-**Goal:** Объединить дублирующие директории и убрать конфуз
+**Goal:** Параллельная регистрация на多个 платформах
 
 **Requirements:**
-- MERG-01: Consolidate core/mailbox/ vs providers/mailbox/
-- MERG-02: Убрать дублирующие провайдеры
+- CONC-01: Parallel task execution
+- CONC-02: Worker pool
+- CONC-03: Task prioritization
+- CONC-04: Resource-aware limits
 
 **Success Criteria:**
-1. Единый canonical location для mailbox провайдеров
-2. Нет дублирующих файлов
-3. Все импорты работают корректно
+1. Параллельная регистрация работает
+2. Worker pool управляет потоками
+3. Приоритеты задач работают
+4. Лимиты ресурсов соблюдаются
 
 ---
 
-## Phase 4: Type Safety
+## Phase 4: Rate Limiting
 
-**Goal:** Добавить типизацию и заменить Any на конкретные типы
+**Goal:** Контроль скорости запросов к провайдерам
 
 **Requirements:**
-- TYPE-01: Type hints для BasePlatform
-- TYPE-02: Replace Any в RegistrationContext
-- TYPE-03: Replace Any в IdentityMaterial
-- TYPE-04: Add from_config к BaseMailbox ABC
+- RATE-01: Per-platform rate limits
+- RATE-02: Per-provider rate limits
+- RATE-03: Adaptive rate limiting
+- RATE-04: Rate limit metrics
 
 **Success Criteria:**
-1. Все методы BasePlatform имеют type hints
-2. RegistrationContext не содержит Any
-3. IdentityMaterial не содержит Any
-4. BaseMailbox имеет abstract from_config
-5. mypy/ruff check проходит без ошибок
+1. Rate limits работают для платформ
+2. Rate limits работают для провайдеров
+3. Адаптивный backoff работает
+4. Метрики rate limits доступны

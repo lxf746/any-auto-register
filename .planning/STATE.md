@@ -2,16 +2,16 @@
 
 ## Current Position
 
-Phase: 4 complete (Type Safety)
-Plan: 04-PLAN.md
-Status: All 4 phases complete — milestone v1.5 complete
-Last activity: 2026-06-27 — Phase 4 Type Safety complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-27 — Milestone v1.6 Scaling & Performance started
 
 ## Milestone
 
-**v1.5 Enterprise Cleanup**
+**v1.6 Scaling & Performance**
 
-Goal: Привести кодовую базу к enterprise-стандарту — разделить монолиты, выделить общие паттерны, убрать дублирование, добавить типизацию
+Goal: Подготовить систему к production нагрузке — PostgreSQL, connection pooling, параллельная регистрация, rate limiting
 
 ## Progress
 
@@ -25,10 +25,10 @@ Goal: Привести кодовую базу к enterprise-стандарту 
 
 ### Decisions
 
-- Разделить монолитные файлы на модули
-- Выделить общие паттерны в отдельные модули
-- Объединить дублирующие директории
-- Добавить типизацию
+- PostgreSQL вместо SQLite
+- Connection pooling для БД и HTTP
+- Параллельная регистрация
+- Rate limiting для провайдеров
 
 ### Blockers
 
