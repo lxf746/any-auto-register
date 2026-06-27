@@ -2,7 +2,8 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"   # FastAPI / Web UI
+      - "8000:8000"   # FastAPI backend
+      - "3000:3000"   # Next.js frontend
       - "6080:6080"   # noVNC (headed browser preview)
       - "8889:8889"   # Turnstile Solver
     environment:

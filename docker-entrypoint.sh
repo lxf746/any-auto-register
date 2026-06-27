@@ -18,5 +18,10 @@ fi
 # Start noVNC (port 6080 -> VNC 5900)
 websockify --web=/usr/share/novnc 6080 localhost:5900 &
 
-# Start FastAPI backend
+# Start Next.js frontend (port 3000)
+cd /app/frontend-standalone
+PORT=3000 node server.js &
+cd /app
+
+# Start FastAPI backend (port 8000)
 exec uvicorn main:app --host 0.0.0.0 --port 8000

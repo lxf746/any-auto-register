@@ -1,9 +1,9 @@
 # Stage 1: Build frontend
 FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
+COPY frontend-new/package*.json ./
 RUN npm ci
-COPY frontend/ ./
+COPY frontend-new/ ./
 RUN npm run build
 
 # Stage 2: Python backend + runtime environment
@@ -42,10 +42,12 @@ COPY . .
 # Inject version number
 RUN echo "__version__ = \"${APP_VERSION}\"" > core/version.py
 # Remove .venv and frontend source code
-RUN rm -rf .venv frontend
+RUN rm -rf .venv frontend frontend-new
 
 # Copy frontend build artifacts
-COPY --from=frontend-builder /app/static ./static
+COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend-standalone
+COPY --from=frontend-builder /app/frontend/.next/static ./frontend-standalone/.next/static
+COPY --from=frontend-builder /app/frontend/public ./frontend-standalone/public
 
 # Startup script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
@@ -55,6 +57,6 @@ RUN chmod +x /docker-entrypoint.sh
 # If not set, no password protection (suitable for local use)
 ENV APP_PASSWORD=""
 
-EXPOSE 8000 6080 8889
+EXPOSE 8000 3000 6080 8889
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
