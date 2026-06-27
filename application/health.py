@@ -15,3 +15,6 @@ class HealthService:
 
     def pool_status(self) -> dict:
         return self.runtime.pool_status()
+
+    def rate_limit_status(self) -> dict:
+        return self.runtime.rate_limit_status()

@@ -5,6 +5,7 @@ from sqlmodel import Session
 
 from core.db import engine
 from core.registry import list_platforms
+from core.rate_limiter import rate_limit_metrics, _platform_limiters, _provider_limiters
 from services.solver_manager import is_running
 
 
@@ -45,6 +46,14 @@ class HealthRuntime:
             "database": db_status,
             "http": http_sessions,
             "browser": browser_pool,
+        }
+
+    def rate_limit_status(self) -> dict:
+        """Return rate limit metrics for monitoring."""
+        return {
+            "metrics": rate_limit_metrics.get_metrics(),
+            "active_platform_limiters": len(_platform_limiters),
+            "active_provider_limiters": len(_provider_limiters),
         }
 
     def readiness(self) -> dict:
