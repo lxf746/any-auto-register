@@ -3,9 +3,9 @@
 ## Current Position
 
 Phase: 05-gap-closure
-Plan: 01
+Plan: 02
 Status: Executing
-Last activity: 2026-06-27 — Phase 5 Plan 01 complete (Gap Closure: BrowserPool + rate limiting)
+Last activity: 2026-06-27 — Phase 5 Plan 02 complete (Dead code removal + retry integration)
 
 ## Milestone
 
@@ -18,8 +18,8 @@ Goal: Подготовить систему к production нагрузке — P
 | Metric | Value |
 |--------|-------|
 | Current phase | 05-gap-closure |
-| Plans complete | 9/10 (Phase 1: 2, Phase 2: 2, Phase 3: 2, Phase 4: 2, Phase 5: 1) |
-| Tasks complete | 21/23 (Phase 1: 4, Phase 2: 5, Phase 3: 4, Phase 4: 4, Phase 5: 2) |
+| Plans complete | 10/10 (Phase 1: 2, Phase 2: 2, Phase 3: 2, Phase 4: 2, Phase 5: 2) |
+| Tasks complete | 23/23 (Phase 1: 4, Phase 2: 5, Phase 3: 4, Phase 4: 4, Phase 5: 4) |
 
 ## Context
 
@@ -42,6 +42,8 @@ Goal: Подготовить систему к production нагрузке — P
 - Used create_browser_pool() factory for discoverable entry-point (05-01)
 - Wrapped sync Camoufox/Playwright code with asyncio.new_event_loop() for pool operations (05-01)
 - Metrics recording is fire-and-forget with exception suppression (05-01)
+- Exponential backoff with jitter for HTTP retries via retry_with_backoff (05-02)
+- Dead code removed: 3 duplicate functions from task_scheduler.py (05-02)
 
 ### Blockers
 
