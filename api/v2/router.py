@@ -1,0 +1,122 @@
+"""v2 API router — auth, platforms, and stats endpoints."""
+from __future__ import annotations
+
+import hmac
+import os
+
+from fastapi import APIRouter, Header, Request
+from pydantic import BaseModel
+
+from api.auth import create_session
+from api.v2.response import ApiResponse
+
+router = APIRouter(tags=["v2"])
+
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+
+@router.get("/auth/check")
+def auth_check_v2():
+    """Return whether the app requires a password."""
+    password = os.environ.get("APP_PASSWORD", "").strip()
+    return ApiResponse(ok=True, data={"required": bool(password)})
+
+
+class LoginRequest(BaseModel):
+    password: str = ""
+
+
+@router.post("/auth/login")
+def auth_login_v2(body: LoginRequest, request: Request):
+    """Authenticate with password and return a session token."""
+    password = os.environ.get("APP_PASSWORD", "").strip()
+    if not password:
+        return ApiResponse(ok=True, data={"token": ""})
+
+    # Rate limiting (reuse v1 logic)
+    from api.auth import _check_rate_limit
+
+    client_ip = request.client.host if request.client else "unknown"
+    if not _check_rate_limit(client_ip):
+        return ApiResponse(ok=False, error="Too many attempts. Try again later.")
+
+    if hmac.compare_digest(body.password, password):
+        token = create_session()
+        return ApiResponse(ok=True, data={"token": token})
+    return ApiResponse(ok=False, error="Incorrect password")
+
+
+# ---------------------------------------------------------------------------
+# Platforms
+# ---------------------------------------------------------------------------
+
+from application.platforms import PlatformsService  # noqa: E402
+
+_platform_service = PlatformsService()
+
+
+@router.get("/platforms")
+def list_platforms_v2():
+    """List all available platforms."""
+    return ApiResponse(ok=True, data=_platform_service.list_platforms())
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+from datetime import timedelta  # noqa: E402
+
+from sqlmodel import Session, func, select  # noqa: E402
+
+from core.db import (  # noqa: E402
+    AccountModel,
+    AccountOverviewModel,
+    TaskLog,
+    engine,
+)
+
+
+@router.get("/stats/overview")
+def stats_overview_v2():
+    """Global overview: total registrations, success rate, account distribution."""
+    with Session(engine) as session:
+        total = int(
+            session.exec(select(func.count()).select_from(TaskLog)).one() or 0
+        )
+        success = int(
+            session.exec(
+                select(func.count())
+                .select_from(TaskLog)
+                .where(TaskLog.status == "success")
+            ).one()
+            or 0
+        )
+        failed = total - success
+
+        statuses = session.exec(
+            select(
+                AccountOverviewModel.lifecycle_status,
+                func.count(),
+            ).group_by(AccountOverviewModel.lifecycle_status)
+        ).all()
+        account_distribution = {row[0]: row[1] for row in statuses}
+
+        total_accounts = int(
+            session.exec(select(func.count()).select_from(AccountModel)).one() or 0
+        )
+
+    return ApiResponse(
+        ok=True,
+        data={
+            "total_registrations": total,
+            "success": success,
+            "failed": failed,
+            "success_rate": round(success / total * 100, 1) if total else 0,
+            "total_accounts": total_accounts,
+            "account_distribution": account_distribution,
+        },
+    )

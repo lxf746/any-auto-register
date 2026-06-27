@@ -37,6 +37,7 @@ from api.accounts import router as accounts_router
 from api.actions import router as actions_router
 from api.auth import router as auth_router
 from api.config import router as config_router
+from api.v2.router import router as v2_router
 from core.auth import AuthMiddleware
 from api.health import router as health_router
 from api.lifecycle import router as lifecycle_router
@@ -119,6 +120,9 @@ app.include_router(tasks_router, prefix="/api")
 app.include_router(task_commands_router, prefix="/api")
 app.include_router(task_logs_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
+
+# v2 API — versioned endpoints with unified response envelope
+app.include_router(v2_router, prefix="/api/v2")
 
 
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
