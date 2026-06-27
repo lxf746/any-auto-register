@@ -44,13 +44,18 @@ async function request<T>(
     throw new ApiError(`Request failed: ${res.statusText}`, res.status);
   }
 
-  const json: ApiResponse<T> = await res.json();
+  const json = await res.json();
 
-  if (!json.ok && json.error) {
-    throw new ApiError(json.error, res.status);
+  // Handle v2 envelope format: { ok, data, error }
+  if (json && typeof json === "object" && "ok" in json && "data" in json) {
+    if (!json.ok && json.error) {
+      throw new ApiError(json.error, res.status);
+    }
+    return json.data as T;
   }
 
-  return json.data;
+  // Handle v1 format: return raw response
+  return json as T;
 }
 
 export const api = {
