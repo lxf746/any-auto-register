@@ -17,6 +17,7 @@ from api.v2.provider_settings import router as provider_settings_router
 from api.v2.proxies import router as proxies_router
 from api.v2.sms import router as sms_router
 from api.v2.health import router as health_router
+from api.v2.stats import router as stats_router
 from api.v2.response import ApiResponse
 from api.v2.ws import router as ws_router
 
@@ -31,6 +32,7 @@ router.include_router(provider_definitions_router)
 router.include_router(provider_settings_router)
 router.include_router(proxies_router)
 router.include_router(sms_router)
+router.include_router(stats_router)
 
 
 # ---------------------------------------------------------------------------
@@ -82,64 +84,6 @@ _platform_service = PlatformsService()
 def list_platforms_v2():
     """List all available platforms."""
     return ApiResponse(ok=True, data=_platform_service.list_platforms())
-
-
-# ---------------------------------------------------------------------------
-# Stats
-# ---------------------------------------------------------------------------
-
-from datetime import timedelta  # noqa: E402
-
-from sqlmodel import Session, func, select  # noqa: E402
-
-from core.db import (  # noqa: E402
-    AccountModel,
-    AccountOverviewModel,
-    TaskLog,
-    engine,
-)
-
-
-@router.get("/stats/overview")
-def stats_overview_v2():
-    """Global overview: total registrations, success rate, account distribution."""
-    with Session(engine) as session:
-        total = int(
-            session.exec(select(func.count()).select_from(TaskLog)).one() or 0
-        )
-        success = int(
-            session.exec(
-                select(func.count())
-                .select_from(TaskLog)
-                .where(TaskLog.status == "success")
-            ).one()
-            or 0
-        )
-        failed = total - success
-
-        statuses = session.exec(
-            select(
-                AccountOverviewModel.lifecycle_status,
-                func.count(),
-            ).group_by(AccountOverviewModel.lifecycle_status)
-        ).all()
-        account_distribution = {row[0]: row[1] for row in statuses}
-
-        total_accounts = int(
-            session.exec(select(func.count()).select_from(AccountModel)).one() or 0
-        )
-
-    return ApiResponse(
-        ok=True,
-        data={
-            "total_registrations": total,
-            "success": success,
-            "failed": failed,
-            "success_rate": round(success / total * 100, 1) if total else 0,
-            "total_accounts": total_accounts,
-            "account_distribution": account_distribution,
-        },
-    )
 
 
 # ---------------------------------------------------------------------------
