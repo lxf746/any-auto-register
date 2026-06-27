@@ -14,6 +14,8 @@ from api.v2.config import router as config_router
 from api.v2.platform_capabilities import router as platform_capabilities_router
 from api.v2.provider_definitions import router as provider_definitions_router
 from api.v2.provider_settings import router as provider_settings_router
+from api.v2.proxies import router as proxies_router
+from api.v2.sms import router as sms_router
 from api.v2.health import router as health_router
 from api.v2.response import ApiResponse
 from api.v2.ws import router as ws_router
@@ -27,6 +29,8 @@ router.include_router(actions_router)
 router.include_router(platform_capabilities_router)
 router.include_router(provider_definitions_router)
 router.include_router(provider_settings_router)
+router.include_router(proxies_router)
+router.include_router(sms_router)
 
 
 # ---------------------------------------------------------------------------
