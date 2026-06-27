@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Frontend Rewrite + API Modernization
 status: in_progress
-last_updated: "2026-06-27T09:00:00.000Z"
+last_updated: "2026-06-27T09:30:00.000Z"
 last_activity: 2026-06-27
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 12
+  completed_plans: 1
+  percent: 8
 ---
 
 # Project State
@@ -18,9 +18,9 @@ progress:
 ## Current Position
 
 Phase: 1 of 6
-Plan: —
+Plan: 1-01 complete (Next.js Setup + API v2 Modernization)
 Status: Executing autonomous workflow
-Last activity: 2026-06-27 — Starting Phase 1
+Last activity: 2026-06-27 — Completed Plan 1-01
 
 ## Milestone
 
@@ -44,6 +44,10 @@ Goal: Полная перезаливка фронтенда на Next.js + мо
 - v1.6 завершён: PostgreSQL, pooling, concurrency, rate limiting — всё в production
 - v1.7: Clean slate frontend — Next.js 14+ / TypeScript / Tailwind / Shadcn/ui
 - v1.7: Backend API v2 — versioning, response envelope, OpenAPI, WebSocket
+
+### Completed
+
+- [x] Plan 1-01: Next.js Setup + API v2 Modernization (2026-06-27)
 
 ### Blockers
 
