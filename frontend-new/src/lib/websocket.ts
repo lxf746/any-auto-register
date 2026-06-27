@@ -127,8 +127,10 @@ let clientInstance: WebSocketClient | null = null;
 export function getWebSocketClient(): WebSocketClient {
   if (!clientInstance) {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
-    clientInstance = new WebSocketClient(`${protocol}//${host}/api/v2/ws`);
+    // In Docker, backend is on port 8000, frontend on 3000
+    // Next.js rewrites don't support WebSocket, so connect directly to backend
+    const backendHost = window.location.hostname + ":8000";
+    clientInstance = new WebSocketClient(`${protocol}//${backendHost}/api/v2/ws`);
   }
   return clientInstance;
 }

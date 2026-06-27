@@ -48,6 +48,12 @@ Goal: Полная перезаливка фронтенда на Next.js + мо
 
 - Нет
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260627-8kb | Fix WebSocket connection still showing Disconnected | 2026-06-27 | 4e8657e | [260627-8kb-fix-websocket-connection-still-showing-d](./quick/260627-8kb-fix-websocket-connection-still-showing-d/) |
+
 ### Todos
 
 - Verify all features work end-to-end
