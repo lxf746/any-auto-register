@@ -35,7 +35,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 # RUN playwright install --with-deps chromium
 
 # Install camoufox browser (used by Solver's camoufox mode)
-# RUN python -m camoufox fetch
+RUN python -m camoufox fetch
 
 # Copy backend code
 ARG APP_VERSION=dev
