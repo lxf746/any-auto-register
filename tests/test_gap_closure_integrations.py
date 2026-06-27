@@ -259,19 +259,15 @@ class TestHttpClientRetryIntegration:
     def test_retries_on_500_then_raises(self):
         """HTTPClient retries on 500+ responses, then raises HTTPClientError."""
         from core.http_client import HTTPClient, HTTPClientError, RequestConfig
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         client = HTTPClient(config=RequestConfig(max_retries=2, retry_delay=0.01))
-        mock_response_500 = MagicMock()
-        mock_response_500.status_code = 500
 
-        with patch.object(client, "session") as mock_session:
-            mock_session.request.return_value = mock_response_500
-            with patch("core.http_client.retry_with_backoff", side_effect=Exception("server error")) as mock_retry:
-                with pytest.raises(HTTPClientError):
-                    client.request("GET", "http://example.com")
-                # retry_with_backoff was called (not manual loop)
-                mock_retry.assert_called_once()
+        with patch("core.http_client.retry_with_backoff") as mock_retry:
+            mock_retry.side_effect = Exception("server error")
+            with pytest.raises(HTTPClientError):
+                client.request("GET", "http://example.com")
+            mock_retry.assert_called_once()
 
     def test_retries_on_connection_error(self):
         """HTTPClient retries on ConnectionError via retry_with_backoff."""
@@ -290,7 +286,7 @@ class TestHttpClientRetryIntegration:
     def test_retry_with_backoff_uses_exponential_strategy(self):
         """retry_with_backoff is called with backoff_strategy='exponential'."""
         from core.http_client import HTTPClient, RequestConfig
-        from unittest.mock import patch
+        from unittest.mock import patch, MagicMock
 
         client = HTTPClient(config=RequestConfig(max_retries=3, retry_delay=0.5))
 
@@ -300,15 +296,13 @@ class TestHttpClientRetryIntegration:
             mock_retry.return_value = mock_response
             client.request("GET", "http://example.com")
 
-            # Verify call args
             call_kwargs = mock_retry.call_args
-            assert call_kwargs.kwargs.get("backoff_strategy") == "exponential" or \
-                   (len(call_kwargs.args) > 0 and True)  # positional fallback
+            assert call_kwargs[1].get("backoff_strategy") == "exponential"
 
     def test_retry_with_backoff_jitter_enabled(self):
         """retry_with_backoff is called with jitter=True."""
         from core.http_client import HTTPClient, RequestConfig
-        from unittest.mock import patch
+        from unittest.mock import patch, MagicMock
 
         client = HTTPClient(config=RequestConfig(max_retries=3, retry_delay=0.5))
 
@@ -319,7 +313,7 @@ class TestHttpClientRetryIntegration:
             client.request("GET", "http://example.com")
 
             call_kwargs = mock_retry.call_args
-            assert call_kwargs.kwargs.get("jitter") is True
+            assert call_kwargs[1].get("jitter") is True
 
     def test_successful_request_not_retried(self):
         """Successful request returns immediately without retry."""
@@ -327,11 +321,41 @@ class TestHttpClientRetryIntegration:
         from unittest.mock import patch, MagicMock
 
         client = HTTPClient(config=RequestConfig(max_retries=3, retry_delay=0.01))
-        mock_response = MagicMock()
-        mock_response.status_code = 200
 
         with patch("core.http_client.retry_with_backoff") as mock_retry:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
             mock_retry.return_value = mock_response
             result = client.request("GET", "http://example.com")
             assert result.status_code == 200
             mock_retry.assert_called_once()
+
+    def test_max_retries_passed_to_retry_utility(self):
+        """HTTPClient passes its max_retries config to retry_with_backoff."""
+        from core.http_client import HTTPClient, RequestConfig
+        from unittest.mock import patch, MagicMock
+
+        client = HTTPClient(config=RequestConfig(max_retries=5, retry_delay=0.25))
+
+        with patch("core.http_client.retry_with_backoff") as mock_retry:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_retry.return_value = mock_response
+            client.request("GET", "http://example.com")
+
+            call_kwargs = mock_retry.call_args
+            assert call_kwargs[1].get("max_retries") == 5
+
+    def test_400_client_error_not_retried(self):
+        """400 client errors are returned (not retried)."""
+        from core.http_client import HTTPClient, RequestConfig
+        from unittest.mock import patch, MagicMock
+
+        client = HTTPClient(config=RequestConfig(max_retries=3, retry_delay=0.01))
+
+        with patch("core.http_client.retry_with_backoff") as mock_retry:
+            mock_response = MagicMock()
+            mock_response.status_code = 404
+            mock_retry.return_value = mock_response
+            result = client.request("GET", "http://example.com")
+            assert result.status_code == 404

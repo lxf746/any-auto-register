@@ -4,7 +4,6 @@ HTTP client wrapper
 HTTP request wrapper based on curl_cffi, supports proxy and error handling
 """
 
-import time
 import json
 from typing import Optional, Dict, Any, Union, Tuple
 from dataclasses import dataclass
@@ -15,6 +14,7 @@ from curl_cffi.requests import Session, Response
 
 from core.mixins.managed_session import ManagedSession
 from core.rate_limiter import rate_limit_metrics
+from core.utils.retry import retry_with_backoff
 
 
 
@@ -124,39 +124,30 @@ class HTTPClient(ManagedSession):
         if self.proxies and "proxies" not in kwargs:
             kwargs["proxies"] = self.proxies
 
-        last_exception = None
-        for attempt in range(self.config.max_retries):
-            try:
-                response = self.session.request(method, url, **kwargs)
-
-                # Check response status code
-                if response.status_code >= 400:
-                    logger.warning(
-                        f"HTTP {response.status_code} for {method} {url}"
-                        f" (attempt {attempt + 1}/{self.config.max_retries})"
-                    )
-
-                    # Retry on server errors
-                    if response.status_code >= 500 and attempt < self.config.max_retries - 1:
-                        time.sleep(self.config.retry_delay * (attempt + 1))
-                        continue
-
-                return response
-
-            except (cffi_requests.RequestsError, ConnectionError, TimeoutError) as e:
-                last_exception = e
-                logger.warning(
-                    f"Request failed: {method} {url} (attempt {attempt + 1}/{self.config.max_retries}): {e}"
+        def _do_request() -> Response:
+            """Single request attempt — raises on 500+ to trigger retry."""
+            resp = self.session.request(method, url, **kwargs)
+            if resp.status_code >= 500:
+                raise cffi_requests.RequestsError(
+                    f"Server error {resp.status_code} for {method} {url}"
                 )
+            return resp
 
-                if attempt < self.config.max_retries - 1:
-                    time.sleep(self.config.retry_delay * (attempt + 1))
-                else:
-                    break
+        try:
+            response = retry_with_backoff(
+                _do_request,
+                max_retries=self.config.max_retries,
+                backoff_factor=self.config.retry_delay,
+                exceptions=(cffi_requests.RequestsError, ConnectionError, TimeoutError),
+                backoff_strategy="exponential",
+                jitter=True,
+            )
+        except Exception as e:
+            raise HTTPClientError(
+                f"Request failed, max retries reached: {method} {url} - {e}"
+            ) from e
 
-        raise HTTPClientError(
-            f"Request failed, max retries reached: {method} {url} - {last_exception}"
-        )
+        return response
 
     def get(self, url: str, **kwargs) -> Response:
         """Send GET request"""
