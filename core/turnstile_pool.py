@@ -136,3 +136,15 @@ class BrowserPool:
                     await result
         except Exception as exc:
             logger.debug("BrowserPool: error closing context: %s", exc)
+
+
+def create_browser_pool(
+    max_size: int = 5,
+    create_context_fn: Optional[Callable[[], Awaitable[Any]]] = None,
+) -> BrowserPool:
+    """Convenience factory — creates a :class:`BrowserPool` with the given parameters.
+
+    This is a thin wrapper around ``BrowserPool(...)`` that provides a
+    discoverable entry-point for platform browser registration code.
+    """
+    return BrowserPool(max_size=max_size, create_context_fn=create_context_fn)

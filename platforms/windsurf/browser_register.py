@@ -16,6 +16,7 @@ try:
 except Exception:  # pragma: no cover
     Camoufox = None
 
+from core.turnstile_pool import create_browser_pool
 from platforms.windsurf.core import (
     SEAT_SERVICE,
     UA,
@@ -638,13 +639,31 @@ class WindsurfBrowserRegister:
             if proxy:
                 launch_opts["proxy"] = proxy
             browser = _launch_chromium(pw, launch_opts)
-            context = browser.new_context(viewport={"width": 1280, "height": 820}, user_agent=UA)
-            context.set_default_timeout(90000)
-            page = context.new_page()
+
+            import asyncio
+
+            pool = create_browser_pool(
+                max_size=1,
+                create_context_fn=lambda: browser.new_context(
+                    viewport={"width": 1280, "height": 820}, user_agent=UA
+                ),
+            )
+
+            async def _pool_run():
+                ctx = await pool.acquire()
+                ctx.set_default_timeout(90000)
+                page = ctx.new_page()
+                try:
+                    return self._run_with_page(page, email=email, password=password, name=name)
+                finally:
+                    await pool.release(ctx)
+                    await pool.close()
+
+            loop = asyncio.new_event_loop()
             try:
-                return self._run_with_page(page, email=email, password=password, name=name)
+                return loop.run_until_complete(_pool_run())
             finally:
-                context.close()
+                loop.close()
                 browser.close()
 
     def _run_with_page(self, page: Page, *, email: str, password: str, name: str) -> dict:

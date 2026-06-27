@@ -7,11 +7,13 @@ Actual flow:
   4. Receive email OTP (6 digits) → enter
   5. Jump to cursor.com → get WorkosCursorSessionToken
 """
+import asyncio
 import random, string, time, uuid
 from typing import Callable, Optional
 from urllib.parse import unquote, urlparse
 
 from camoufox.sync_api import Camoufox
+from core.turnstile_pool import create_browser_pool
 
 AUTH = "https://authenticator.cursor.sh"
 CURSOR = "https://cursor.com"
@@ -464,14 +466,19 @@ class CursorBrowserRegister:
             launch_opts["proxy"] = proxy
 
         with Camoufox(**launch_opts) as browser:
-            page = browser.new_page()
+            pool = create_browser_pool(
+                max_size=1,
+                create_context_fn=lambda: browser.new_page(),
+            )
 
-            # Inject MouseEvent screenX/screenY patcher
-            # CF Turnstile detects CDP-triggered MouseEvent.screenX == clientX (Chrome bug)
-            # Even in Firefox/Camoufox, Playwright internal mouse events may have the same issue
-            # Inject override via add_init_script before every page load to bypass Turnstile detection
-            # Source: https://github.com/Xewdy444/CDP-bug-MouseEvent-.screenX-.screenY-patcher
-            page.add_init_script("""
+            async def _pool_run():
+                page = await pool.acquire()
+                # Inject MouseEvent screenX/screenY patcher
+                # CF Turnstile detects CDP-triggered MouseEvent.screenX == clientX (Chrome bug)
+                # Even in Firefox/Camoufox, Playwright internal mouse events may have the same issue
+                # Inject override via add_init_script before every page load to bypass Turnstile detection
+                # Source: https://github.com/Xewdy444/CDP-bug-MouseEvent-.screenX-.screenY-patcher
+                page.add_init_script("""
 (function() {
     var screenX = Math.floor(Math.random() * (1200 - 800 + 1)) + 800;
     var screenY = Math.floor(Math.random() * (600 - 400 + 1)) + 400;
@@ -495,244 +502,251 @@ class CursorBrowserRegister:
 })();
 """)
 
-            self.log("Opening Cursor registration page")
-            # Must visit with state (containing random nonce) for WorkOS to generate authorization_session_id
-            # Without authorization_session_id, form POST to /user_management/initiate_login will 404
-            import json, urllib.parse as _up
-            _nonce = str(uuid.uuid4())
-            _state = _up.quote(json.dumps({"returnTo": "/dashboard", "nonce": _nonce}))
-            _redirect = _up.quote("https://cursor.com/api/auth/callback", safe="")
-            _signup_url = (
-                f"{AUTH}/sign-up"
-                f"?client_id=client_01GS6W3C96KW4WRS6Z93JCE2RJ"
-                f"&redirect_uri={_redirect}"
-                f"&state={_state}"
-            )
-            page.goto(_signup_url, wait_until="domcontentloaded", timeout=30000)
-
-            # Only wait for actual CF full-page block (not triggered by inline Turnstile widget)
-            _wait_cf_full_block_clear(page, log_fn=self.log)  # default 120s
-            # Wait for page to fully load after CF passes (CF pass triggers redirect)
-            try:
-                page.wait_for_load_state("domcontentloaded", timeout=15000)
-            except Exception:
-                pass
-
-            # Wait for registration form to appear
-            self.log("Waiting for registration form...")
-            try:
-                page.wait_for_selector(
-                    'input[name="firstName"], input[name="first_name"], input[name="email"]',
-                    timeout=60000,  # 60s - CF Managed Challenge may take longer
+                self.log("Opening Cursor registration page")
+                # Must visit with state (containing random nonce) for WorkOS to generate authorization_session_id
+                # Without authorization_session_id, form POST to /user_management/initiate_login will 404
+                import json, urllib.parse as _up
+                _nonce = str(uuid.uuid4())
+                _state = _up.quote(json.dumps({"returnTo": "/dashboard", "nonce": _nonce}))
+                _redirect = _up.quote("https://cursor.com/api/auth/callback", safe="")
+                _signup_url = (
+                    f"{AUTH}/sign-up"
+                    f"?client_id=client_01GS6W3C96KW4WRS6Z93JCE2RJ"
+                    f"&redirect_uri={_redirect}"
+                    f"&state={_state}"
                 )
-            except Exception:
-                raise RuntimeError(f"Cursor registration page failed to load form: {page.url}")
+                page.goto(_signup_url, wait_until="domcontentloaded", timeout=30000)
 
-            # Fill FirstName / LastName
-            for sel, val in [
-                ('input[name="firstName"]', first),
-                ('input[name="first_name"]', first),
-                ('input[name="lastName"]', last),
-                ('input[name="last_name"]', last),
-            ]:
-                el = page.query_selector(sel)
-                if el and el.is_visible():
-                    el.fill(val)
-                    time.sleep(0.3)
+                # Only wait for actual CF full-page block (not triggered by inline Turnstile widget)
+                _wait_cf_full_block_clear(page, log_fn=self.log)  # default 120s
+                # Wait for page to fully load after CF passes (CF pass triggers redirect)
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=15000)
+                except Exception:
+                    pass
 
-            # Fill email
-            email_sel = 'input[name="email"]'
-            try:
-                page.wait_for_selector(email_sel, timeout=5000)
-            except Exception:
-                raise RuntimeError("Email input not found")
-            self.log(f"Filling email: {email}")
-            page.fill(email_sel, email)
-            time.sleep(0.5)
-
-            # Click Continue to submit form
-            self.log("Clicking Continue")
-            clicked = _click_continue(page)
-            if not clicked:
-                self.log("Button not found, submitting with Enter")
-                page.keyboard.press("Enter")
-
-            # --- Turnstile handling ---
-            # Strategy: directly click iframe checkbox in Camoufox browser
-            # External Solver is useless (it opens its own browser but won't submit form, won't see Turnstile)
-            self.log("Waiting for Turnstile verification...")
-            turnstile_deadline = time.time() + 15
-            has_turnstile = False
-            while time.time() < turnstile_deadline:
-                if _is_turnstile_modal_visible(page):
-                    has_turnstile = True
-                    break
-                if page.query_selector('input[name="otp"], input[name="code"]'):
-                    self.log("Already jumped to OTP page, skipping Turnstile")
-                    break
-                time.sleep(1)
-
-            if has_turnstile:
-                self.log("Detected Turnstile, trying direct iframe checkbox click...")
-                solved = _click_turnstile_in_iframe(page, self.log)
-                if not solved:
-                    token = self._solve_turnstile(page.url, _get_turnstile_sitekey(page))
-                    if token:
-                        self.log(f"Injected Turnstile token ({token[:40]}...)")
-                        _inject_turnstile(page, token)
-                        time.sleep(2)
-                        _click_continue(page)
-                        time.sleep(3)
-                    else:
-                        self.log("⚠️ Auto-solving failed, waiting for manual pass (max 90s)...")
-                        dl = time.time() + 90
-                        while time.time() < dl:
-                            if not _is_turnstile_modal_visible(page):
-                                break
-                            if page.query_selector('input[name="otp"], input[name="code"]'):
-                                break
-                            time.sleep(2)
-                else:
-                    # Wait for Turnstile processing after click
-                    time.sleep(3)
-                    if _is_turnstile_modal_visible(page):
-                        self.log("Turnstile still visible, waiting for auto pass...")
-                        time.sleep(5)
-
-            # --- Handle password setup page (Cursor requires password after Turnstile passes) ---
-            try:
-                page.wait_for_selector('input[type="password"]', timeout=8000)
-                use_password = password or (
-                    ''.join(random.choices(string.ascii_uppercase, k=2))
-                    + ''.join(random.choices(string.digits, k=3))
-                    + ''.join(random.choices(string.ascii_lowercase, k=5))
-                    + '!'
-                )
-                self.log("Detected password setup page, filling password...")
-                for el in page.query_selector_all('input[type="password"]'):
-                    if el.is_visible():
-                        el.fill(use_password)
-                        time.sleep(0.3)
-                password = use_password
-                time.sleep(0.5)
-                _click_continue(page)
-                time.sleep(2)
-            except Exception:
-                pass  # No password page, skip
-
-            # --- Turnstile may appear again after password submission (e.g., "Welcome to Cursor" page) ---
-            _handle_turnstile(page, self.log, self._solve_turnstile)
-
-            # --- Detect phone number verification page ("Phone number" + "Send verification code") ---
-            try:
-                phone_input = page.query_selector('input[type="tel"], input[placeholder*="555"], input[autocomplete="tel"]')
-                if not phone_input:
-                    # Wait a few seconds to see if it jumps to phone page
-                    page.wait_for_selector('input[type="tel"]', timeout=4000)
-                    phone_input = page.query_selector('input[type="tel"]')
-            except Exception:
-                phone_input = None
-
-            if phone_input and phone_input.is_visible():
-                if self.phone_callback:
-                    phone_number = self.phone_callback()
-                    if phone_number:
-                        self.log(f"Detected phone number verification page, filling phone: {phone_number[:4]}****")
-                        phone_input.click()
-                        phone_input.fill(str(phone_number).strip())
-                        time.sleep(0.5)
-                        _click_continue(page)
-                        time.sleep(3)
-                        # Wait for SMS code input box (6 digits)
-                        try:
-                            page.wait_for_selector(
-                                'input[autocomplete="one-time-code"], input[inputmode="numeric"], input[maxlength="1"]',
-                                timeout=30000
-                            )
-                            sms_code = self.phone_callback()  # Reuse callback to get SMS code
-                            if sms_code:
-                                self.log(f"Filling SMS code: {sms_code}")
-                                for digit in str(sms_code).strip():
-                                    page.keyboard.press(digit)
-                                    time.sleep(0.1)
-                                time.sleep(1)
-                                page.keyboard.press("Enter")
-                                time.sleep(3)
-                        except Exception as e:
-                            self.log(f"⚠️ Failed to wait for SMS code: {e}")
-                else:
-                    raise RuntimeError(
-                        "Cursor registration requires phone verification, but phone_callback is not configured."
-                        "Please configure SMS service in RegisterConfig.extra, or manually complete phone verification."
+                # Wait for registration form to appear
+                self.log("Waiting for registration form...")
+                try:
+                    page.wait_for_selector(
+                        'input[name="firstName"], input[name="first_name"], input[name="email"]',
+                        timeout=60000,  # 60s - CF Managed Challenge may take longer
                     )
+                except Exception:
+                    raise RuntimeError(f"Cursor registration page failed to load form: {page.url}")
 
-            # Wait for OTP input box (WorkOS email-verification page uses 6 separate cells)
-            self.log("Waiting for OTP input field...")
-            OTP_SELECTORS = [
-                'input[name="otp"]',
-                'input[name="code"]',
-                'input[autocomplete="one-time-code"]',
-                'input[inputmode="numeric"]',
-                'input[maxlength="1"]',
-                'input[type="text"]',
-                'input[type="number"]',
-            ]
-            otp_input = None
-            deadline_otp = time.time() + 60
-            while time.time() < deadline_otp:
-                # Also check if URL has reached email-verification
-                if "email-verification" in page.url or "verify" in page.url:
-                    for sel in OTP_SELECTORS:
-                        el = page.query_selector(sel)
-                        if el and el.is_visible():
-                            otp_input = el
-                            break
-                    if otp_input:
+                # Fill FirstName / LastName
+                for sel, val in [
+                    ('input[name="firstName"]', first),
+                    ('input[name="first_name"]', first),
+                    ('input[name="lastName"]', last),
+                    ('input[name="last_name"]', last),
+                ]:
+                    el = page.query_selector(sel)
+                    if el and el.is_visible():
+                        el.fill(val)
+                        time.sleep(0.3)
+
+                # Fill email
+                email_sel = 'input[name="email"]'
+                try:
+                    page.wait_for_selector(email_sel, timeout=5000)
+                except Exception:
+                    raise RuntimeError("Email input not found")
+                self.log(f"Filling email: {email}")
+                page.fill(email_sel, email)
+                time.sleep(0.5)
+
+                # Click Continue to submit form
+                self.log("Clicking Continue")
+                clicked = _click_continue(page)
+                if not clicked:
+                    self.log("Button not found, submitting with Enter")
+                    page.keyboard.press("Enter")
+
+                # --- Turnstile handling ---
+                # Strategy: directly click iframe checkbox in Camoufox browser
+                # External Solver is useless (it opens its own browser but won't submit form, won't see Turnstile)
+                self.log("Waiting for Turnstile verification...")
+                turnstile_deadline = time.time() + 15
+                has_turnstile = False
+                while time.time() < turnstile_deadline:
+                    if _is_turnstile_modal_visible(page):
+                        has_turnstile = True
                         break
-                else:
-                    for sel in OTP_SELECTORS[:2]:  # Quickly check the first two
-                        el = page.query_selector(sel)
-                        if el and el.is_visible():
-                            otp_input = el
-                            break
-                    if otp_input:
+                    if page.query_selector('input[name="otp"], input[name="code"]'):
+                        self.log("Already jumped to OTP page, skipping Turnstile")
                         break
+                    time.sleep(1)
+
+                if has_turnstile:
+                    self.log("Detected Turnstile, trying direct iframe checkbox click...")
+                    solved = _click_turnstile_in_iframe(page, self.log)
+                    if not solved:
+                        token = self._solve_turnstile(page.url, _get_turnstile_sitekey(page))
+                        if token:
+                            self.log(f"Injected Turnstile token ({token[:40]}...)")
+                            _inject_turnstile(page, token)
+                            time.sleep(2)
+                            _click_continue(page)
+                            time.sleep(3)
+                        else:
+                            self.log("⚠️ Auto-solving failed, waiting for manual pass (max 90s)...")
+                            dl = time.time() + 90
+                            while time.time() < dl:
+                                if not _is_turnstile_modal_visible(page):
+                                    break
+                                if page.query_selector('input[name="otp"], input[name="code"]'):
+                                    break
+                                time.sleep(2)
+                    else:
+                        # Wait for Turnstile processing after click
+                        time.sleep(3)
+                        if _is_turnstile_modal_visible(page):
+                            self.log("Turnstile still visible, waiting for auto pass...")
+                            time.sleep(5)
+
+                # --- Handle password setup page (Cursor requires password after Turnstile passes) ---
+                try:
+                    page.wait_for_selector('input[type="password"]', timeout=8000)
+                    use_password = password or (
+                        ''.join(random.choices(string.ascii_uppercase, k=2))
+                        + ''.join(random.choices(string.digits, k=3))
+                        + ''.join(random.choices(string.ascii_lowercase, k=5))
+                        + '!'
+                    )
+                    self.log("Detected password setup page, filling password...")
+                    for el in page.query_selector_all('input[type="password"]'):
+                        if el.is_visible():
+                            el.fill(use_password)
+                            time.sleep(0.3)
+                    password = use_password
+                    time.sleep(0.5)
+                    _click_continue(page)
+                    time.sleep(2)
+                except Exception:
+                    pass  # No password page, skip
+
+                # --- Turnstile may appear again after password submission (e.g., "Welcome to Cursor" page) ---
+                _handle_turnstile(page, self.log, self._solve_turnstile)
+
+                # --- Detect phone number verification page ("Phone number" + "Send verification code") ---
+                try:
+                    phone_input = page.query_selector('input[type="tel"], input[placeholder*="555"], input[autocomplete="tel"]')
+                    if not phone_input:
+                        # Wait a few seconds to see if it jumps to phone page
+                        page.wait_for_selector('input[type="tel"]', timeout=4000)
+                        phone_input = page.query_selector('input[type="tel"]')
+                except Exception:
+                    phone_input = None
+
+                if phone_input and phone_input.is_visible():
+                    if self.phone_callback:
+                        phone_number = self.phone_callback()
+                        if phone_number:
+                            self.log(f"Detected phone number verification page, filling phone: {phone_number[:4]}****")
+                            phone_input.click()
+                            phone_input.fill(str(phone_number).strip())
+                            time.sleep(0.5)
+                            _click_continue(page)
+                            time.sleep(3)
+                            # Wait for SMS code input box (6 digits)
+                            try:
+                                page.wait_for_selector(
+                                    'input[autocomplete="one-time-code"], input[inputmode="numeric"], input[maxlength="1"]',
+                                    timeout=30000
+                                )
+                                sms_code = self.phone_callback()  # Reuse callback to get SMS code
+                                if sms_code:
+                                    self.log(f"Filling SMS code: {sms_code}")
+                                    for digit in str(sms_code).strip():
+                                        page.keyboard.press(digit)
+                                        time.sleep(0.1)
+                                    time.sleep(1)
+                                    page.keyboard.press("Enter")
+                                    time.sleep(3)
+                            except Exception as e:
+                                self.log(f"⚠️ Failed to wait for SMS code: {e}")
+                    else:
+                        raise RuntimeError(
+                            "Cursor registration requires phone verification, but phone_callback is not configured."
+                            "Please configure SMS service in RegisterConfig.extra, or manually complete phone verification."
+                        )
+
+                # Wait for OTP input box (WorkOS email-verification page uses 6 separate cells)
+                self.log("Waiting for OTP input field...")
+                OTP_SELECTORS = [
+                    'input[name="otp"]',
+                    'input[name="code"]',
+                    'input[autocomplete="one-time-code"]',
+                    'input[inputmode="numeric"]',
+                    'input[maxlength="1"]',
+                    'input[type="text"]',
+                    'input[type="number"]',
+                ]
+                otp_input = None
+                deadline_otp = time.time() + 60
+                while time.time() < deadline_otp:
+                    # Also check if URL has reached email-verification
+                    if "email-verification" in page.url or "verify" in page.url:
+                        for sel in OTP_SELECTORS:
+                            el = page.query_selector(sel)
+                            if el and el.is_visible():
+                                otp_input = el
+                                break
+                        if otp_input:
+                            break
+                    else:
+                        for sel in OTP_SELECTORS[:2]:  # Quickly check the first two
+                            el = page.query_selector(sel)
+                            if el and el.is_visible():
+                                otp_input = el
+                                break
+                        if otp_input:
+                            break
+                    time.sleep(1)
+
+                if not otp_input:
+                    raise RuntimeError(f"OTP input field did not appear (url={page.url})")
+
+                if not self.otp_callback:
+                    raise RuntimeError("Cursor registration requires email OTP but otp_callback was not provided")
+                self.log("Waiting for email OTP")
+                otp = self.otp_callback()
+                if not otp:
+                    raise RuntimeError("Failed to get OTP")
+                self.log(f"OTP: {otp}")
+
+                # WorkOS 6-cell OTP: click first cell then type digit by digit
+                try:
+                    otp_input.click()
+                    time.sleep(0.3)
+                except Exception:
+                    pass
+                for digit in str(otp).strip():
+                    page.keyboard.press(digit)
+                    time.sleep(random.uniform(0.08, 0.2))
                 time.sleep(1)
+                # WorkOS auto-submits, no need to click Continue; if not submitted, press Enter
+                if "email-verification" in page.url:
+                    page.keyboard.press("Enter")
+                time.sleep(5)
 
-            if not otp_input:
-                raise RuntimeError(f"OTP input field did not appear (url={page.url})")
+                # Wait for Session Token
+                self.log("Waiting for WorkosCursorSessionToken")
+                tok = _wait_for_token(page, timeout=60)
+                if not tok:
+                    raise RuntimeError("Failed to get WorkosCursorSessionToken")
 
-            if not self.otp_callback:
-                raise RuntimeError("Cursor registration requires email OTP but otp_callback was not provided")
-            self.log("Waiting for email OTP")
-            otp = self.otp_callback()
-            if not otp:
-                raise RuntimeError("Failed to get OTP")
-            self.log(f"OTP: {otp}")
+                from platforms.cursor.switch import get_cursor_user_info
+                user_info = get_cursor_user_info(tok) or {}
+                resolved_email = user_info.get("email", email)
+                self.log(f"Registration successful: {resolved_email}")
+                return {"email": resolved_email, "password": "", "token": tok}
 
-            # WorkOS 6-cell OTP: click first cell then type digit by digit
+            loop = asyncio.new_event_loop()
             try:
-                otp_input.click()
-                time.sleep(0.3)
-            except Exception:
-                pass
-            for digit in str(otp).strip():
-                page.keyboard.press(digit)
-                time.sleep(random.uniform(0.08, 0.2))
-            time.sleep(1)
-            # WorkOS auto-submits, no need to click Continue; if not submitted, press Enter
-            if "email-verification" in page.url:
-                page.keyboard.press("Enter")
-            time.sleep(5)
-
-            # Wait for Session Token
-            self.log("Waiting for WorkosCursorSessionToken")
-            tok = _wait_for_token(page, timeout=60)
-            if not tok:
-                raise RuntimeError("Failed to get WorkosCursorSessionToken")
-
-            from platforms.cursor.switch import get_cursor_user_info
-            user_info = get_cursor_user_info(tok) or {}
-            resolved_email = user_info.get("email", email)
-            self.log(f"Registration successful: {resolved_email}")
-            return {"email": resolved_email, "password": "", "token": tok}
+                return loop.run_until_complete(_pool_run())
+            finally:
+                loop.run_until_complete(pool.close())
+                loop.close()

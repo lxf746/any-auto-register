@@ -1,9 +1,11 @@
 """OpenBlockLabs browser registration flow (Camoufox)."""
+import asyncio
 import random, string, time
 from typing import Callable, Optional
 from urllib.parse import parse_qs, quote, urlparse
 
 from camoufox.sync_api import Camoufox
+from core.turnstile_pool import create_browser_pool
 
 AUTH_BASE = "https://auth.openblocklabs.com"
 DASHBOARD = "https://dashboard.openblocklabs.com"
@@ -497,8 +499,14 @@ class OpenBlockLabsBrowserRegister:
         last_name = ''.join(random.choices(string.ascii_lowercase, k=5)).capitalize()
 
         with Camoufox(**launch_opts) as browser:
-            page = browser.new_page()
-            page.add_init_script("""
+            pool = create_browser_pool(
+                max_size=1,
+                create_context_fn=lambda: browser.new_page(),
+            )
+
+            async def _pool_run():
+                page = await pool.acquire()
+                page.add_init_script("""
 (function() {
     var screenX = Math.floor(Math.random() * (1200 - 800 + 1)) + 800;
     var screenY = Math.floor(Math.random() * (600 - 400 + 1)) + 400;
@@ -520,136 +528,145 @@ class OpenBlockLabsBrowserRegister:
     });
 })();
 """)
-            self.log("Opening OpenBlockLabs registration page")
-            last_open_error = None
-            redirect_uri = quote(f"{DASHBOARD}/auth/callback", safe="")
-            entry_url = f"{AUTH_BASE}/?client_id={CLIENT_ID}&redirect_uri={redirect_uri}"
-            session_id = ""
-            for attempt in range(2):
-                page.goto(entry_url, wait_until="domcontentloaded", timeout=30000)
-                _wait_cf_full_block_clear(page, log_fn=self.log)
-                try:
-                    page.wait_for_load_state("domcontentloaded", timeout=15000)
-                except Exception:
-                    pass
-                time.sleep(2)
-                try:
-                    session_id = _wait_for_signup_session(page, timeout=25)
-                    signup_url = f"{AUTH_BASE}/sign-up?redirect_uri={redirect_uri}&authorization_session_id={session_id}"
-                    if page.url != signup_url:
-                        page.goto(signup_url, wait_until="domcontentloaded", timeout=30000)
-                        _wait_cf_full_block_clear(page, log_fn=self.log)
-                        try:
-                            page.wait_for_load_state("domcontentloaded", timeout=15000)
-                        except Exception:
-                            pass
-                        time.sleep(2)
-                    break
-                except Exception as exc:
-                    last_open_error = exc
-                    self.log(f"Registration session not ready, retrying page open ({attempt + 1}/2): {exc}")
-                    if attempt == 1:
-                        raise
+                self.log("Opening OpenBlockLabs registration page")
+                last_open_error = None
+                redirect_uri = quote(f"{DASHBOARD}/auth/callback", safe="")
+                entry_url = f"{AUTH_BASE}/?client_id={CLIENT_ID}&redirect_uri={redirect_uri}"
+                session_id = ""
+                for attempt in range(2):
+                    page.goto(entry_url, wait_until="domcontentloaded", timeout=30000)
+                    _wait_cf_full_block_clear(page, log_fn=self.log)
+                    try:
+                        page.wait_for_load_state("domcontentloaded", timeout=15000)
+                    except Exception:
+                        pass
                     time.sleep(2)
-            if not session_id:
-                raise RuntimeError(str(last_open_error or "Failed to get authorization_session_id"))
-
-            for sel, val in [
-                ('input[name="first_name"], input[placeholder*="First"]', first_name),
-                ('input[name="last_name"], input[placeholder*="Last"]', last_name),
-            ]:
-                if page.query_selector(sel):
-                    page.fill(sel, val)
-
-            email_selectors = [
-                'input[name="email"]',
-                'input[type="email"]',
-                'input[autocomplete="email"]',
-                'input[placeholder*="email" i]',
-            ]
-            pwd_selectors = [
-                'input[name="password"]',
-                'input[type="password"]',
-                'input[autocomplete="new-password"]',
-                'input[placeholder*="password" i]',
-            ]
-            btn_selectors = [
-                'button[type="submit"]',
-                'button:has-text("Continue")',
-                'button:has-text("Sign up")',
-            ]
-
-            used_email_sel = _fill_visible_input(page, email_selectors, email, "Email", timeout=60)
-            self.log(f"Email filled: {used_email_sel}")
-
-            pwd_el, _ = _find_visible_element(page, pwd_selectors)
-            if pwd_el:
-                used_pwd_sel = _fill_visible_input(page, pwd_selectors, password, "Password", timeout=20)
-                self.log(f"Password filled: {used_pwd_sel}")
-                used_btn_sel = _click_visible_button(page, btn_selectors)
-                self.log(f"Submit button clicked: {used_btn_sel}")
-                _advance_to_email_verification(page, btn_selectors, log_fn=self.log, timeout=40)
-            else:
-                used_btn_sel = _click_visible_button(page, btn_selectors)
-                self.log(f"Continue button clicked: {used_btn_sel}")
-                _wait_cf_full_block_clear(page, timeout=30, log_fn=self.log)
-                _handle_turnstile(page, self.log, wait_secs=15)
-                try:
-                    page.wait_for_url("**/sign-up/password**", timeout=20000)
-                except Exception:
-                    pass
-                used_pwd_sel = _fill_visible_input(page, pwd_selectors, password, "Password", timeout=20)
-                self.log(f"Password filled: {used_pwd_sel}")
-                used_btn_sel = _click_visible_button(page, btn_selectors)
-                self.log(f"Password page submit button clicked: {used_btn_sel}")
-                _advance_to_email_verification(page, btn_selectors, log_fn=self.log, timeout=40)
-
-            time.sleep(2)
-
-            if not _wait_for_email_verification(page, timeout=5):
-                page.screenshot(path="/tmp/openblocks_password_fail.png")
-                with open("/tmp/openblocks_password_fail.html", "w") as f:
-                    f.write(page.content())
-                raise RuntimeError(f"Did not enter verification code page: {page.url}")
-
-            if not self.otp_callback:
-                raise RuntimeError("OpenBlockLabs registration requires email verification code but otp_callback was not provided")
-            self.log("Waiting for OpenBlockLabs verification code")
-            code = self.otp_callback()
-            if not code:
-                raise RuntimeError("Failed to get verification code")
-            code = code.replace("-", "")
-
-            page.screenshot(path="/tmp/openblocks_otp.png")
-            with open("/tmp/openblocks_otp.html", "w") as f:
-                f.write(page.content())
-
-            try:
-                visible_inputs = page.query_selector_all('input[autocomplete="one-time-code"], input:not([type="hidden"])')
-                for input_el in visible_inputs:
-                    if input_el.is_visible() and input_el.get_attribute("type") != "email" and input_el.get_attribute("type") != "password":
-                        input_el.click()
+                    try:
+                        session_id = _wait_for_signup_session(page, timeout=25)
+                        signup_url = f"{AUTH_BASE}/sign-up?redirect_uri={redirect_uri}&authorization_session_id={session_id}"
+                        if page.url != signup_url:
+                            page.goto(signup_url, wait_until="domcontentloaded", timeout=30000)
+                            _wait_cf_full_block_clear(page, log_fn=self.log)
+                            try:
+                                page.wait_for_load_state("domcontentloaded", timeout=15000)
+                            except Exception:
+                                pass
+                            time.sleep(2)
                         break
-                page.keyboard.type(code)
-            except Exception as exc:
-                self.log(f"Failed to fill verification code: {exc}")
+                    except Exception as exc:
+                        last_open_error = exc
+                        self.log(f"Registration session not ready, retrying page open ({attempt + 1}/2): {exc}")
+                        if attempt == 1:
+                            raise
+                        time.sleep(2)
+                if not session_id:
+                    raise RuntimeError(str(last_open_error or "Failed to get authorization_session_id"))
 
-            _click_continue(page)
-            time.sleep(5)
+                for sel, val in [
+                    ('input[name="first_name"], input[placeholder*="First"]', first_name),
+                    ('input[name="last_name"], input[placeholder*="Last"]', last_name),
+                ]:
+                    if page.query_selector(sel):
+                        page.fill(sel, val)
 
-            if not _wait_for_url(page, "dashboard.openblocklabs.com", timeout=60):
-                self.log("Did not redirect to dashboard, saving screenshot to /tmp/openblocks_fail.png")
-                page.screenshot(path="/tmp/openblocks_fail.png")
-                with open("/tmp/openblocks_fail.html", "w") as f:
+                email_selectors = [
+                    'input[name="email"]',
+                    'input[type="email"]',
+                    'input[autocomplete="email"]',
+                    'input[placeholder*="email" i]',
+                ]
+                pwd_selectors = [
+                    'input[name="password"]',
+                    'input[type="password"]',
+                    'input[autocomplete="new-password"]',
+                    'input[placeholder*="password" i]',
+                ]
+                btn_selectors = [
+                    'button[type="submit"]',
+                    'button:has-text("Continue")',
+                    'button:has-text("Sign up")',
+                ]
+
+                used_email_sel = _fill_visible_input(page, email_selectors, email, "Email", timeout=60)
+                self.log(f"Email filled: {used_email_sel}")
+
+                pwd_el, _ = _find_visible_element(page, pwd_selectors)
+                if pwd_el:
+                    used_pwd_sel = _fill_visible_input(page, pwd_selectors, password, "Password", timeout=20)
+                    self.log(f"Password filled: {used_pwd_sel}")
+                    used_btn_sel = _click_visible_button(page, btn_selectors)
+                    self.log(f"Submit button clicked: {used_btn_sel}")
+                    _advance_to_email_verification(page, btn_selectors, log_fn=self.log, timeout=40)
+                else:
+                    used_btn_sel = _click_visible_button(page, btn_selectors)
+                    self.log(f"Continue button clicked: {used_btn_sel}")
+                    _wait_cf_full_block_clear(page, timeout=30, log_fn=self.log)
+                    _handle_turnstile(page, self.log, wait_secs=15)
+                    try:
+                        page.wait_for_url("**/sign-up/password**", timeout=20000)
+                    except Exception:
+                        pass
+                    used_pwd_sel = _fill_visible_input(page, pwd_selectors, password, "Password", timeout=20)
+                    self.log(f"Password filled: {used_pwd_sel}")
+                    used_btn_sel = _click_visible_button(page, btn_selectors)
+                    self.log(f"Password page submit button clicked: {used_btn_sel}")
+                    _advance_to_email_verification(page, btn_selectors, log_fn=self.log, timeout=40)
+
+                time.sleep(2)
+
+                if not _wait_for_email_verification(page, timeout=5):
+                    page.screenshot(path="/tmp/openblocks_password_fail.png")
+                    with open("/tmp/openblocks_password_fail.html", "w") as f:
+                        f.write(page.content())
+                    raise RuntimeError(f"Did not enter verification code page: {page.url}")
+
+                if not self.otp_callback:
+                    raise RuntimeError("OpenBlockLabs registration requires email verification code but otp_callback was not provided")
+                self.log("Waiting for OpenBlockLabs verification code")
+                code = self.otp_callback()
+                if not code:
+                    raise RuntimeError("Failed to get verification code")
+                code = code.replace("-", "")
+
+                page.screenshot(path="/tmp/openblocks_otp.png")
+                with open("/tmp/openblocks_otp.html", "w") as f:
                     f.write(page.content())
-                raise RuntimeError(f"OpenBlockLabs registration did not redirect to dashboard: {page.url}")
 
-            wos = _get_wos_session(page, timeout=15)
-            if not wos:
-                self.log("Failed to get wos_session, saving screenshot to /tmp/openblocks_fail.png")
-                page.screenshot(path="/tmp/openblocks_fail.png")
-                with open("/tmp/openblocks_fail.html", "w") as f:
-                    f.write(page.content())
-                raise RuntimeError("Failed to get wos-session cookie")
-            self.log(f"Registration successful: {email}")
-            return {"email": email, "password": password, "wos_session": wos}
+                try:
+                    visible_inputs = page.query_selector_all('input[autocomplete="one-time-code"], input:not([type="hidden"])')
+                    for input_el in visible_inputs:
+                        if input_el.is_visible() and input_el.get_attribute("type") != "email" and input_el.get_attribute("type") != "password":
+                            input_el.click()
+                            break
+                    page.keyboard.type(code)
+                except Exception as exc:
+                    self.log(f"Failed to fill verification code: {exc}")
+
+                _click_continue(page)
+                time.sleep(5)
+
+                if not _wait_for_url(page, "dashboard.openblocklabs.com", timeout=60):
+                    self.log("Did not redirect to dashboard, saving screenshot to /tmp/openblocks_fail.png")
+                    page.screenshot(path="/tmp/openblocks_fail.png")
+                    with open("/tmp/openblocks_fail.html", "w") as f:
+                        f.write(page.content())
+                    raise RuntimeError(f"OpenBlockLabs registration did not redirect to dashboard: {page.url}")
+
+                wos = _get_wos_session(page, timeout=15)
+                if not wos:
+                    self.log("Failed to get wos_session, saving screenshot to /tmp/openblocks_fail.png")
+                    page.screenshot(path="/tmp/openblocks_fail.png")
+                    with open("/tmp/openblocks_fail.html", "w") as f:
+                        f.write(page.content())
+                    raise RuntimeError("Failed to get wos-session cookie")
+                self.log(f"Registration successful: {email}")
+                return {"email": email, "password": password, "wos_session": wos}
+
+            import asyncio
+
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(_pool_run())
+            finally:
+                loop.run_until_complete(pool.close())
+                loop.close()
