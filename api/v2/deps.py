@@ -1,7 +1,7 @@
 """Shared dependencies for v2 API endpoints."""
 from __future__ import annotations
 
-from api.auth import validate_session
+from api.v2.auth import validate_session
 
 
 def get_current_user(token: str | None) -> str | None:

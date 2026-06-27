@@ -158,7 +158,7 @@ async def _verify_token(token: str) -> bool:
 
     # Import session validation from auth module
     try:
-        from api.auth import _sessions
+        from api.v2.auth import _sessions
 
         return token in _sessions
     except ImportError:

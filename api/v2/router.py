@@ -7,7 +7,7 @@ import os
 from fastapi import APIRouter, Header, Request
 from pydantic import BaseModel
 
-from api.auth import create_session
+from api.v2.auth import create_session
 from api.v2.response import ApiResponse
 from api.v2.ws import router as ws_router
 
@@ -39,7 +39,7 @@ def auth_login_v2(body: LoginRequest, request: Request):
         return ApiResponse(ok=True, data={"token": ""})
 
     # Rate limiting (reuse v1 logic)
-    from api.auth import _check_rate_limit
+    from api.v2.auth import _check_rate_limit
 
     client_ip = request.client.host if request.client else "unknown"
     if not _check_rate_limit(client_ip):
@@ -128,8 +128,10 @@ def stats_overview_v2():
 # Accounts (v2 wrapper)
 # ---------------------------------------------------------------------------
 
-from api.accounts import service  # noqa: E402
+from application.accounts import AccountsService  # noqa: E402
 from domain.accounts import AccountQuery  # noqa: E402
+
+_service = AccountsService()
 
 
 @router.get("/accounts")
@@ -141,7 +143,7 @@ def list_accounts_v2(
     page_size: int = 20,
 ):
     """List accounts with v2 envelope."""
-    result = service.list_accounts(
+    result = _service.list_accounts(
         AccountQuery(platform=platform, status=status, email=email, page=page, page_size=page_size)
     )
     return ApiResponse(ok=True, data=result)

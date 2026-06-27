@@ -42,7 +42,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Check Authorization header for session token
         auth_header = request.headers.get("authorization", "")
         if auth_header.startswith("Bearer "):
-            from api.auth import validate_session
+            from api.v2.auth import validate_session
             token = auth_header[7:]
             if validate_session(token):
                 return await call_next(request)
@@ -50,7 +50,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Check cookie for session token
         cookie_token = request.cookies.get("_auth")
         if cookie_token:
-            from api.auth import validate_session
+            from api.v2.auth import validate_session
             if validate_session(cookie_token):
                 return await call_next(request)
 
