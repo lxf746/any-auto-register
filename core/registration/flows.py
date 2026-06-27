@@ -136,6 +136,10 @@ class ProtocolOAuthFlow:
     def run(self, ctx: RegistrationContext) -> RegistrationResult:
         if self.adapter.preflight:
             self.adapter.preflight(ctx)
+
+        if not check_platform_limit(ctx.platform_name, metrics=rate_limit_metrics):
+            raise RuntimeError(f"Rate limit exceeded for platform {ctx.platform_name}")
+
         ensure_oauth_executor_allowed(
             ctx,
             self.adapter.capability.oauth_allowed_executor_types,
