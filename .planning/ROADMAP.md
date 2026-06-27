@@ -27,10 +27,11 @@
   3. Файлы api/auth.py, api/accounts.py и другие v1 эндпоинты удалены
   4. Все шимы и compat слои между v1 и v2 удалены — проект не содержит dual-систем
   5. Приложение запускается без ошибок импорта после удаления v1 кода
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Удалить frontend/, static/, v1 API файлы, шимы и compat слои
+- [ ] 01-01-PLAN.md — Удалить frontend/ и static/, очистить main.py от static serving
+- [ ] 01-02-PLAN.md — Перенести auth в v2, удалить все v1 API файлы, очистить main.py
 
 ### Phase 2: v2 Consolidation
 **Goal**: Auth functions и AccountsService перенесены в v2, main.py использует только v2 роутер
@@ -126,7 +127,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. v1 Removal | 0/1 | Not started | - |
+| 1. v1 Removal | 0/2 | Not started | - |
 | 2. v2 Consolidation | 0/1 | Not started | - |
 | 3. Account Endpoints | 0/2 | Not started | - |
 | 4. Core Endpoints | 0/2 | Not started | - |
