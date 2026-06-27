@@ -1,60 +1,79 @@
 ---
-gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Unified Enterprise Version
+gsd_state_version: '1.0'
 status: planning
-last_updated: "2026-06-27T10:29:41.899Z"
-last_activity: 2026-06-27
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
-  total_plans: 0
+  total_plans: 10
   completed_plans: 0
   percent: 0
 ---
 
 # Project State
 
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-06-27)
+
+**Core value:** Автоматическая регистрация аккаунтов должна работать надёжно и безопасно
+**Current focus:** Phase 1: v1 Removal
+
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-06-27 — Milestone v2.0 started
+Phase: 1 of 7 (v1 Removal)
+Plan: 0 of 1 in current phase
+Status: Ready to plan
+Last activity: 2026-06-27 — Roadmap created for v2.0 Unified Enterprise Version
 
-## Milestone
+Progress: ░░░░░░░░░░ 0%
 
-**v1.7 — Frontend Rewrite + API Modernization**
+## Performance Metrics
 
-Goal: Полная перезаливка фронтенда на Next.js + модернизация backend API
+**Velocity:**
+- Total plans completed: 0
+- Average duration: -
+- Total execution time: 0 hours
 
-## Progress
+**By Phase:**
 
-| Metric | Value |
-|--------|-------|
-| Last completed | v1.7 Frontend Rewrite + API Modernization |
-| Phases shipped | 6 (v1.7) |
-| Total milestones | 8 (v1.0–v1.7) |
-| v1.7 progress | 6/6 phases ✅ |
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
 
-## Context
+**Recent Trend:**
+- Last 5 plans: -
+- Trend: -
+
+*Updated after each plan completion*
+
+## Accumulated Context
 
 ### Decisions
 
-- v1.7 завершён: Next.js frontend, API v2, WebSocket, Analytics, Settings, Logs
-- Next milestone: TBD
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
 
-### Blockers
+- v2.0: Remove v1, v2 becomes the only version (no duals/shims/compat)
+- Single codebase: frontend-new/ replaces frontend/, api/v2/ replaces api/ v1
 
-- Нет
+### Pending Todos
 
-### Quick Tasks Completed
+None yet.
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260627-8kb | Fix WebSocket connection still showing Disconnected | 2026-06-27 | 4e8657e | [260627-8kb-fix-websocket-connection-still-showing-d](./quick/260627-8kb-fix-websocket-connection-still-showing-d/) |
+### Blockers/Concerns
 
-### Todos
+None yet.
 
-- Verify all features work end-to-end
-- Deploy to production
+## Deferred Items
+
+Items acknowledged and carried forward from previous milestone close:
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| *(none)* | | | |
+
+## Session Continuity
+
+Last session: 2026-06-27
+Stopped at: Roadmap created for v2.0
+Resume file: None

@@ -68,40 +68,47 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RM-01 | Phase 1 | Pending |
-| RM-02 | Phase 1 | Pending |
-| RM-03 | Phase 1 | Pending |
-| RM-04 | Phase 1 | Pending |
-| CO-01 | Phase 2 | Pending |
-| CO-02 | Phase 2 | Pending |
-| CO-03 | Phase 2 | Pending |
-| CO-04 | Phase 2 | Pending |
-| CO-05 | Phase 2 | Pending |
-| EP-01 | Phase 3 | Pending |
-| EP-02 | Phase 3 | Pending |
-| EP-03 | Phase 3 | Pending |
-| EP-04 | Phase 3 | Pending |
-| EP-05 | Phase 4 | Pending |
-| EP-06 | Phase 4 | Pending |
-| EP-07 | Phase 4 | Pending |
-| EP-08 | Phase 4 | Pending |
-| EP-09 | Phase 5 | Pending |
-| EP-10 | Phase 5 | Pending |
-| EP-11 | Phase 5 | Pending |
-| EP-12 | Phase 5 | Pending |
-| EP-13 | Phase 6 | Pending |
-| EP-14 | Phase 6 | Pending |
-| EP-15 | Phase 6 | Pending |
-| EP-16 | Phase 6 | Pending |
-| CL-01 | Phase 7 | Pending |
-| CL-02 | Phase 7 | Pending |
-| CL-03 | Phase 7 | Pending |
-| CL-04 | Phase 7 | Pending |
+| RM-01 | Phase 1: v1 Removal | Pending |
+| RM-02 | Phase 1: v1 Removal | Pending |
+| RM-03 | Phase 1: v1 Removal | Pending |
+| RM-04 | Phase 1: v1 Removal | Pending |
+| CO-01 | Phase 2: v2 Consolidation | Pending |
+| CO-02 | Phase 2: v2 Consolidation | Pending |
+| CO-03 | Phase 2: v2 Consolidation | Pending |
+| CO-04 | Phase 2: v2 Consolidation | Pending |
+| CO-05 | Phase 2: v2 Consolidation | Pending |
+| EP-01 | Phase 3: Account Endpoints | Pending |
+| EP-02 | Phase 3: Account Endpoints | Pending |
+| EP-03 | Phase 3: Account Endpoints | Pending |
+| EP-04 | Phase 3: Account Endpoints | Pending |
+| EP-05 | Phase 4: Core Endpoints | Pending |
+| EP-06 | Phase 4: Core Endpoints | Pending |
+| EP-07 | Phase 4: Core Endpoints | Pending |
+| EP-08 | Phase 4: Core Endpoints | Pending |
+| EP-15 | Phase 4: Core Endpoints | Pending |
+| EP-16 | Phase 4: Core Endpoints | Pending |
+| EP-09 | Phase 5: Provider & Infra Endpoints | Pending |
+| EP-10 | Phase 5: Provider & Infra Endpoints | Pending |
+| EP-11 | Phase 5: Provider & Infra Endpoints | Pending |
+| EP-12 | Phase 5: Provider & Infra Endpoints | Pending |
+| EP-13 | Phase 5: Provider & Infra Endpoints | Pending |
+| EP-14 | Phase 6: Stats Endpoints | Pending |
+| CL-01 | Phase 7: Cleanup | Pending |
+| CL-02 | Phase 7: Cleanup | Pending |
+| CL-03 | Phase 7: Cleanup | Pending |
+| CL-04 | Phase 7: Cleanup | Pending |
 
 **Coverage:**
 - v2.0 requirements: 28 total
-- Mapped to phases: 28
+- Mapped to phases: 28/28 ✓
 - Unmapped: 0 ✓
+- Phase 1 (v1 Removal): 4 requirements
+- Phase 2 (v2 Consolidation): 5 requirements
+- Phase 3 (Account Endpoints): 4 requirements
+- Phase 4 (Core Endpoints): 6 requirements
+- Phase 5 (Provider & Infra Endpoints): 5 requirements
+- Phase 6 (Stats Endpoints): 1 requirement
+- Phase 7 (Cleanup): 4 requirements
 
 ---
 *Requirements defined: 2026-06-27*
