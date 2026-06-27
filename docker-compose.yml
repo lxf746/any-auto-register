@@ -8,10 +8,29 @@ services:
     environment:
       - DISPLAY=:99
       - ACCOUNT_MANAGER_DATABASE_URL=sqlite:////app/data/account_manager.db
+      # PostgreSQL mode — uncomment below and comment out the SQLite line above
+      # IMPORTANT: override POSTGRES_PASSWORD in production!
+      # - ACCOUNT_MANAGER_DATABASE_URL=postgresql+asyncpg://account_manager:changeme@postgres:5432/account_manager
       # Optional: set access password; if not set, no password protection
       # - APP_PASSWORD=changeme
       # Optional: set VNC password
       # - VNC_PASSWORD=changeme
+    # depends_on:
+    #   - postgres
     volumes:
       - ./data:/app/data   # Persist SQLite database
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: account_manager
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: account_manager
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
