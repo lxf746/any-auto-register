@@ -3,9 +3,9 @@
 ## Current Position
 
 Phase: 02-connection-pooling
-Plan: 01 (complete)
+Plan: 02 (complete)
 Status: In Progress
-Last activity: 2026-06-27 — Plan 02-01 (Database Connection Pooling) complete
+Last activity: 2026-06-27 — Plan 02-02 (HTTP Session Pooling & Browser Pool) complete
 
 ## Milestone
 
@@ -18,8 +18,8 @@ Goal: Подготовить систему к production нагрузке — P
 | Metric | Value |
 |--------|-------|
 | Current phase | 02-connection-pooling |
-| Plans complete | 1/4 (Phase 2) |
-| Tasks complete | 6/6 (Phase 1: 4, Phase 2 Plan 1: 2) |
+| Plans complete | 2/4 (Phase 2) |
+| Tasks complete | 11/11 (Phase 1: 4, Phase 2 Plan 1: 2, Phase 2 Plan 2: 3 + 2 test tasks) |
 
 ## Context
 
@@ -35,6 +35,9 @@ Goal: Подготовить систему к production нагрузке — P
 - Initial migration covers all 13 SQLModel tables (01-01)
 - QueuePool config applied uniformly to all DB types including SQLite (02-01)
 - Dual dispose paths: lifecycle_manager.stop() + main.py lifespan for defense-in-depth (02-01)
+- ManagedSession mixin adopted by ProtocolExecutor, HTTPClient, 3 platform clients (02-02)
+- BrowserPool reusable asyncio.Queue pattern with max_size, acquire/release/close (02-02)
+- Pool metrics (DB, HTTP, browser) available via /api/pools and readiness endpoint (02-02)
 
 ### Blockers
 
