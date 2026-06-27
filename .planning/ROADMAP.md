@@ -57,11 +57,11 @@ Plans:
   2. Account exports работают — CSV, JSON, sub2api, cpa, kiro-go, any2api форматы
   3. Account imports работают — загрузка аккаунтов из файлов
   4. Account checks работают — check-all и check-one проверяют статус аккаунтов
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Реализовать Account CRUD эндпоинты
-- [ ] 03-02: Реализовать exports, imports, checks
+- [ ] 03-01-PLAN.md — Account CRUD, stats, import endpoints в v2
+- [ ] 03-02-PLAN.md — Account export (6 форматов) и check endpoints в v2
 
 ### Phase 4: Core Endpoints
 **Goal**: Actions, config, health, lifecycle, tasks и system эндпоинты работают в v2
