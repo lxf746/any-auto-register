@@ -65,6 +65,10 @@
 3. Приоритеты задач работают
 4. Лимиты ресурсов соблюдаются
 
+**Plans:** 2 plans
+- [ ] 03-01-PLAN.md — Priority model & priority-based claiming (TaskModel.priority, claim ordering, serialization)
+- [ ] 03-02-PLAN.md — Enhanced TaskRuntime with priority queue & resource monitoring (heapq dispatch, ResourceMonitor, dynamic throttling)
+
 ---
 
 ## Phase 4: Rate Limiting
