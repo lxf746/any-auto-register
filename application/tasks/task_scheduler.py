@@ -18,6 +18,7 @@ from application.tasks.task_repository import (
     TASK_STATUS_PENDING,
     TASK_STATUS_RUNNING,
     TERMINAL_TASK_STATUSES,
+    _priority_sort_key,
     append_task_event,
     mutate_task,
     serialize_task,
@@ -100,12 +101,12 @@ def claim_next_runnable_task(
     running_platform_counts = dict(running_platform_counts or {})
     busy_account_keys = set(busy_account_keys or set())
     with Session(engine) as session:
-        tasks = session.exec(
+        pending_tasks = session.exec(
             select(TaskModel)
             .where(TaskModel.status == TASK_STATUS_PENDING)
-            .order_by(TaskModel.created_at)
         ).all()
-        for task in tasks:
+        pending_tasks = sorted(pending_tasks, key=_priority_sort_key)
+        for task in pending_tasks:
             payload = task.get_payload()
             platform = task.platform or str(payload.get("platform", "") or "")
             account_keys = task_account_keys(task.type, payload)

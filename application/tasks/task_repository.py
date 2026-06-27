@@ -13,6 +13,7 @@ from sqlmodel import Session, select, func
 from core.base_platform import AccountStatus
 from core.datetime_utils import _utcnow, format_local_clock, serialize_datetime
 from core.db import AccountModel, TaskEventModel, TaskLog, TaskModel, engine, save_account
+from core.db.models import PRIORITY_LEVELS
 
 TASK_TYPE_REGISTER = "register"
 TASK_TYPE_ACCOUNT_CHECK = "account_check"
@@ -56,6 +57,14 @@ def _json_default(value: Any) -> Any:
 
 def _dump_json(data: Any) -> str:
     return json.dumps(data or {}, ensure_ascii=False, default=_json_default)
+
+
+_PRIORITY_WEIGHTS: dict[str, int] = {"high": 0, "normal": 1, "low": 2}
+
+
+def _priority_sort_key(task: TaskModel) -> tuple[int, datetime]:
+    """Sort key for priority-based task ordering: high > normal > low, then FIFO."""
+    return (_PRIORITY_WEIGHTS.get(task.priority, 1), task.created_at)
 
 
 def task_lock(task_id: str) -> threading.Lock:
@@ -122,6 +131,7 @@ def serialize_task(task: TaskModel) -> dict[str, Any]:
         "type": task.type,
         "platform": task.platform,
         "status": task.status,
+        "priority": task.priority,
         "terminal": task.status in TERMINAL_TASK_STATUSES,
         "cancellable": task.status in {TASK_STATUS_PENDING, TASK_STATUS_CLAIMED, TASK_STATUS_RUNNING, TASK_STATUS_CANCEL_REQUESTED},
         "progress": f"{progress_current}/{progress_total}" if progress_total else "0/0",
@@ -264,12 +274,12 @@ def claim_next_runnable_task(
     running_platform_counts = dict(running_platform_counts or {})
     busy_account_keys = set(busy_account_keys or set())
     with Session(engine) as session:
-        tasks = session.exec(
+        pending_tasks = session.exec(
             select(TaskModel)
             .where(TaskModel.status == TASK_STATUS_PENDING)
-            .order_by(TaskModel.created_at)
         ).all()
-        for task in tasks:
+        pending_tasks = sorted(pending_tasks, key=_priority_sort_key)
+        for task in pending_tasks:
             payload = task.get_payload()
             platform = task.platform or str(payload.get("platform", "") or "")
             account_keys = task_account_keys(task.type, payload)
@@ -293,13 +303,17 @@ def create_task(
     payload: dict[str, Any],
     progress_total: int = 1,
     result_seed: dict[str, Any] | None = None,
+    priority: str = "normal",
 ) -> dict[str, Any]:
+    if priority not in PRIORITY_LEVELS:
+        priority = "normal"
     task_id = f"task_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
     task = TaskModel(
         id=task_id,
         type=task_type,
         platform=platform,
         status=TASK_STATUS_PENDING,
+        priority=priority,
         payload_json=_dump_json(payload),
         result_json=_dump_json(task_result_seed(result_seed)),
         progress_current=0,
@@ -315,11 +329,13 @@ def create_task(
 
 def create_register_task(payload: dict[str, Any]) -> dict[str, Any]:
     count = max(int(payload.get("count", 1) or 1), 1)
+    priority = str(payload.get("priority", "normal") or "normal")
     return create_task(
         task_type=TASK_TYPE_REGISTER,
         platform=str(payload.get("platform", "")),
         payload=payload,
         progress_total=count,
+        priority=priority,
     )
 
 
@@ -347,9 +363,11 @@ def create_account_check_all_task(platform: str = "", limit: int = 50) -> dict[s
 
 
 def create_platform_action_task(payload: dict[str, Any]) -> dict[str, Any]:
+    priority = str(payload.get("priority", "normal") or "normal")
     return create_task(
         task_type=TASK_TYPE_PLATFORM_ACTION,
         platform=str(payload.get("platform", "")),
         payload=payload,
         progress_total=1,
+        priority=priority,
     )
