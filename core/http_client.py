@@ -14,6 +14,7 @@ from curl_cffi import requests as cffi_requests
 from curl_cffi.requests import Session, Response
 
 from core.mixins.managed_session import ManagedSession
+from core.rate_limiter import rate_limit_metrics
 
 
 
@@ -111,6 +112,13 @@ class HTTPClient(ManagedSession):
         # Set default parameters
         kwargs.setdefault("timeout", self.config.timeout)
         kwargs.setdefault("allow_redirects", self.config.follow_redirects)
+
+        # Record rate limit metrics for observability
+        try:
+            host = url.split("/")[2] if "/" in url else "unknown"
+            rate_limit_metrics.record_usage(f"http:{method}:{host}")
+        except Exception:
+            pass  # Metrics recording is fire-and-forget
 
         # Add proxy configuration
         if self.proxies and "proxies" not in kwargs:

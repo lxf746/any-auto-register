@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 
+from core.rate_limiter import check_platform_limit, rate_limit_metrics
 from .adapters import BrowserRegistrationAdapter, ProtocolMailboxAdapter, ProtocolOAuthAdapter
 from .helpers import (
     build_link_callback,
@@ -22,6 +23,9 @@ class BrowserRegistrationFlow:
     def run(self, ctx: RegistrationContext) -> RegistrationResult:
         if self.adapter.preflight:
             self.adapter.preflight(ctx)
+
+        if not check_platform_limit(ctx.platform_name, metrics=rate_limit_metrics):
+            raise RuntimeError(f"Rate limit exceeded for platform {ctx.platform_name}")
 
         if getattr(ctx.identity, "identity_provider", "") == "oauth_browser":
             capability = self.adapter.capability
@@ -85,6 +89,10 @@ class ProtocolMailboxFlow:
     def run(self, ctx: RegistrationContext) -> RegistrationResult:
         if self.adapter.preflight:
             self.adapter.preflight(ctx)
+
+        if not check_platform_limit(ctx.platform_name, metrics=rate_limit_metrics):
+            raise RuntimeError(f"Rate limit exceeded for platform {ctx.platform_name}")
+
         if self.adapter.capability.protocol_mailbox_requires_email:
             ensure_identity_email(ctx, f"{ctx.platform_display_name} registration flow requires mailbox provider, no email account currently obtained")
         if self.adapter.capability.protocol_mailbox_requires_mailbox:

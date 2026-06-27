@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Callable, Optional
 
+from core.rate_limiter import check_provider_limit, rate_limit_metrics
 from core.sms.base import SmsActivation, SmsProvider
 from core.sms.cache import (
     HERO_SMS_DEFAULT_COUNTRY,
@@ -37,6 +38,8 @@ class PhoneCallbackController:
 
     def _provider(self) -> SmsProvider:
         if self.provider is None:
+            if not check_provider_limit("sms", self.provider_key, metrics=rate_limit_metrics):
+                raise RuntimeError(f"Rate limit exceeded for SMS provider {self.provider_key}")
             self.provider = create_sms_provider(self.provider_key, self.config)
         return self.provider
 
