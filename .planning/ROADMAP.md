@@ -43,6 +43,10 @@
 3. Browser contexts пулятся
 4. Мониторинг пулов доступен
 
+**Plans:** 2 plans
+- [ ] 02-01-PLAN.md — Database connection pooling (QueuePool config, pool_pre_ping, engine.dispose)
+- [ ] 02-02-PLAN.md — HTTP + browser pooling + monitoring (ManagedSession mixin, BrowserPool, pool metrics)
+
 ---
 
 ## Phase 3: Concurrent Registration
