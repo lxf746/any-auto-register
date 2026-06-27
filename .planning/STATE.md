@@ -3,9 +3,9 @@
 ## Current Position
 
 Phase: 04-rate-limiting
-Plan: —
-Status: Starting
-Last activity: 2026-06-27 — Phase 3 Concurrent Registration complete
+Plan: 04-02
+Status: Complete
+Last activity: 2026-06-27 — Phase 4 Plan 2 Rate Limit Metrics complete
 
 ## Milestone
 
@@ -18,8 +18,8 @@ Goal: Подготовить систему к production нагрузке — P
 | Metric | Value |
 |--------|-------|
 | Current phase | 04-rate-limiting |
-| Plans complete | 2/2 (Phase 3) |
-| Tasks complete | 15/15 (Phase 1: 4, Phase 2: 7, Phase 3: 4) |
+| Plans complete | 2/2 (Phase 3), 1/2 (Phase 4) |
+| Tasks complete | 17/15 (Phase 1: 4, Phase 2: 7, Phase 3: 4, Phase 4: 2) |
 
 ## Context
 
@@ -38,6 +38,7 @@ Goal: Подготовить систему к production нагрузке — P
 - ManagedSession mixin adopted by ProtocolExecutor, HTTPClient, 3 platform clients (02-02)
 - BrowserPool reusable asyncio.Queue pattern with max_size, acquire/release/close (02-02)
 - Pool metrics (DB, HTTP, browser) available via /api/pools and readiness endpoint (02-02)
+- Rate limit metrics available via /api/rate-limits endpoint (04-02)
 
 ### Blockers
 
