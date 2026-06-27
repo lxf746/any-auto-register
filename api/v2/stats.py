@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Query
+from sqlalchemy import case
 from sqlmodel import Session, func, select
 
 from core.db import (
@@ -78,7 +79,7 @@ def stats_by_platform():
             select(
                 TaskLog.platform,
                 func.count(),
-                func.sum(func.cast(TaskLog.status == "success", int)),
+                func.sum(case((TaskLog.status == "success", 1), else_=0)),
             ).group_by(TaskLog.platform)
         ).all()
 
@@ -118,7 +119,7 @@ def stats_by_day(
                 func.date(TaskLog.created_at).label("day"),
                 TaskLog.platform,
                 func.count(),
-                func.sum(func.cast(TaskLog.status == "success", int)),
+                func.sum(case((TaskLog.status == "success", 1), else_=0)),
             )
             .where(TaskLog.created_at >= cutoff)
             .group_by(func.date(TaskLog.created_at), TaskLog.platform)
