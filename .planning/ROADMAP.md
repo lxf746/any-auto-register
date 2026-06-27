@@ -1,41 +1,134 @@
-# Roadmap: Any Auto Register
+# Roadmap: v1.7 Frontend Rewrite + API Modernization
 
-## Milestones
+**Created:** 2026-06-27
+**Phases:** 6
+**Requirements:** 25 mapped
 
-- ✅ **v1.0 Security Hardening** — shipped
-- ✅ **v1.1 Tech Debt & Code Quality** — shipped
-- ✅ **v1.2 Remove Electron** — shipped
-- ✅ **v1.3 Enterprise Email Provider Abstractions** — shipped
-- ✅ **v1.4 Memory Leaks & Thread Safety** — shipped
-- ✅ **v1.5 Enterprise Cleanup** — shipped
-- ✅ **v1.6 Scaling & Performance** — shipped 2026-06-27
-- 📋 **v1.7** — TBD (next milestone)
+## Phase 1: Foundation + API v2
 
-## Phases
+**Goal:** Настроить Next.js проект и обновить backend API
 
-<details>
-<summary>✅ v1.6 Scaling & Performance (5 phases) — SHIPPED 2026-06-27</summary>
+**Requirements:**
+- FE-01: Next.js 14+ project setup with TypeScript, Tailwind CSS, Shadcn/ui
+- API-01: API versioning — /api/v2/ prefix for new endpoints
+- API-02: Response envelope —统一 {ok, data, error} format
+- API-03: OpenAPI spec — auto-generated from FastAPI routes
+- API-04: TypeScript gen — openapi-typescript for type-safe API calls
 
-- [x] Phase 1: PostgreSQL Migration (2/2 plans)
-- [x] Phase 2: Connection Pooling (2/2 plans)
-- [x] Phase 3: Concurrent Registration (2/2 plans)
-- [x] Phase 4: Rate Limiting (2/2 plans)
-- [x] Phase 5: Gap Closure (2/2 plans)
+**Success Criteria:**
+1. Next.js проект запускается и подключается к API
+2. /api/v2/ endpoints работают с统一 форматом ответов
+3. TypeScript types сгенерированы из OpenAPI
+4. Authentication flow работает (login/register)
 
-</details>
+**Plans:** 2 plans
 
-## Backlog
+---
 
-- **SCAL-01**: Horizontal scaling (multiple workers)
-- **SCAL-02**: Distributed task queue (Celery/RQ)
-- **SCAL-03**: Redis for caching and rate limiting
+## Phase 2: Core UI
+
+**Goal:** Основные страницы фронтенда
+
+**Requirements:**
+- FE-02: Authentication — JWT login/register pages with form validation
+- FE-03: Dashboard — main overview page with platform cards and quick actions
+- FE-04: Task Management — create, view, cancel registration tasks
+- FE-05: Account List — view all registered accounts with search/filter
+
+**Success Criteria:**
+1. Login/Register страницы с валидацией форм
+2. Dashboard показывает платформы и быстрые действия
+3. Можно создать задачу регистрации из UI
+4. Список аккаунтов с поиском и фильтрами
+
+**Plans:** 2 plans
+
+---
+
+## Phase 3: Analytics Dashboard
+
+**Goal:** Статистика и метрики
+
+**Requirements:**
+- AN-01: Registration stats — success/failure rates, timeline charts
+- AN-02: Platform breakdown — per-platform registration metrics
+- AN-03: Performance metrics — avg registration time, error rates
+- AN-04: Export — download stats as CSV/JSON
+
+**Success Criteria:**
+1. Графики успеха/ошибок регистрации
+2. Разбивка по платформам
+3. Метрики производительности
+4. Экспорт данных
+
+**Plans:** 2 plans
+
+---
+
+## Phase 4: Real-time Updates
+
+**Goal:** WebSocket для реалтайм обновлений
+
+**Requirements:**
+- RT-01: WebSocket connection — establish WS for live task updates
+- RT-02: Task status streaming — real-time progress without polling
+- RT-03: Connection management — reconnect on disconnect, heartbeat
+- API-05: WebSocket endpoint — /api/v2/ws for real-time updates
+
+**Success Criteria:**
+1. WebSocket подключение работает
+2. Статус задач обновляется в реальном времени
+3. Автоматическое переподключение при разрыве
+
+**Plans:** 2 plans
+
+---
+
+## Phase 5: Settings Management
+
+**itude:** Управление настройками через UI
+
+**Requirements:**
+- SM-01: Mailbox providers — enable/disable/configure providers
+- SM-02: SMS providers — manage SMS verification providers
+- SM-03: Captcha providers — configure captcha solving services
+- SM-04: Proxy settings — manage proxy list and rotation
+- SM-05: Platform config — per-platform rate limits and settings
+
+**Success Criteria:**
+1. UI для управления всеми типами провайдеров
+2. Настройки прокси с добавлением/удалением
+3. Конфигурация платформ (rate limits, executor types)
+
+**Plans:** 2 plans
+
+---
+
+## Phase 6: Logs & Debug
+
+**Goal:** Просмотр логов и отладка
+
+**Requirements:**
+- LD-01: Task logs — view detailed logs per registration task
+- LD-02: Error viewer — filter and search errors with stack traces
+- LD-03: Debug mode — step-by-step registration flow visualization
+
+**Success Criteria:**
+1. Логи доступны для каждой задачи
+2. Ошибки фильтруются и ищутся
+3. Debug mode показывает пошаговый flow регистрации
+
+**Plans:** 2 plans
+
+---
 
 ## Progress
 
-| Phase | Milestone | Plans | Status | Completed |
-|-------|-----------|-------|--------|-----------|
-| 1. PostgreSQL Migration | v1.6 | 2/2 | Complete | 2026-06-27 |
-| 2. Connection Pooling | v1.6 | 2/2 | Complete | 2026-06-27 |
-| 3. Concurrent Registration | v1.6 | 2/2 | Complete | 2026-06-27 |
-| 4. Rate Limiting | v1.6 | 2/2 | Complete | 2026-06-27 |
-| 5. Gap Closure | v1.6 | 2/2 | Complete | 2026-06-27 |
+| Phase | Goal | Requirements | Status | Completed |
+|-------|------|--------------|--------|-----------|
+| 1. Foundation + API v2 | Next.js setup, API v2 | FE-01, API-01–04 | Not started | — |
+| 2. Core UI | Dashboard, tasks, accounts | FE-02–05 | Not started | — |
+| 3. Analytics Dashboard | Stats, charts, metrics | AN-01–04 | Not started | — |
+| 4. Real-time Updates | WebSocket | RT-01–03, API-05 | Not started | — |
+| 5. Settings Management | Provider config UI | SM-01–05 | Not started | — |
+| 6. Logs & Debug | Logging, debug | LD-01–03 | Not started | — |

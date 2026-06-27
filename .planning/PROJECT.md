@@ -8,9 +8,17 @@
 
 Автоматическая регистрация аккаунтов должна работать надёжно и безопасно — аккаунты создаются, данные защищены, система не подвержена компрометации.
 
-## Current Milestone: v1.7 — TBD
+## Current Milestone: v1.7 Frontend Rewrite + API Modernization
 
-**Goal:** TBD — определить после анализа потребностей
+**Goal:** Полный rewrite фронтенда на Next.js + обновление backend API
+
+**Target features:**
+- Next.js 14+ с TypeScript, Tailwind CSS, Shadcn/ui
+- Analytics Dashboard — статистика, графики, метрики регистраций
+- Real-time Updates — WebSocket вместо polling для статуса задач
+- Settings Management — UI для управления прокси, провайдерами, настройками
+- Logs & Debug — просмотр логов, ошибок, отладка registration flow
+- Backend API v2 — versioning, response envelope, OpenAPI → TypeScript gen
 
 ## Requirements
 
@@ -36,7 +44,12 @@
 
 ### Active
 
-- (TBD after new milestone planning)
+- [ ] Next.js frontend с TypeScript, Tailwind, Shadcn
+- [ ] Analytics Dashboard
+- [ ] Real-time Updates (WebSocket)
+- [ ] Settings Management UI
+- [ ] Logs & Debug界面
+- [ ] Backend API v2 (versioning, envelope, OpenAPI gen)
 
 ### Out of Scope
 
@@ -44,6 +57,7 @@
 - Добавление тестов — отдельный milestone
 - Новые платформы — отдельный milestone
 - Горизонтальное масштабирование — отдельный milestone
+- Mobile app — web-first
 
 ## Context
 
@@ -90,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-27 after v1.6 milestone complete*
+*Last updated: 2026-06-27 after v1.7 milestone start*

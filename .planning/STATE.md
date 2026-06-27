@@ -1,11 +1,26 @@
+---
+gsd_state_version: 1.0
+milestone: v1.7
+milestone_name: Frontend Rewrite + API Modernization
+status: planning
+last_updated: "2026-06-27T08:41:07.220Z"
+last_activity: 2026-06-27
+progress:
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
+---
+
 # Project State
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v1.6 complete, ready for next milestone
-Last activity: 2026-06-27 — v1.6 milestone archived
+Status: Defining requirements
+Last activity: 2026-06-27 — Milestone v1.7 started
 
 ## Milestone
 
