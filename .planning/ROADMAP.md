@@ -13,7 +13,7 @@
 - [x] **Phase 4: Core Endpoints** - Реализовать actions, config, health, lifecycle, tasks, system в v2
 - [ ] **Phase 5: Provider & Infra Endpoints** - Реализовать providers, proxies, SMS в v2
 - [x] **Phase 6: Stats Endpoints** - Реализовать statistics и monitoring в v2 (completed 2026-06-27)
-- [ ] **Phase 7: Cleanup** - Обновить .gitignore, Dockerfile, docker-compose, удалить legacy code
+- [x] **Phase 7: Cleanup** - Обновить .gitignore, Dockerfile, docker-compose, удалить legacy code (completed 2026-06-27)
 
 ## Phase Details
 
@@ -144,12 +144,12 @@ Plans:
   4. Deprecated functions и legacy code удалены из codebase
   5. Проект полностью работает как единая версия без references на v1
 
-**Plans**: TBD
+**Plans**: 3/2 plans complete
 
 Plans:
 
-- [ ] 07-01: Обновить .gitignore, Dockerfile, docker-compose.yml
-- [ ] 07-02: Удалить legacy code и deprecated functions
+- [x] 07-01-PLAN.md — Replace deprecated core.base_mailbox imports, delete shim, clean v1 comments
+- [x] 07-02-PLAN.md — Audit and clean .gitignore, Dockerfile, docker-compose.yml
 
 ## Progress
 
@@ -161,4 +161,4 @@ Plans:
 | 4. Core Endpoints | 1/1 | Complete | 2026-06-27 |
 | 5. Provider & Infra Endpoints | 0/2 | Planning Complete | - |
 | 6. Stats Endpoints | 1/1 | Complete   | 2026-06-27 |
-| 7. Cleanup | 0/2 | Not started | - |
+| 7. Cleanup | 3/2 | Complete   | 2026-06-27 |

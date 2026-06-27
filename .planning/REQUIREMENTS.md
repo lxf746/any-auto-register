@@ -41,10 +41,10 @@
 
 ### Cleanup
 
-- [ ] **CL-01**: Обновить .gitignore — убрать frontend/node_modules, frontend/dist
-- [ ] **CL-02**: Обновить Dockerfile — убрать reference на frontend/
-- [ ] **CL-03**: Обновить docker-compose.yml если нужно
-- [ ] **CL-04**: Удалить legacy code и deprecated functions
+- [x] **CL-01**: Обновить .gitignore — убрать frontend/node_modules, frontend/dist
+- [x] **CL-02**: Обновить Dockerfile — убрать reference на frontend/
+- [x] **CL-03**: Обновить docker-compose.yml если нужно
+- [x] **CL-04**: Удалить legacy code и deprecated functions
 
 ## v3 Requirements
 
@@ -93,10 +93,10 @@
 | EP-12 | Phase 5: Provider & Infra Endpoints | Pending |
 | EP-13 | Phase 5: Provider & Infra Endpoints | Pending |
 | EP-14 | Phase 6: Stats Endpoints | Complete |
-| CL-01 | Phase 7: Cleanup | Pending |
-| CL-02 | Phase 7: Cleanup | Pending |
-| CL-03 | Phase 7: Cleanup | Pending |
-| CL-04 | Phase 7: Cleanup | Pending |
+| CL-01 | Phase 7: Cleanup | Complete |
+| CL-02 | Phase 7: Cleanup | Complete |
+| CL-03 | Phase 7: Cleanup | Complete |
+| CL-04 | Phase 7: Cleanup | Complete |
 
 **Coverage:**
 
