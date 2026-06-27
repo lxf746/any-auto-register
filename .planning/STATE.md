@@ -3,9 +3,9 @@
 ## Current Position
 
 Phase: 02-connection-pooling
-Plan: —
-Status: Starting
-Last activity: 2026-06-27 — Phase 1 PostgreSQL Migration complete
+Plan: 01 (complete)
+Status: In Progress
+Last activity: 2026-06-27 — Plan 02-01 (Database Connection Pooling) complete
 
 ## Milestone
 
@@ -18,8 +18,8 @@ Goal: Подготовить систему к production нагрузке — P
 | Metric | Value |
 |--------|-------|
 | Current phase | 02-connection-pooling |
-| Plans complete | 2/2 (Phase 1) |
-| Tasks complete | 4/4 (Phase 1) |
+| Plans complete | 1/4 (Phase 2) |
+| Tasks complete | 6/6 (Phase 1: 4, Phase 2 Plan 1: 2) |
 
 ## Context
 
@@ -33,6 +33,8 @@ Goal: Подготовить систему к production нагрузке — P
 - Sync engine normalizes asyncpg → psycopg2 for backward compat (01-02)
 - Alembic env var pattern: ACCOUNT_MANAGER_DATABASE_URL with SQLite fallback (01-01)
 - Initial migration covers all 13 SQLModel tables (01-01)
+- QueuePool config applied uniformly to all DB types including SQLite (02-01)
+- Dual dispose paths: lifecycle_manager.stop() + main.py lifespan for defense-in-depth (02-01)
 
 ### Blockers
 
