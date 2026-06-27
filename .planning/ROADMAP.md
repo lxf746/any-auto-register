@@ -43,10 +43,10 @@ Plans:
   3. main.py подключает только v2 роутер, без v1 роутеров
   4. core/auth.py не содержит v1 public prefixes — авторизация работает только через v2
   5. frontend-new/src/lib/api.ts не содержит v1 response format fallback
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: Перенести auth и accounts в v2, обновить main.py, core/auth.py, api.ts
+- [ ] 02-01-PLAN.md — Remove v1 public prefix from core/auth.py and v1 fallback from api.ts
 
 ### Phase 3: Account Endpoints
 **Goal**: Полный набор Account CRUD, export, import, check эндпоинтов работает в v2
