@@ -8,13 +8,19 @@ from fastapi import APIRouter, Header, Request
 from pydantic import BaseModel
 
 from api.v2.accounts import router as accounts_router
+from api.v2.actions import router as actions_router
 from api.v2.auth import create_session
+from api.v2.config import router as config_router
+from api.v2.health import router as health_router
 from api.v2.response import ApiResponse
 from api.v2.ws import router as ws_router
 
 router = APIRouter(tags=["v2"])
 router.include_router(ws_router)
 router.include_router(accounts_router)
+router.include_router(health_router)
+router.include_router(config_router)
+router.include_router(actions_router)
 
 
 # ---------------------------------------------------------------------------
