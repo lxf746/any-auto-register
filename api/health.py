@@ -16,3 +16,9 @@ def health():
 @router.get("/ready")
 def ready():
     return service.readiness()
+
+
+@router.get("/pools")
+def pools():
+    """Dedicated pool metrics endpoint for monitoring."""
+    return service.pool_status()

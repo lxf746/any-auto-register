@@ -12,3 +12,6 @@ class HealthService:
 
     def readiness(self) -> dict:
         return self.runtime.readiness()
+
+    def pool_status(self) -> dict:
+        return self.runtime.pool_status()
