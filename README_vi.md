@@ -195,6 +195,7 @@ Chọn một dịch vụ email để nhận mã xác minh. Cấu hình email, ca
 | **DuckMail** | Temp mail công cộng, không cần cấu hình. Một số khu vực cần proxy. |
 | **TempMail.lol** | Temp mail công cộng, tự sinh địa chỉ ẩn danh. |
 | **Temp-Mail Web** | Dựa trên `web2.temp-mail.org`. |
+| **MailNest** | `mailnest.top` cung cấp hai chế độ hộp thư Outlook là tạm thời và độc quyền, cho phép truy cập dễ dàng và sẵn sàng sử dụng ngay lập tức |
 
 Định dạng các trường được mô tả trực tiếp trong editor — backend tự render form từ provider catalog tương ứng.
 

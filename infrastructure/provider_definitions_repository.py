@@ -131,6 +131,24 @@ _BUILTIN_DEFINITIONS: list[dict] = [
     },
     {
         "provider_type": "mailbox",
+        "provider_key": "mailnest_api",
+        "label": "迈巢-MailNest（outlook 临时邮箱）",
+        "description": "mailnest.top 第三方服务，通过 API Key 可以获得 outlook 临时邮箱 收件不成功不收费",
+        "driver_type": "mailnest_api",
+        "default_auth_mode": "apikey",
+        "enabled": True,
+        "category": "thirdparty",
+        "auth_modes": [{"value": "apikey", "label": "API Key"}],
+        "fields": [
+            {"key": "mailnest_api_key", "label": "API Key", "secret": True, "category": "auth"},
+            {
+                "key": "is_temporary", "label": "是否启用临时邮箱",
+                "placeholder": '是 / 否 （默认为是）', "category": "identity"
+            },
+        ],
+    },
+    {
+        "provider_type": "mailbox",
         "provider_key": "laoudo_api",
         "label": "Laoudo（固定邮箱）",
         "description": "laoudo.com 固定域名邮箱，使用已有邮箱地址接收验证码",
