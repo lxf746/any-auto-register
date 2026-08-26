@@ -44,7 +44,7 @@
 |---|---|---|
 | 部署 | 命令行 / Docker / .py 脚本 | 桌面客户端(Mac / Win)双击即用,内嵌 React UI |
 | 平台覆盖 | 1-3 个 | 11+ 平台 + Anything 通用适配器,新平台插件式接入 |
-| 邮箱方案 | 多数靠 IMAP | 9 种通道:MoeMail / Cloudflare 自建 / TempMail / DDG Email 等 |
+| 邮箱方案 | 多数靠 IMAP | 10 种通道:OmniMail / MoeMail / Cloudflare 自建 / TempMail / DDG Email 等 |
 | 执行模式 | 仅浏览器 | 纯协议(最快)/ Headless / Headed 三种 |
 | 全生命周期 | 注册完丢一边 | 定时检测 + Token 续期 + Trial 预警 + 风险中心告警 |
 | 数据分析 | 无 | 注册成功率仪表盘,错误归因(代理被风控 / 邮箱异常 / 二次验证) |
@@ -88,7 +88,7 @@
 **注册流程**
 
 - **平台**:ChatGPT / Cursor / Kiro / Trae.ai / Tavily / Grok / Blink / Cerebras / OpenBlockLabs / Windsurf,以及 Anything 通用适配器
-- **邮箱**:MoeMail 自建 / Cloudflare Worker 自建 / Laoudo / DuckMail / Testmail / Freemail / TempMail.lol / Temp-Mail Web / DuckDuckGo Email
+- **邮箱**:OmniMail / MoeMail 自建 / Cloudflare Worker 自建 / Laoudo / DuckMail / Testmail / Freemail / TempMail.lol / Temp-Mail Web / DuckDuckGo Email
 - **验证码**:YesCaptcha / 2Captcha / 本地 Solver (Camoufox)
 - **接码**:SMS-Activate / HeroSMS
 - **执行模式**:协议(无浏览器,最快)/ Headless / Headed,按平台支持情况切换
@@ -186,6 +186,7 @@ python3 -m uvicorn main:app --port 8000
 
 | Provider | 说明 |
 |----------|------|
+| **OmniMail** | 连接自部署 [OmniMail](https://github.com/mibgb65-cloud/OmniMail)，自动创建自有域名邮箱并读取验证码或验证链接 |
 | **MoeMail**(推荐) | 基于 [cloudflare_temp_email](https://github.com/dreamhunter2333/cloudflare_temp_email) 自建临时邮箱,无需配置,自动注册账号生成邮箱 |
 | **Laoudo** | 固定自有域名邮箱,稳定性最高,适合长期使用 |
 | **Cloudflare Worker 自建** | 基于 cloudflare_temp_email 自行部署,完全自主可控 |
