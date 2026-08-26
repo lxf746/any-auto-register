@@ -26,7 +26,7 @@ class MailboxAccount:
 
 class BaseMailbox(ABC):
     @abstractmethod
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         """获取一个可用邮箱"""
         ...
 
@@ -76,7 +76,7 @@ class FallbackMailbox(BaseMailbox):
             return mailbox
         raise RuntimeError(f"未找到邮箱 provider 上下文: {account.email}")
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         errors: list[str] = []
         for provider_key, mailbox in self.providers:
             try:
@@ -259,6 +259,14 @@ def _create_generic_http(extra: dict, proxy: str | None, *, pipeline_config: dic
     )
 
 
+def _create_mailnest(extra: dict, proxy: str | None, *, pipeline_config: dict | None = None) -> 'BaseMailbox':
+    return MailNestMailBox(
+        api_key=extra.get('mailnest_api_key'),
+        is_temporary=extra.get('is_temporary', '').strip() == '是',
+        proxy=proxy,
+    )
+
+
 MAILBOX_FACTORY_REGISTRY = {
     "generic_http_mailbox": _create_generic_http,
     "tempmail_lol_api": _create_tempmail,
@@ -283,6 +291,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "testmail": _create_testmail,
     "local_ms": _create_local_ms_pool,
     "laoudo": _create_laoudo,
+    'mailnest_api': _create_mailnest
 }
 
 
@@ -356,7 +365,7 @@ class LaoudoMailbox(BaseMailbox):
         self.api = (api_url or DEFAULT_LAOUDO_API_URL).rstrip("/")
         self._ua = "Mozilla/5.0"
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         return MailboxAccount(
             email=self._email,
             account_id=self._account_id,
@@ -479,7 +488,7 @@ class AitreMailbox(BaseMailbox):
         self._email = email
         self.api = (api_url or DEFAULT_AITRE_API_URL).rstrip("/")
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         return MailboxAccount(email=self._email)
 
     def get_current_ids(self, account: MailboxAccount) -> set:
@@ -563,7 +572,7 @@ class TempMailLolMailbox(BaseMailbox):
         self._token = None
         self._email = None
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         import requests
         r = requests.post(f"{self.api}/inbox/create",
             json={},
@@ -771,7 +780,7 @@ class TempMailWebMailbox(BaseMailbox):
 
         return self._decode_json_response(result, action)
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         import json
 
         data = self._request_json("POST", "/mailbox")
@@ -937,7 +946,7 @@ class DuckMailMailbox(BaseMailbox):
             "x-api-provider-base-url": self.provider_url,
         }
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         import requests, random, string
         username = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
         password = "Test" + "".join(random.choices(string.digits, k=8)) + "!"
@@ -1090,7 +1099,7 @@ class CFWorkerMailbox(BaseMailbox):
             h["x-fingerprint"] = self.fingerprint
         return h
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         import requests, random, string
         name = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
         payload = {"enablePrefix": True, "name": name}
@@ -1347,7 +1356,7 @@ class MoeMailMailbox(BaseMailbox):
     # 优先用这些域名（信誉较好，不易被 AWS/Google 等拒绝）
     _PREFERRED_DOMAINS = ("sall.cc", "cnmlgb.de", "zhooo.org", "coolkid.icu")
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         self._session_token = self._configured_session_token or None
         self._session = None
         self._ensure_session()
@@ -1518,7 +1527,7 @@ class FreemailMailbox(BaseMailbox):
         self._session = s
         return s
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         if not self._session:
             self._get_session()
         import requests
@@ -1696,7 +1705,7 @@ class TestmailMailbox(BaseMailbox):
             for key in ("subject", "text", "html")
         )
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         import time
 
         self._assert_ready()
@@ -1845,7 +1854,7 @@ class DDGEmailMailbox(BaseMailbox):
             "referer": "https://duckduckgo.com/",
         }
 
-    def get_email(self) -> MailboxAccount:
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
         import requests
         r = insecure_request(
             requests.post, self.DDG_API,
@@ -1979,3 +1988,134 @@ class DDGEmailMailbox(BaseMailbox):
                       timeout: int = 120, before_ids: set = None,
                       code_pattern: str = None) -> str:
         return self._imap_search_code(account.email, timeout, code_pattern)
+
+
+class MailNestMailBox(BaseMailbox):
+    """MailNest-迈巢 outlook 临时邮箱提供商 https://mailnest.top/"""
+
+    MAILNEST_API = "https://mailnest.top"
+    # 临时邮箱项目代码的缓存
+    PROJECT_CACHE = dict()
+
+    def __init__(self, api_key, is_temporary, proxy):
+        self.api_key = api_key
+        self.is_temporary = is_temporary
+        self.proxy = {"http": proxy, "https": proxy} if proxy else None
+
+    def __req(self, method, url, params=None, json=None):
+        from curl_cffi import requests
+        resp = requests.request(
+            method,
+            url,
+            params=params,
+            json=json,
+            proxies=self.proxy,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+            },
+            verify=False,
+        )
+        resp.raise_for_status()
+        resp_json = resp.json()
+        if resp_json['code'] != '00000':
+            raise Exception(f'{resp_json}')
+        return resp_json['data']
+
+    def get_project_code(self, platform_name):
+        if not platform_name:
+            return ''
+        from datetime import datetime, timedelta
+
+        if platform_name in self.PROJECT_CACHE:
+            if self.PROJECT_CACHE[platform_name][0] > datetime.now():
+                return self.PROJECT_CACHE[platform_name][1]
+        for project in self.__req('GET', f'{self.MAILNEST_API}/api/product/info')['temporary']:
+            if platform_name.lower() in project['name'].lower():
+                project_code = project['code']
+                self.PROJECT_CACHE[platform_name] = (datetime.now() + timedelta(hours=1), project_code)
+                return project_code
+        return ''
+
+    def get_email(self, platform_name: str = '') -> MailboxAccount:
+        email = ''
+        if self.is_temporary:
+            project_code = self.get_project_code(platform_name)
+            logger.info(f'根据 {platform_name} 获取到临时邮箱项目代码 {project_code}')
+            # 有这个项目时 购买临时邮箱
+            if project_code:
+                try:
+                    email = self.__req(
+                        'POST', f"{self.MAILNEST_API}/api/v1/email/temporary/buy",
+                        json={
+                            "project_code": project_code,
+                            "count": 1,
+                        }
+                    )[0]['email']
+                    logger.info(f'获取到临时邮箱 | email={email} project_code={project_code}')
+                except:
+                    pass
+        # 当项目邮箱数量不足时会获取失败 或 没有这个项目 购买独占邮箱
+        if not email:
+            email = self.__req(
+                'POST', f"{self.MAILNEST_API}/api/v1/email/exclusive/buy",
+                json={
+                    "count": 1,
+                }
+            )[0]['email']
+            logger.info(f'获取到独占邮箱 | email={email}')
+        if not email:
+            raise Exception('获取 MailNest 邮箱失败')
+        return MailboxAccount(
+            email=email
+        )
+
+    def _get_mails(self, email):
+        return self.__req(
+            'POST',
+            f'{self.MAILNEST_API}/api/v1/email/receive',
+            json={
+                "email": email,
+            },
+        )
+
+    def get_current_ids(self, account: MailboxAccount) -> set:
+        try:
+            return set(mail['id'] for mail in self._get_mails(account.email))
+        except Exception as e:
+            print(f'获取邮箱中已有的邮件失败 | e={e}')
+            return set()
+
+    def wait_for_code(self, account: MailboxAccount, keyword: str = "", timeout: int = 120, before_ids: set = None,
+                      code_pattern: str = None) -> str:
+        import re, time
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                mails = self._get_mails(account.email)
+                for mail in mails:
+                    m = re.search(
+                        code_pattern or r'(?<!#)(?<!\d)(\d{6})(?!\d)',
+                        re.sub(r'<.*?>', '', mail['body_preview'])
+                    )
+                    if m:
+                        return m.group(1) if m.groups() else m.group(0)
+            except Exception:
+                pass
+            time.sleep(3)
+        raise TimeoutError(f"等待验证码超时 ({timeout}s)")
+
+    def wait_for_link(self, account: MailboxAccount, keyword: str = "",
+                      timeout: int = 120, before_ids: set = None) -> str:
+        import time
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                mails = self._get_mails(account.email)
+                for mail in mails:
+                    link = _extract_verification_link(mail['body'], keyword)
+                    if link:
+                        return link
+            except Exception:
+                pass
+            time.sleep(3)
+        raise TimeoutError(f"等待验证链接超时 ({timeout}s)")

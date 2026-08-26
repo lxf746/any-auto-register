@@ -449,7 +449,7 @@ class BasePlatform(ABC):
         )
 
     def _resolve_identity(self, email: str = None, *, require_email: bool = True):
-        identity = self._get_identity_provider().resolve(email)
+        identity = self._get_identity_provider().resolve(email, self.name)
         self._last_identity = identity
         if require_email and not identity.email:
             raise ValueError(

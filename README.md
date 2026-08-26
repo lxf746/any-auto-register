@@ -195,6 +195,7 @@ python3 -m uvicorn main:app --port 8000
 | **DuckMail** | 公共临时邮箱,无需配置,部分地区需代理 |
 | **TempMail.lol** | 公共临时邮箱,自动生成匿名地址 |
 | **Temp-Mail Web** | 基于 `web2.temp-mail.org` 的临时邮箱 |
+| **MailNest 迈巢** | `mailnest.top` 提供临时与独占两种模式的 Outlook 邮箱，取件便捷，开箱即用 |
 
 各 Provider 字段格式参考全局配置页内字段提示,后端会按 provider catalog 自动渲染表单。
 

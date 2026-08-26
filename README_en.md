@@ -195,6 +195,7 @@ Pick a mailbox service to receive verification codes. Mailbox, captcha, and SMS 
 | **DuckMail** | Public temp mail, no config. Proxy may be required in some regions. |
 | **TempMail.lol** | Public temp mail, anonymous addresses generated automatically. |
 | **Temp-Mail Web** | Based on `web2.temp-mail.org`. |
+| **MailNest** | `mailnest.top` offers Outlook email accounts in both temporary and exclusive modes, with easy access and ready-to-use functionality. |
 
 Field formats are documented inline in the Settings editor — the backend renders each form from its provider catalog automatically.
 

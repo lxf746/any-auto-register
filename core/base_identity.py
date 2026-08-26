@@ -69,19 +69,19 @@ class BaseIdentityProvider(ABC):
         self.extra = extra or {}
 
     @abstractmethod
-    def resolve(self, requested_email: Optional[str] = None) -> IdentityMaterial:
+    def resolve(self, requested_email: Optional[str] = None, platform_name: str = '') -> IdentityMaterial:
         ...
 
 
 class MailboxIdentityProvider(BaseIdentityProvider):
     identity_provider = "mailbox"
 
-    def resolve(self, requested_email: Optional[str] = None) -> IdentityMaterial:
+    def resolve(self, requested_email: Optional[str] = None, platform_name: str = '') -> IdentityMaterial:
         requested_email = (requested_email or "").strip()
         if not self.mailbox:
             return IdentityMaterial(identity_provider=self.identity_provider, email=requested_email)
 
-        mail_acct = self.mailbox.get_email()
+        mail_acct = self.mailbox.get_email(platform_name)
         email = getattr(mail_acct, "email", "") or ""
         if not requested_email and not email:
             provider_name = getattr(self.mailbox, "__class__", type(self.mailbox)).__name__
