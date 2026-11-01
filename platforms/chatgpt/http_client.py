@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from core.http_client import HTTPClient, HTTPClientError, RequestConfig
 from .constants import ERROR_MESSAGES
+import json
 import logging
 logger = logging.getLogger(__name__)
 
