@@ -455,6 +455,23 @@ docker compose build --no-cache && docker compose up -d
 
 > 如果这个项目帮你省下了重复劳动的时间,点个 ⭐ 让更多人看到。
 
+## 赞助商
+
+<table>
+<tr>
+<td width="220" align="center">
+<a href="https://www.rapidproxy.io/?ref=lxf" target="_blank">
+<img src="https://www.rapidproxy.io/static/rapidproxy/images/rapid_logo_700.png" alt="RapidProxy" width="180" />
+</a>
+</td>
+<td>
+<b><a href="https://www.rapidproxy.io/?ref=lxf">RapidProxy</a></b> — 高质量住宅代理，智能 IP 轮换，低封禁率，流量不过期，助力数据采集。<br/>
+90M+ 真实住宅 IP · 200+ 国家 / 地区 · 99.9% 在线率 · &lt;0.5s 响应。<br/>
+<a href="https://www.rapidproxy.io/?ref=lxf"><b>免费试用 →</b></a>
+</td>
+</tr>
+</table>
+
 ## License
 
 本项目采用 [AGPL-3.0](LICENSE) 许可证。个人学习和研究可自由使用;商业使用需遵守 AGPL-3.0 条款(衍生作品须开源)。

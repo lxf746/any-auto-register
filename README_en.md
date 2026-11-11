@@ -447,6 +447,23 @@ Search the group ID inside QQ. For bugs and feature requests, please use [Issues
 
 > If this project saved you some repetitive work, a ⭐ helps others find it.
 
+## Sponsors
+
+<table>
+<tr>
+<td width="220" align="center">
+<a href="https://www.rapidproxy.io/?ref=lxf" target="_blank">
+<img src="https://www.rapidproxy.io/static/rapidproxy/images/rapid_logo_700.png" alt="RapidProxy" width="180" />
+</a>
+</td>
+<td>
+<b><a href="https://www.rapidproxy.io/?ref=lxf">RapidProxy</a></b> — High-quality residential proxies with smart IP rotation, low ban rate, and non-expiring traffic. Powerful for data collection.<br/>
+90M+ real residential IPs · 200+ countries / regions · 99.9% uptime · &lt;0.5s response.<br/>
+<a href="https://www.rapidproxy.io/?ref=lxf"><b>Free trial →</b></a>
+</td>
+</tr>
+</table>
+
 ## License
 
 [AGPL-3.0](LICENSE). Personal learning and research are unrestricted; commercial use must comply with AGPL-3.0 (derivative works must be open-sourced).
