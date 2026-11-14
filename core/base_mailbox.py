@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import html
 import logging
 import re
+import threading
 from urllib.parse import urlencode, urlparse
 
 logger = logging.getLogger(__name__)
@@ -219,6 +220,16 @@ def _create_cfworker(extra: dict, proxy: str | None) -> 'BaseMailbox':
     )
 
 
+def _create_omnimail(extra: dict, proxy: str | None) -> 'BaseMailbox':
+    return OmniMailMailbox(
+        api_url=extra.get("omnimail_api_url", ""),
+        username=extra.get("omnimail_username", ""),
+        password=extra.get("omnimail_password", ""),
+        domain=extra.get("omnimail_domain", ""),
+        proxy=proxy,
+    )
+
+
 def _create_testmail(extra: dict, proxy: str | None) -> 'BaseMailbox':
     return TestmailMailbox(
         api_url=extra.get("testmail_api_url", ""),
@@ -269,6 +280,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "freemail_api": _create_freemail,
     "moemail_api": _create_moemail,
     "cfworker_admin_api": _create_cfworker,
+    "omnimail_api": _create_omnimail,
     "testmail_api": _create_testmail,
     "local_ms_pool": _create_local_ms_pool,
     "laoudo_api": _create_laoudo,
@@ -280,6 +292,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "freemail": _create_freemail,
     "moemail": _create_moemail,
     "cfworker": _create_cfworker,
+    "omnimail": _create_omnimail,
     "testmail": _create_testmail,
     "local_ms": _create_local_ms_pool,
     "laoudo": _create_laoudo,
@@ -1194,6 +1207,242 @@ class CFWorkerMailbox(BaseMailbox):
             except Exception:
                 pass
             time.sleep(3)
+        raise TimeoutError(f"等待验证链接超时 ({timeout}s)")
+
+
+class OmniMailMailbox(BaseMailbox):
+    """OmniMail 自建邮箱服务。"""
+
+    _token_cache: dict[tuple[str, str], tuple[str, str]] = {}
+    _token_lock = threading.Lock()
+
+    def __init__(self, api_url: str, username: str, password: str, domain: str,
+                 proxy: str = None):
+        self.api = _normalize_api_base_url(api_url, default="", label="OmniMail API 地址")
+        self.username = str(username or "").strip()
+        self.password = str(password or "")
+        self.domain = str(domain or "").strip().lower().lstrip("@")
+        if not self.username or not self.password:
+            raise ValueError("OmniMail 用户名和密码不能为空")
+        if not self.domain or "." not in self.domain or "@" in self.domain:
+            raise ValueError("OmniMail 邮箱域名无效")
+
+        import requests
+
+        self.proxy = {"http": proxy, "https": proxy} if proxy else None
+        self._session = requests.Session()
+        self._access_token = ""
+        self._refresh_token = ""
+        self._token_key = (self.api, self.username.lower())
+
+    @staticmethod
+    def _response_error(response) -> str:
+        try:
+            data = response.json()
+        except Exception:
+            data = None
+        if isinstance(data, dict) and data.get("error"):
+            return str(data["error"])
+        return str(getattr(response, "text", "") or "请求失败")[:300]
+
+    def _save_tokens(self, data: dict) -> None:
+        access_token = str(data.get("accessToken") or "")
+        refresh_token = str(data.get("refreshToken") or "")
+        if not access_token or not refresh_token:
+            raise RuntimeError("OmniMail 认证响应缺少令牌")
+        self._access_token = access_token
+        self._refresh_token = refresh_token
+        self._token_cache[self._token_key] = (access_token, refresh_token)
+
+    def _issue_tokens(self) -> None:
+        with self._token_lock:
+            cached = self._token_cache.get(self._token_key)
+            if cached:
+                self._access_token, self._refresh_token = cached
+                return
+            response = self._session.post(
+                f"{self.api}/api/auth/token",
+                json={
+                    "email": self.username,
+                    "password": self.password,
+                    "deviceName": "Any Auto Register",
+                },
+                proxies=self.proxy,
+                timeout=15,
+            )
+            if not response.ok:
+                raise RuntimeError(
+                    f"OmniMail 登录失败 (HTTP {response.status_code}): {self._response_error(response)}"
+                )
+            self._save_tokens(response.json())
+
+    def _refresh_tokens(self) -> bool:
+        with self._token_lock:
+            cached = self._token_cache.get(self._token_key)
+            if cached and cached[1] != self._refresh_token:
+                self._access_token, self._refresh_token = cached
+                return True
+            if not self._refresh_token:
+                return False
+            response = self._session.post(
+                f"{self.api}/api/auth/token/refresh",
+                json={"refreshToken": self._refresh_token},
+                proxies=self.proxy,
+                timeout=15,
+            )
+            if not response.ok:
+                self._token_cache.pop(self._token_key, None)
+                self._access_token = ""
+                self._refresh_token = ""
+                return False
+            self._save_tokens(response.json())
+            return True
+
+    def _request(self, method: str, path: str, **kwargs):
+        if not self._access_token:
+            self._issue_tokens()
+        headers = dict(kwargs.pop("headers", {}) or {})
+        headers["authorization"] = f"Bearer {self._access_token}"
+        response = self._session.request(
+            method,
+            f"{self.api}{path}",
+            headers=headers,
+            proxies=self.proxy,
+            timeout=15,
+            **kwargs,
+        )
+        if response.status_code == 401:
+            if not self._refresh_tokens():
+                self._issue_tokens()
+            headers["authorization"] = f"Bearer {self._access_token}"
+            response = self._session.request(
+                method,
+                f"{self.api}{path}",
+                headers=headers,
+                proxies=self.proxy,
+                timeout=15,
+                **kwargs,
+            )
+        if not response.ok:
+            raise RuntimeError(
+                f"OmniMail API 请求失败 (HTTP {response.status_code}): {self._response_error(response)}"
+            )
+        return response
+
+    def get_email(self) -> MailboxAccount:
+        import random
+        import string
+
+        local_part = "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
+        address = f"{local_part}@{self.domain}"
+        data = self._request("POST", "/api/mailboxes", json={"address": address}).json()
+        mailbox = data.get("mailbox") if isinstance(data, dict) else None
+        email = str(mailbox.get("address") if isinstance(mailbox, dict) else "").strip()
+        if not email:
+            raise RuntimeError("OmniMail 创建邮箱响应缺少地址")
+        return MailboxAccount(
+            email=email,
+            account_id=email,
+            extra={
+                "provider_resource": {
+                    "provider_type": "mailbox",
+                    "provider_name": "omnimail",
+                    "resource_type": "mailbox",
+                    "resource_identifier": email,
+                    "handle": email,
+                    "display_name": email,
+                    "metadata": {
+                        "email": email,
+                        "api_url": self.api,
+                        "domain": self.domain,
+                    },
+                },
+            },
+        )
+
+    def _get_mails(self, email: str) -> list[dict]:
+        data = self._request(
+            "GET",
+            "/api/messages",
+            params={"folder": "inbox", "mailbox": email, "limit": 100},
+        ).json()
+        messages = data.get("messages") if isinstance(data, dict) else None
+        return [item for item in (messages or []) if isinstance(item, dict)]
+
+    def _message_text(self, mail: dict) -> str:
+        mid = str(mail.get("id") or "")
+        summary = " ".join(
+            str(mail.get(key) or "")
+            for key in ("subject", "preview", "senderAddress")
+        )
+        if not mid:
+            return summary
+        data = self._request("GET", f"/api/messages/{mid}").json()
+        message = data.get("message") if isinstance(data, dict) else None
+        if not isinstance(message, dict):
+            return summary
+        return " ".join(
+            [summary] + [str(message.get(key) or "") for key in ("subject", "text", "html")]
+        )
+
+    def get_current_ids(self, account: MailboxAccount) -> set:
+        try:
+            return {str(mail.get("id")) for mail in self._get_mails(account.email) if mail.get("id")}
+        except Exception:
+            return set()
+
+    def _wait_for_message(self, account: MailboxAccount, keyword: str, timeout: int,
+                          before_ids: set | None, extract) -> str:
+        import time
+
+        seen = set(before_ids or [])
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                for mail in self._get_mails(account.email):
+                    mid = str(mail.get("id") or "")
+                    if not mid or mid in seen or mail.get("status") == "processing":
+                        continue
+                    seen.add(mid)
+                    if mail.get("status") == "failed":
+                        continue
+                    text = self._message_text(mail)
+                    if keyword and keyword.lower() not in text.lower():
+                        continue
+                    result = extract(text)
+                    if result:
+                        return result
+            except Exception:
+                pass
+            time.sleep(3)
+        return ""
+
+    def wait_for_code(self, account: MailboxAccount, keyword: str = "",
+                      timeout: int = 120, before_ids: set = None,
+                      code_pattern: str = None) -> str:
+        def extract(text: str) -> str:
+            text = re.sub(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', '', text)
+            match = re.search(code_pattern or r"(?<!#)(?<!\d)(\d{6})(?!\d)", text)
+            if not match:
+                return ""
+            return match.group(1) if match.groups() else match.group(0)
+
+        result = self._wait_for_message(account, keyword, timeout, before_ids, extract)
+        if result:
+            return result
+        raise TimeoutError(f"等待验证码超时 ({timeout}s)")
+
+    def wait_for_link(self, account: MailboxAccount, keyword: str = "",
+                      timeout: int = 120, before_ids: set = None) -> str:
+        result = self._wait_for_message(
+            account,
+            keyword,
+            timeout,
+            before_ids,
+            lambda text: _extract_verification_link(text, keyword) or "",
+        )
+        if result:
+            return result
         raise TimeoutError(f"等待验证链接超时 ({timeout}s)")
 
 

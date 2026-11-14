@@ -44,7 +44,7 @@ Tự động hóa tài khoản cho 11+ nền tảng AI · Chế độ giao thứ
 |---|---|---|
 | Triển khai | CLI / Docker / script `.py` | Desktop client (Mac / Win), nhấp đôi là chạy, UI React tích hợp |
 | Độ phủ nền tảng | 1-3 | 11+ nền tảng + Anything adapter tổng quát, mở rộng kiểu plugin |
-| Giải pháp email | Chủ yếu IMAP | 9 kênh: MoeMail / Cloudflare tự host / TempMail / DDG Email, v.v. |
+| Giải pháp email | Chủ yếu IMAP | 10 kênh: OmniMail / MoeMail / Cloudflare tự host / TempMail / DDG Email, v.v. |
 | Chế độ thực thi | Chỉ trình duyệt | Pure protocol (nhanh nhất) / Headless / Headed |
 | Vòng đời đầy đủ | Đăng ký xong là bỏ | Kiểm tra định kỳ + refresh token + cảnh báo trial + cảnh báo rủi ro |
 | Phân tích dữ liệu | Không | Dashboard tỷ lệ thành công, quy lỗi (proxy bị chặn / email lỗi / xác minh phụ) |
@@ -88,7 +88,7 @@ Phân nhóm theo trách nhiệm:
 **Luồng đăng ký**
 
 - **Nền tảng**: ChatGPT / Cursor / Kiro / Trae.ai / Tavily / Grok / Blink / Cerebras / OpenBlockLabs / Windsurf, kèm Anything adapter tổng quát
-- **Email**: MoeMail tự host / Cloudflare Worker tự host / Laoudo / DuckMail / Testmail / Freemail / TempMail.lol / Temp-Mail Web / DuckDuckGo Email
+- **Email**: OmniMail / MoeMail tự host / Cloudflare Worker tự host / Laoudo / DuckMail / Testmail / Freemail / TempMail.lol / Temp-Mail Web / DuckDuckGo Email
 - **Captcha**: YesCaptcha / 2Captcha / Solver cục bộ (Camoufox)
 - **SMS**: SMS-Activate / HeroSMS
 - **Chế độ thực thi**: protocol (không browser, nhanh nhất) / Headless / Headed, chuyển đổi theo nền tảng
@@ -186,6 +186,7 @@ Chọn một dịch vụ email để nhận mã xác minh. Cấu hình email, ca
 
 | Provider | Ghi chú |
 |----------|------|
+| **OmniMail** | Kết nối tới [OmniMail](https://github.com/mibgb65-cloud/OmniMail) tự host để tạo hộp thư tên miền riêng và đọc mã hoặc liên kết xác minh. |
 | **MoeMail** (khuyến nghị) | Temp mail tự host dựa trên [cloudflare_temp_email](https://github.com/dreamhunter2333/cloudflare_temp_email). Không cần cấu hình — địa chỉ sinh tự động. |
 | **Laoudo** | Email custom-domain cố định. Ổn định nhất, phù hợp dùng lâu dài. |
 | **Cloudflare Worker tự host** | Tự deploy dựa trên `cloudflare_temp_email`. Toàn quyền kiểm soát. |

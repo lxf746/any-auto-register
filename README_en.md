@@ -44,7 +44,7 @@ Most similar projects only answer *"how do I register one platform"* and leave t
 |---|---|---|
 | Deployment | CLI / Docker / `.py` scripts | Desktop client (Mac / Win), double-click to run, embedded React UI |
 | Platform coverage | 1-3 | 11+ platforms + Anything generic adapter, plugin-based extension |
-| Mailbox options | Mostly IMAP | 9 channels: MoeMail / Cloudflare self-hosted / TempMail / DDG Email, etc. |
+| Mailbox options | Mostly IMAP | 10 channels: OmniMail / MoeMail / Cloudflare self-hosted / TempMail / DDG Email, etc. |
 | Execution mode | Browser only | Pure protocol (fastest) / Headless / Headed |
 | Full lifecycle | Register and forget | Scheduled checks + token refresh + trial warning + risk center alerts |
 | Analytics | None | Success-rate dashboard with error attribution (proxy banned / mailbox failed / second-factor) |
@@ -88,7 +88,7 @@ Grouped by responsibility:
 **Registration flow**
 
 - **Platforms**: ChatGPT / Cursor / Kiro / Trae.ai / Tavily / Grok / Blink / Cerebras / OpenBlockLabs / Windsurf, plus the Anything generic adapter
-- **Mailboxes**: MoeMail self-hosted / Cloudflare Worker self-hosted / Laoudo / DuckMail / Testmail / Freemail / TempMail.lol / Temp-Mail Web / DuckDuckGo Email
+- **Mailboxes**: OmniMail / MoeMail self-hosted / Cloudflare Worker self-hosted / Laoudo / DuckMail / Testmail / Freemail / TempMail.lol / Temp-Mail Web / DuckDuckGo Email
 - **Captcha**: YesCaptcha / 2Captcha / local Solver (Camoufox)
 - **SMS**: SMS-Activate / HeroSMS
 - **Execution modes**: protocol (no browser, fastest) / Headless / Headed, switchable per platform
@@ -186,6 +186,7 @@ Pick a mailbox service to receive verification codes. Mailbox, captcha, and SMS 
 
 | Provider | Notes |
 |----------|------|
+| **OmniMail** | Connects to a self-hosted [OmniMail](https://github.com/mibgb65-cloud/OmniMail) instance to create custom-domain mailboxes and read verification codes or links. |
 | **MoeMail** (recommended) | Self-hosted temp mail based on [cloudflare_temp_email](https://github.com/dreamhunter2333/cloudflare_temp_email). No config needed — addresses generated on the fly. |
 | **Laoudo** | Fixed custom-domain mailboxes. Highest stability, good for long-term use. |
 | **Cloudflare Worker self-hosted** | Deploy your own based on `cloudflare_temp_email`. Full control. |
